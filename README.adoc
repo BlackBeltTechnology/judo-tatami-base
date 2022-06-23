@@ -35,10 +35,10 @@ RDBMS -> Liquibase: Rdbms2Liquibase (hsqldb, postgresql)
 @enduml
 ----
 
-[[model-processing-pipeline]]
-.Model processing flow
+[[model-processing-pipeline-diagram]]
 ifdef::env-github[image::images/model-processing-pipeline-diagram.png[Model processing diagram]]
 ifndef::env-github[]
+.Model processing flow
 [plantuml, model-processing-pipeline-diagram, alt="Model processing diagram"]
 ----
 start
@@ -77,10 +77,10 @@ partition LSM {
 stop
 ----
 
-[[model-dependencies]]
-.Model dependencies
+[[model-dependencies-diagram]]
 ifdef::env-github[image::images/model-dependencies-diagram.png[Model dependencies diagram]]
 ifndef::env-github[]
+.Model dependencies
 [plantuml, model-dependencies-diagram, alt="Model dependencies diagram"]
 ----
 
