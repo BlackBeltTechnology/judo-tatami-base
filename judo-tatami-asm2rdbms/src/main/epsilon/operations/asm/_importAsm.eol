@@ -1,0 +1,5 @@
+import "attribute.eol";
+import "class.eol";
+import "namedElement.eol";
+import "package.eol";
+import "reference.eol";

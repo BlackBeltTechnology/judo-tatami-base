@@ -1,0 +1,69 @@
+operation ASM!EModelElement getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation ASM!EStringToStringMapEntry getId() : String {
+     return self.eResource.getId(self);
+}
+
+/////////////////////////////////////////
+// RdbmsElement
+
+operation RDBMS!RdbmsElement getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation RDBMS!RdbmsElement setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+// RdbmsElement
+/////////////////////////////////////////
+// RdbmsModel
+
+operation RDBMS!RdbmsModel getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation RDBMS!RdbmsModel setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+// RdbmsModel
+/////////////////////////////////////////
+// RdbmsConfiguration
+
+operation RDBMS!RdbmsConfiguration getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation RDBMS!RdbmsConfiguration setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+// RdbmsConfiguration
+/////////////////////////////////////////
+// RdbmsFeature
+
+operation RDBMS!RdbmsFeature getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation RDBMS!RdbmsFeature setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+// RdbmsFeature
+/////////////////////////////////////////
+// RdbmsOperationMeta
+
+operation RDBMS!RdbmsOperationMeta getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation RDBMS!RdbmsOperationMeta setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+// RdbmsOperationMeta
+/////////////////////////////////////////

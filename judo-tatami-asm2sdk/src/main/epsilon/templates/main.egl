@@ -1,0 +1,101 @@
+[%
+import "../operations/sdk.eol";
+
+var sdkJavaClasses = new Set();
+var internalJavaClasses = new Set();
+var internalScrXmls = new Set();
+var providedSdkInterfaces = new Set();
+var guiceDaoProviderModules = new Set();
+var springDaoModuleJavas = new Set();
+var springModuleConfigurations = new Set();
+
+executionContext.getContext().put("sdkJavaClasses", sdkJavaClasses);
+executionContext.getContext().put("internalJavaClasses", internalJavaClasses);
+executionContext.getContext().put("internalScrXmls", internalScrXmls);
+executionContext.getContext().put("providedSdkInterfaces", providedSdkInterfaces);
+executionContext.getContext().put("guiceDaoProviderModules", guiceDaoProviderModules);
+executionContext.getContext().put("springDaoModuleJavas", springDaoModuleJavas);
+executionContext.getContext().put("springModuleConfigurations", springModuleConfigurations);
+
+if (generateGuice) {
+    guiceDaoProviderModules.add(genGuiceDaoProviderModule());
+}
+if (generateSpring) {
+    springDaoModuleJavas.add(genSpringDaoModuleJava());
+    springModuleConfigurations.add(genSpringModuleConfiguration());
+}
+
+if (generateSdk) {
+    for (c in getAllEnums()) {
+        sdkJavaClasses.add(genEnum(c));
+    }
+}
+
+for (dto in getAllDTOs()) {
+    if (generateSdk) {
+        sdkJavaClasses.add(genDtoInterface(dto));
+    }
+
+    var generatedFiles;
+    if (asmUtils.isMappedTransferObjectType(dto)) {
+	    generatedFiles = genInternalDaoInterfaces(dto);
+	    if (generateInternal) {
+    	    providedSdkInterfaces.add(providedDaoInterface(dto));
+	    }
+	} else {
+		generatedFiles = genUnmappedInitializerFiles(dto);
+		if (generateInternal) {
+    	    providedSdkInterfaces.add(providedUnmappedInitializerInterface(dto));
+		}
+	}
+
+	if (generateInternal) {
+        for (file in generatedFiles) {
+            if (file.endsWith(".java")) {
+                internalJavaClasses.add(file);
+            } else if (file.endsWith(".xml")){
+                internalScrXmls.add(file);
+            }
+        }
+	}
+
+	generatedFiles = genSdkOperationInterfaces(dto);
+    if (generateSdk) {
+    	for (generatedFile in generatedFiles) {
+    	    sdkJavaClasses.add(generatedFile);
+	    }
+   	}
+	generatedFiles = genInternalOperationInterfaces(dto);
+    if (generateInternal) {
+    	providedSdkInterfaces.addAll(providedSdkOperationInterfaces(dto));
+        for (generatedFile in generatedFiles) {
+            if (generatedFile.endsWith(".xml")) {
+                internalScrXmls.add(generatedFile);
+            } else {
+                internalJavaClasses.add(generatedFile);
+            }
+        }
+    }
+}
+
+for (dto in getAllEntities()) {
+    var generatedFiles = genSdkOperationInterfaces(dto);
+    if (generateSdk) {
+        for (generatedFile in generatedFiles) {
+            sdkJavaClasses.add(generatedFile);
+        }
+    }
+    generatedFiles = genInternalOperationInterfaces(dto);
+	providedSdkInterfaces.addAll(providedSdkOperationInterfaces(dto));
+    if (generateInternal) {
+        for (generatedFile in generatedFiles) {
+            if (generatedFile.endsWith(".xml")) {
+                internalScrXmls.add(generatedFile);
+            } else {
+                internalJavaClasses.add(generatedFile);
+            }
+        }
+    }
+}
+
+%]

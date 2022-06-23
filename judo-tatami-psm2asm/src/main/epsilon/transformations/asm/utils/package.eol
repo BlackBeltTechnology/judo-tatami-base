@@ -1,0 +1,9 @@
+@cached
+operation JUDOPSM!Model asmEquivalent() : ASM!EPackage {
+    return self.equivalent("ModelToPackage");
+}
+
+@cached
+operation JUDOPSM!Package asmEquivalent() : ASM!EPackage {
+    return self.equivalent("PackageToPackage");
+}

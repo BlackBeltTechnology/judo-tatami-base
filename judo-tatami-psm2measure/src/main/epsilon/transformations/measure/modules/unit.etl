@@ -1,0 +1,54 @@
+import "../../../utils/_importAll.eol";
+
+rule CreateUnit
+    transform s : JUDOPSM!Unit
+    to t : MEASURES!Unit {
+        t.setId("(psm/" + s.getId() + ")/Unit");
+        t.name = s.name;
+        t.symbol = s.symbol;
+        t.rateDividend = new Native("java.math.BigDecimal")(s.rateDividend.toString());
+        t.rateDivisor = new Native("java.math.BigDecimal")(s.rateDivisor.toString());
+        
+        var m = JUDOPSM!Measure.all.selectOne(m | m.units.contains(s)).equivalent();
+        m.units.add(t);
+    }
+
+rule CreateDurationUnit
+    transform s : JUDOPSM!DurationUnit
+    to t : MEASURES!DurationUnit 
+    extends CreateUnit {
+        var idBase = "(psm/" + s.getId() + ")/DurationUnit";
+        switch (s.unitType) {
+            case JUDOPSM!DurationType#nanosecond:
+                t.type = MEASURES!DurationType#nanosecond;
+                t.setId(idBase + "Nanosecond");
+            case JUDOPSM!DurationType#microsecond:
+                t.type = MEASURES!DurationType#microsecond;
+                t.setId(idBase + "Microsecond");
+            case JUDOPSM!DurationType#millisecond:
+                t.type = MEASURES!DurationType#millisecond;
+                t.setId(idBase + "Millisecond");
+            case JUDOPSM!DurationType#second:
+                t.type = MEASURES!DurationType#second;
+                t.setId(idBase + "Second");
+            case JUDOPSM!DurationType#minute:
+                t.type = MEASURES!DurationType#minute;
+                t.setId(idBase + "Minute");
+            case JUDOPSM!DurationType#hour:
+                t.type = MEASURES!DurationType#hour;
+                t.setId(idBase + "Hour");
+            case JUDOPSM!DurationType#day:
+                t.type = MEASURES!DurationType#day;
+                t.setId(idBase + "Day");
+            case JUDOPSM!DurationType#week:
+                t.type = MEASURES!DurationType#week;
+                t.setId(idBase + "Week");
+            case JUDOPSM!DurationType#month:
+                t.type = MEASURES!DurationType#month;
+                t.setId(idBase + "Month");
+            case JUDOPSM!DurationType#year:
+                t.type = MEASURES!DurationType#year;
+                t.setId(idBase + "Year");
+            default: throw "Missing or unsupported unit type: " + s.unitType;
+        }
+    }

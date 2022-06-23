@@ -1,0 +1,31 @@
+[%
+  import "../../operations/sdk.eol";
+  out.setContentType("Java");
+%]
+package [%= getGuiceDaoProviderModulePrefix() + getModelPackageName() %];
+
+import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import hu.blackbelt.judo.dao.api.DAO;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+
+public class [%= getGuiceDaoProviderModuleName() %] extends AbstractModule {
+
+    protected void configure() {
+    }
+
+    [% for (dto in getAllDTOs()) {
+        if (asmUtils.isMappedTransferObjectType(dto)) {
+            var daoInterfaceName = dto.getClassName() + "Dao";
+    %]
+    @Provides
+    [%= getSdkPrefix() + dto.getDtoTypeName()%].[%= daoInterfaceName%] provide_[%= (getSdkPrefix() + dto.getDtoTypeName() + daoInterfaceName).replaceAll("\\.", "__") %](DAO dao, AsmModel asmModel) {
+            [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl daoImpl = new [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl();
+        daoImpl.setDao(dao);
+        daoImpl.setAsmModel(asmModel);
+        return daoImpl;
+    }
+
+[%        }
+     }%]
+}

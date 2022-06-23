@@ -1,0 +1,81 @@
+/////////////////////////////////////////
+// INDEX
+
+rule DropIndexes
+    transform s : RDBMS!RdbmsIndex
+    to t : BEFORE_INCREMENTAL!DropIndex {
+        guard: previousModel.contains(s.eContainer)
+        t.indexName = s.sqlName;
+        t.tableName = s.eContainer.sqlName;
+        beforeIncrementalModel.getOrCreateChangeSet("drop-indexes-from-" + s.eContainer.sqlName + "-" + context, "drop-indexes", dialect, context)
+            .dropIndex.add(t);
+        log.info("DropIndex added: " + t.indexName + " (" + t.tableName + ")");
+}
+
+// INDEX
+/////////////////////////////////////////
+// UNIQUE CONSTRAINT
+
+rule DropUniqueConstraints
+    transform s : RDBMS!RdbmsUniqueConstraint
+    to t : BEFORE_INCREMENTAL!DropUniqueConstraint {
+        guard: previousModel.contains(s.eContainer)
+        t.tableName = "";
+        for (field in s.fields) {
+            var dropUniqueConstraint = new BEFORE_INCREMENTAL!DropUniqueConstraint();
+            dropUniqueConstraint.constraintName = s.sqlName;
+            dropUniqueConstraint.tableName = field.eContainer.sqlName;
+            dropUniqueConstraint.uniqueColumns = field.sqlName;
+            beforeIncrementalModel.getOrCreateChangeSet("drop-unique-constraints-from-" + s.eContainer.sqlName + "-" + context, "drop-unique-constraints", dialect, context)
+                .dropUniqueConstraint.add(dropUniqueConstraint);
+            log.info("DropUniqueConstraint added: " + dropUniqueConstraint.uniqueColumns + " (" + dropUniqueConstraint.tableName + ")");
+        }
+}
+
+// UNIQUE CONSTRAINT
+/////////////////////////////////////////
+// NOT NULL CONSTRAINT
+
+@abstract
+rule DropNotNullConstraints
+    transform s : RDBMS!RdbmsField
+    to t : BEFORE_INCREMENTAL!DropNotNullConstraint {
+        guard: previousModel.contains(s.eContainer) and s.mandatory
+        t.tableName = s.eContainer.sqlName;
+        t.columnName = s.sqlName;
+
+        beforeIncrementalModel.getOrCreateChangeSet("drop-not-null-constraints-from-" + s.eContainer.sqlName + "-" + context, "drop-not-null-constraints", dialect, context)
+            .dropNotNullConstraint.add(t);
+        log.info("DropNotNullConstraint added: " + t.columnName + " (" + t.tableName + ")");
+}
+
+rule DropNotNullConstraintsFromValueFields
+    transform s : RDBMS!RdbmsValueField
+    to t : BEFORE_INCREMENTAL!DropNotNullConstraint
+    extends DropNotNullConstraints {
+}
+
+rule DropNotNullConstraintsFromForeignKeys
+    transform s : RDBMS!RdbmsForeignKey
+    to t : BEFORE_INCREMENTAL!DropNotNullConstraint
+    extends DropNotNullConstraints {
+}
+
+// NOT NULL CONSTRAINT
+/////////////////////////////////////////
+// FOREIGN KEY
+
+rule DropForeignKeyConstraints
+    transform s : RDBMS!RdbmsForeignKey
+    to t : BEFORE_INCREMENTAL!DropForeignKeyConstraint {
+        guard: previousModel.contains(s.eContainer)
+        t.baseTableName = s.eContainer.sqlName;
+        t.constraintName = s.foreignKeySqlName;
+
+        beforeIncrementalModel.getOrCreateChangeSet("drop-foreign-keys-from-" + s.eContainer.sqlName + "-" + context, "drop-foreign-keys", dialect, context)
+            .dropForeignKeyConstraint.add(t);
+        log.info("DropForeignKeyConstraint added: " + t.constraintName + " (" + t.baseTableName + ")");
+}
+
+// FOREIGN KEY
+/////////////////////////////////////////

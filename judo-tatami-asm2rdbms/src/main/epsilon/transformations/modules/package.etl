@@ -1,0 +1,16 @@
+rule rootPackegeToModel
+	transform s : ASM!EPackage
+	to t : RDBMS!RdbmsModel {
+		guard : s.eSuperPackage.isUndefined()
+		t.setId("(asm/" + s.getId() + ")/Model");
+		t.version = modelVersion;
+}
+
+rule rootPackegeToConfiguration
+	transform s : ASM!EPackage
+	to t : RDBMS!RdbmsConfiguration {
+		guard : s.eSuperPackage.isUndefined()
+		t.setId("(asm/" + s.getId() + ")/Configuration");
+		t.dialect = dialect;
+		s.equivalent().configuration = t;
+}

@@ -1,0 +1,42 @@
+@abstract
+rule NamespaceToPackage
+	transform s : JUDOPSM!Namespace
+	to t : ASM!EPackage {
+	    t.setId("(psm/" + s.getId() + ")/Package");
+		t.name = s.name;
+		t.nsPrefix = nsPrefix;
+}
+
+rule ModelToPackage
+	transform s : JUDOPSM!Model
+	to t : ASM!EPackage
+	extends NamespaceToPackage {
+	t.setId("(psm/" + s.getId() + ")/Package");
+    t.nsURI = nsURI + "/" + s.name;
+    t.nsPrefix = nsPrefix + s.name.firstToUpperCase();
+}
+
+rule PackageToPackage
+	transform s : JUDOPSM!Package
+	to t : ASM!EPackage
+	extends NamespaceToPackage {
+    t.setId("(psm/" + s.getId() + ")/Package");
+    t.nsURI = s.eContainer.asmEquivalent().nsURI + "/" + s.name;
+    t.nsPrefix = s.eContainer.asmEquivalent().nsPrefix + s.name.firstToUpperCase();
+    s.eContainer.asmEquivalent().eSubpackages.add(t);
+}
+
+@abstract
+rule CreateDocumentationAnnotation
+    transform s : JUDOPSM!NamedElement
+    to t : ASM!EAnnotation {
+        guard: s.documentation.isDefined() and s.documentation.trim().length() > 0
+        t.setId("(psm/" + s.getId() + ")/DocumentationAnnotation");
+        t.source = asmUtils.getAnnotationUri("documentation");
+
+        var documentation = new ASM!EStringToStringMapEntry;
+        documentation.setId(t.getId() + "/Documentation");
+        documentation.key = "value";
+        documentation.value = s.documentation;
+        t.details.add(documentation);
+    }

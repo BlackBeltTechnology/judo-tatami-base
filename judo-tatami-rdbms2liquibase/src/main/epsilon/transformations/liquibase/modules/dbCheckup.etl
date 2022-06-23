@@ -1,0 +1,138 @@
+/////////////////////////////////////////
+// TABLES
+
+rule CheckTables
+    transform s : RDBMS!RdbmsTable
+    to t : DBCHECKUP!TableExists {
+        guard: previousModel.contains(s)
+        t.tableName = s.sqlName;
+
+        dbCheckupModel.preConditions.tableExists.add(t);
+        log.info("TableExists added: " + t.tableName);
+}
+
+rule CheckJunctionTables
+    transform s : RDBMS!RdbmsJunctionTable
+    to t : DBCHECKUP!TableExists
+    extends CheckTables {
+}
+
+// TABLES
+/////////////////////////////////////////
+// BACKUP TABLES
+
+@abstract
+rule PreCheckBackupTables
+    transform s : RDBMS!RdbmsTableOperation
+    to t : DBCHECKUP!TableExists {
+        var useTable;
+        if (s.isTypeOf(RDBMS!RdbmsModifyTableOperation)) useTable = s.previousTable;
+        else useTable = s.table;
+
+        t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
+
+        if(dbCheckupModel.preConditions.`not`.size() == 0) {
+            dbCheckupModel.preConditions.`not`.add(new DBCHECKUP!Not());
+        }
+        dbCheckupModel.preConditions.`not`[0].tableExists.add(t);
+        log.info("Not TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
+}
+
+rule PreCheckBackupDeletedTables
+    transform s : RDBMS!RdbmsDeleteTableOperation
+    to t : DBCHECKUP!TableExists
+    extends PreCheckBackupTables {
+}
+
+rule PreCheckBackupModifiedTables
+    transform s : RDBMS!RdbmsModifyTableOperation
+    to t : DBCHECKUP!TableExists
+    extends PreCheckBackupTables {
+}
+
+// BACKUP TABLES
+/////////////////////////////////////////
+// FIELDS
+
+rule CheckFields
+    transform s : RDBMS!RdbmsField
+    to t : DBCHECKUP!ColumnExists {
+        guard: previousModel.contains(s.eContainer) and previousModel.tableOf(s.eContainer).contains(s)
+        t.tableName = s.eContainer.sqlName;
+        t.columnName = s.sqlName;
+
+        dbCheckupModel.preConditions.columnExists.add(t);
+        log.info("ColumnExists added: " + t.columnName + " (" + t.tableName + ")");
+}
+
+rule CheckValueFields
+    transform s : RDBMS!RdbmsValueField
+    to t : DBCHECKUP!ColumnExists
+    extends CheckFields {
+}
+
+rule CheckIdentifierFields
+    transform s : RDBMS!RdbmsIdentifierField
+    to t : DBCHECKUP!ColumnExists
+    extends CheckFields {
+}
+
+rule CheckForeignKeys
+    transform s : RDBMS!RdbmsForeignKey
+    to t : DBCHECKUP!ColumnExists
+    extends CheckFields {
+}
+
+// FIELDS
+/////////////////////////////////////////
+// FOREIGN KEY CONSTRAINTS
+
+rule CheckForeignKeyConstraints
+    transform s : RDBMS!RdbmsForeignKey
+    to t : DBCHECKUP!ForeignKeyConstraintExists {
+        guard: previousModel.contains(s.eContainer) and previousModel.tableOf(s.eContainer).contains(s)
+        t.foreignKeyTableName = s.eContainer.sqlName;
+        t.foreignKeyName = s.foreignKeySqlName;
+
+        dbCheckupModel.preConditions.foreignKeyConstraintExists.add(t);
+        log.info("ForeignKeyConstraintExists added: " + t.foreignKeyName + " (" + t.foreignKeyTableName + ")");
+}
+
+// FOREIGN KEY CONSTRAINTS
+/////////////////////////////////////////
+// INDEX
+
+rule CheckIndexes
+    transform s : RDBMS!RdbmsIndex
+    to t : DBCHECKUP!IndexExists {
+        guard: previousModel.contains(s.eContainer) and previousModel.tableOf(s.eContainer).contains(s)
+        for (field in s.fields) {
+            var indexExists = new DBCHECKUP!IndexExists();
+            indexExists.indexName = s.sqlName;
+            indexExists.tableName = field.eContainer.sqlName;
+            indexExists.columnNames = field.sqlName;
+            dbCheckupModel.preConditions.indexExists.add(indexExists);
+            log.info("IndexExists added: " + indexExists.columnNames + " (" + indexExists.tableName + ")");
+        }
+}
+
+// INDEX
+/////////////////////////////////////////
+// UNIQUE CONSTRAINT
+/*
+rule CheckUniqueConstraints
+    transform s : RDBMS!RdbmsUniqueConstraint
+    to t : DBCHECKUP!IndexExists {
+        guard: previousModel.contains(s.eContainer) and previousModel.tableOf(s.eContainer).contains(s)
+        for (field in s.fields) {
+            var indexExists = new DBCHECKUP!IndexExists();
+            indexExists.indexName = s.sqlName;
+            indexExists.tableName = field.eContainer.sqlName;
+            indexExists.columnNames = field.sqlName;
+            dbCheckupModel.preConditions.indexExists.add(indexExists);
+            log.info("IndexExists added: " + indexExists.columnNames + " (" + indexExists.tableName + ")");
+        }
+}
+*/
+// UNIQUE CONSTRAINT
+/////////////////////////////////////////

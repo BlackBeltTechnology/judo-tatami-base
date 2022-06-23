@@ -1,0 +1,52 @@
+
+operation JUDOPSM!NamedElement getId() : String {
+     return self.eResource.getId(self);
+}
+
+/////////////////////////////////////////
+// EModelElement
+
+operation ASM!EModelElement setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+operation ASM!EModelElement getId() : String {
+     return self.eResource.getId(self);
+}
+
+// EModelElement
+/////////////////////////////////////////
+
+operation JUDOPSM!Cardinality getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation JUDOPSM!TransferOperationBehaviour getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation JUDOPSM!ExpressionType getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation JUDOPSM!OperationBody getId() : String {
+     return self.eResource.getId(self);
+}
+
+operation JUDOPSM!MeasureDefinitionTerm getId() : String {
+     return self.eResource.getId(self);
+}
+
+/////////////////////////////////////////
+// EStringToStringMapEntry
+
+operation ASM!EStringToStringMapEntry setId(id: String) {
+    self.eResource.setId(self, id);
+}
+
+operation ASM!EStringToStringMapEntry getId() : String {
+     return self.eResource.getId(self);
+}
+
+// EStringToStringMapEntry
+/////////////////////////////////////////

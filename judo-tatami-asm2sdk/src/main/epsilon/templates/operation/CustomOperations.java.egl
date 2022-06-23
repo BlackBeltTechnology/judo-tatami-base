@@ -1,0 +1,53 @@
+[%
+  import "../../operations/sdk.eol";
+  out.setContentType("Java");
+  var dtoDoc = dto.getDocumentation();
+%]
+
+package [%= getCustomOperationsPrefix() + dto.getClassifierPackageName() %];
+
+[% if (dtoDoc <> "") {%]
+/**
+ * [%= dtoDoc %]
+ */
+[% } %]
+public interface [%= dto.getClassName() %] {
+
+    [% for (op in dto.getCustomizableOperations()) { %]
+        [% var map = getOperationGenerationData(dto, op);
+          var opDoc = op.getDocumentation(); %]
+
+    [% if (opDoc <> "") {%]
+    /**
+     * [%= opDoc %]
+     *
+    [% for (param in op.eParameters) {
+       var paramDoc = param.getDocumentation(); %]
+        [% if (paramDoc <> "") { %]
+     * @param [%= asmUtils.safeName(param.name) %] [%= paramDoc %]
+        [% } else { %]
+     * @param [%= asmUtils.safeName(param.name) %] [%= getSdkPrefix() + param.eType.getDtoTypeName() %]
+        [% } %]
+    [% } %]
+
+    [% if (op.eType.isDefined()) {
+        var paramDoc = op.getOutputDocumentation(); %]
+        [% if (paramDoc <> "") {%]
+     * @return [%= paramDoc %]
+        [% } else { %]
+     * @return [%= getSdkPrefix() + op.eType.getDtoTypeName() %]
+        [% } %]
+    [% } %]
+     */
+    [% } %]
+    @FunctionalInterface
+    interface [%= asmUtils.safeName(op.name.firstToUpperCase()) %] {
+
+        [%= map.get("extendedMethod") %][%
+        if (not op.eExceptions.isEmpty()) {
+        %] throws [%= op.eExceptions.collect(ex | ex.getBareTypeDefinition() + ".Exception").concat(",") %][%
+        } %];
+    }
+    [% } %] 
+
+}

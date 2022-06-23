@@ -1,0 +1,9 @@
+@cached
+operation ASM!EAttribute isPrimaryKey() : Boolean { 
+	return self == self.eContainingClass.primaryKeyAttribute();
+}
+
+@cached
+operation ASM!EAttribute fieldSqlName() : String { 
+	return "C_" + self.sqlName();
+}

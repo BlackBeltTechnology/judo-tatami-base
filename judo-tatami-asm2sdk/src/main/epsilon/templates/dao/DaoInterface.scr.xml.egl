@@ -1,0 +1,13 @@
+[%
+  import "../../operations/sdk.eol";
+  var fullClassName = getInternalPrefix() + dto.getClassifierPackageName() + "." + dto.getClassName() + "DaoImpl";
+%]
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" name="[%= fullClassName %]" immediate="true">
+  <implementation class="[%= fullClassName %]"/>
+  <service>
+    <provide interface="[%= getSdkPrefix() + dto.getClassifierPackageName() + "." + dto.getClassName() + "$" + dto.getClassName() + "Dao" %]"/>
+  </service>
+  <reference name="dao" interface="hu.blackbelt.judo.dao.api.DAO" field="dao" target="(&amp;(judo.model.name=[%= asmUtils.getModel().get().name %])(type=composite))"/>
+  <reference name="asmModel" interface="hu.blackbelt.judo.meta.asm.runtime.AsmModel" bind="setAsmModel" target="(name=[%= asmUtils.getModel().get().name %])" />
+</scr:component>

@@ -1,0 +1,195 @@
+import "../utils/_importUtils.eol";
+
+@greedy
+rule CreateEnumeration
+	transform s : JUDOPSM!EnumerationType
+	to t : ASM!EEnum {
+	    t.setId("(psm/" + s.getId() + ")/Enumeration");
+		t.name = s.name;
+		s.eContainer.asmEquivalent().eClassifiers.add(t);
+		for (m in s.members) {
+			var l = new ASM!EEnumLiteral;
+			l.setId(t.getId() + "/Literal" + loopCount);
+			l.value = m.ordinal;
+			l.literal = m.name;
+			l.name = m.name;
+			t.eLiterals.add(l);
+		}
+	}
+
+@greedy
+rule CreateStringType
+    transform s : JUDOPSM!StringType
+    to t : ASM!EDataType {
+        t.setId("(psm/" + s.getId() + ")/StringType");
+        t.name = s.name;
+        t.instanceClassName = "java.lang.String";
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateIntegerType
+    transform s : JUDOPSM!NumericType
+    to t : ASM!EDataType {
+        guard: s.isInteger()
+        t.setId("(psm/" + s.getId() + ")/IntegerType");
+        t.name = s.name;
+        
+        if (s.precision <= 9 and s.precision > 0) {
+            t.instanceClassName = "java.lang.Integer";
+        } else if (s.precision <= 19 and s.precision > 9) {
+            t.instanceClassName = "java.lang.Long";
+        } else {
+            t.instanceClassName = "java.math.BigDecimal";
+        }
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateDecimalType
+    transform s : JUDOPSM!NumericType
+    to t : ASM!EDataType {
+        guard: s.isDecimal()
+        t.setId("(psm/" + s.getId() + ")/DecimalType");
+        t.name = s.name;
+        if (s.precision <= 7 and s.precision > 0 and s.scale <= 4) {
+            t.instanceClassName = "java.lang.Float";
+        } else if (s.precision <= 15 and s.precision > 7 and s.scale <= 4) {
+            t.instanceClassName = "java.lang.Double";
+        } else {
+            t.instanceClassName = "java.math.BigDecimal";
+        }
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+rule CreateMeasuredAnnotationOfIntegerType
+    transform s : JUDOPSM!MeasuredType
+    to t : ASM!EAnnotation {
+        t.setId("(psm/" + s.getId() + ")/MeasuredAnnotationOfIntegerType");
+        t.source = asmUtils.getAnnotationUri("measured");
+
+        var unit = new ASM!EStringToStringMapEntry;
+        unit.setId(t.getId() + "/Unit");
+        unit.key = "unit";
+        unit.value = s.storeUnit.name;
+        t.details.add(unit);
+
+        var measure = new ASM!EStringToStringMapEntry;
+        measure.setId(t.getId() + "/Measure");
+        measure.key = "measure";
+        measure.value = psmUtils.namespaceElementToString(s.storeUnit.eContainer).replace("::", ".");
+        t.details.add(measure);
+
+        if (s.isInteger()) {
+            s.equivalent("CreateIntegerType").eAnnotations.add(t);
+        } else if (s.isDecimal()) {
+            s.equivalent("CreateDecimalType").eAnnotations.add(t);
+        }
+    }
+
+@greedy
+rule CreateBooleanType
+    transform s : JUDOPSM!BooleanType
+    to t : ASM!EDataType {
+        t.setId("(psm/" + s.getId() + ")/BooleanType");
+        t.name = s.name;
+        t.instanceClassName = "java.lang.Boolean";
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreatePasswordType
+    transform s : JUDOPSM!PasswordType
+    to t : ASM!EDataType {
+        // t.setId("(psm/" + s.getId() + ")/PasswordType");
+        throw "Password type is not supported yet.";
+    }
+
+@greedy
+rule CreateBinaryType
+    transform s : JUDOPSM!BinaryType
+    to t : ASM!EDataType {
+        t.setId("(psm/" + s.getId() + ")/BinaryType");
+        t.name = s.name;
+        t.instanceClassName = "byte[]";
+
+        var a = new ASM!EAnnotation();
+        a.setId("(psm/" + s.getId() + ")/Constraints");
+        a.source = asmUtils.getAnnotationUri("constraints");
+
+        if (s.mimeTypes.isDefined() and not s.mimeTypes.isEmpty()) {
+            var mimeTypes = new ASM!EStringToStringMapEntry;
+            mimeTypes.setId(t.getId() + "/BinaryTypeMimeTypesValue");
+            mimeTypes.key = "mimeTypes";
+            mimeTypes.value = s.mimeTypes.concat(",");
+            a.details.add(mimeTypes);
+        }
+
+        if (s.maxFileSize.isDefined() and s.maxFileSize > 0) {
+            var mimeTypes = new ASM!EStringToStringMapEntry;
+            mimeTypes.setId(t.getId() + "/MaxFileSizeValue");
+            mimeTypes.key = "maxFileSize";
+            mimeTypes.value = s.maxFileSize.asString();
+            a.details.add(mimeTypes);
+        }
+
+        t.eAnnotations.add(a);
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateXMLType
+    transform s : JUDOPSM!XMLType
+    to t : ASM!EDataType {
+        // t.setId("(psm/" + s.getId() + ")/XMLType");
+        throw "XML type is not supported yet.";
+    }
+
+@greedy
+rule CreateDateType
+    transform s : JUDOPSM!DateType
+    to t : ASM!EDataType {
+        t.setId("(psm/" + s.getId() + ")/DateType");
+        t.name = s.name;
+        t.instanceClassName = "java.time.LocalDate";
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateTimestampType
+    transform s : JUDOPSM!TimestampType
+    to t : ASM!EDataType {
+        t.setId("(psm/" + s.getId() + ")/TimestampType");
+        t.name = s.name;
+        t.instanceClassName = "java.time.OffsetDateTime";
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateTimeType
+    transform s : JUDOPSM!TimeType
+    to t : ASM!EDataType {
+        t.setId("(psm/" + s.getId() + ")/TimeType");
+        t.name = s.name;
+        t.instanceClassName = "java.time.LocalTime";
+
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateCustomType
+    transform s : JUDOPSM!CustomType
+    to t : ASM!EDataType {
+        guard: not s.isNumeric() and not s.isBoolean() and not s.isEnumeration() and not s.isString() and not s.isDate() and not s.isTimestamp() and not s.isTime() and not s.isKindOf(JUDOPSM!PasswordType) and not s.isKindOf(JUDOPSM!XMLType)
+        t.setId("(psm/" + s.getId() + ")/CustomType");
+        t.name = s.name;
+        t.instanceClassName = "java.lang.Object";
+        
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }

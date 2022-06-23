@@ -1,0 +1,15 @@
+[%
+  import "../../operations/sdk.eol";
+  var fullClassName = getInternalPrefix() + dto.getClassifierPackageName() + "." + dto.getClassName() + 'ExchangeFunctions$' + op.name.firstToUpperCase() + "ExchangeFunction";
+%]
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" name="[%= fullClassName %]" immediate="true">
+  <implementation class="[%= fullClassName %]"/>
+  <service>
+    <provide interface="java.util.function.Function"/>
+  </service>
+  <reference name="operation" interface="[%= getCustomOperationsPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %]$[%= asmUtils.safeName(op.name.firstToUpperCase()) %]" policy-option="greedy" field="operation"/>
+  <property name="judo.model.name" value="[%= asmUtils.getModel().get().name %]" />
+  <property name="operation.name" value="[%= asmUtils.getOperationFqName(op) %]" />
+  <property name="script" value="false" />  
+</scr:component>

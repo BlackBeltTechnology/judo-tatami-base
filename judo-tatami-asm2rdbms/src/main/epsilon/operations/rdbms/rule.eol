@@ -1,0 +1,19 @@
+operation RDBMS!Rule toString() : String {
+ return "Symbol: " + self.symbol +
+ " lower: " + self.lower +
+ " upper: " + self.upper +
+ " opposite: " + self.opposite +
+ " oppositeLower: " + self.oppositeLower +
+ " oppositeUpper: " + self.oppositeUpper +
+ " containment: " + self.containment +
+ " container: " + self.container +
+ " first: " + self.first +
+ " foreignKey: " + self.foreignKey +
+ " inverseForeignKey: " + self.inverseForeignKey +
+ " readOnly: " + self.readOnly +
+ " cascade: " + self.cascade +
+ " mandatory: " + self.mandatory +
+ " rangeConstraint: " + self.rangeConstraint +
+ " inverseRangeConstraint: " + self.inverseRangeConstraint +
+ " joinTable: " + self.joinTable;	
+}

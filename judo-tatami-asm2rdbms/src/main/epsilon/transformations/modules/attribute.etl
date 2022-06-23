@@ -1,0 +1,64 @@
+@abstract
+rule EAttributeToRdbmsField
+	transform s : ASM!EAttribute
+	to t : RDBMS!RdbmsField {
+		guard : asmUtils.isEntityType(s.eContainingClass)
+		t.setId("(asm/" + s.getId() + ")/RdbmsField");
+	    t.uuid = asmUtils.getAttributeFQName(s);
+	    log.debug(" Class: " + asmUtils.getClassifierFQName(s.eContainingClass));
+		
+		if (s.eType.isKindOf(ASM!EEnum)) {
+			// TODO: Make value constraints
+			t.fillType("java.lang.Integer", s);
+	    } else {
+	        if (s.eType.isUndefined()) {
+	        	log.warn("Could not determinate type (maybe enum?): " + s.eContainingClass.name + "#" + s.name);
+				t.fillType("java.lang.Integer", s);
+	        } else {
+				t.fillType(s.eType.instanceClassName, s);
+			}
+		}
+		t.sqlName = s.fieldSqlName();
+		t.mandatory = false; // s.required;
+		t.name = asmUtils.getAttributeFQName(s);
+}
+
+rule EAttributeToTableValueField
+	transform s : ASM!EAttribute
+	to t : RDBMS!RdbmsValueField
+	extends EAttributeToRdbmsField { 
+		guard : asmUtils.isEntityType(s.eContainingClass) and not s.derived
+		t.setId("(asm/" + s.getId() + ")/TableValueField");
+		s.eContainingClass.equivalent("EClassToRdbmsTable").fields.add(t);
+		log.debug("    Add attribute: " + asmUtils.getAttributeFQName(s));
+}
+
+// rule EAttributeToUniqueKey
+//	transform s : ASM!EAttribute
+//	to u : RDBMS!RdbmsUniqueConstraint {
+//		guard : asmUtils.isEntityType(s.eContainingClass) and asmUtils.isIdentifier(s) and not s.derived
+//		log.debug("    Add uniquie constraint: " + asmUtils.getAttributeFQName(s));
+//
+//		u.setId("(asm/" + s.getId() + ")/UniqueKey");
+//	    u.uuid = asmUtils.getAttributeFQName(s) + "@uniqueConstraint";
+//		s.eContainingClass.equivalent("EClassToRdbmsTable").uniqueConstraints.add(u);
+//
+//		u.sqlName = ("UQ_" + md5(u.uuid));
+//		u.name = asmUtils.getAttributeFQName(s);
+//		u.fields.add(s.equivalent("EAttributeToTableValueField"));
+//}
+
+rule EAttributeToIndex
+	transform s : ASM!EAttribute
+	to u : RDBMS!RdbmsIndex {
+		guard : asmUtils.isEntityType(s.eContainingClass) and asmUtils.isIdentifier(s) and not s.derived
+		log.debug("    Add index: " + asmUtils.getAttributeFQName(s));
+
+        u.setId("(asm/" + s.getId() + ")/Index");
+	    u.uuid = asmUtils.getAttributeFQName(s) + "@uniqueConstraint";
+		s.eContainingClass.equivalent("EClassToRdbmsTable").indexes.add(u);
+
+		u.sqlName = ("IDX_" + md5(u.uuid));
+		u.name = asmUtils.getAttributeFQName(s);
+		u.fields.add(s.equivalent("EAttributeToTableValueField"));
+}

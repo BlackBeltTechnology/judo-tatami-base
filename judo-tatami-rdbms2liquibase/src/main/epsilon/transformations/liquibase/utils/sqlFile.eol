@@ -1,0 +1,14 @@
+operation LIQUIBASE!SqlFile addSqlFileToChangeSet(changeSet: LIQUIBASE!ChangeSet, sqlName : String, msg : String) {
+    if (reviewResolver.exists(sqlName)) {
+         if (reviewResolver.resolve(sqlName).trim().length() > 0) {
+            self.path = sqlName;
+            self.dbms = dialect;
+            changeSet.sqlFile.add(self);
+        } else {
+            delete self;
+        }
+    } else {
+        missingReviewScripts.put(sqlName, msg);
+        delete self;
+    }
+}

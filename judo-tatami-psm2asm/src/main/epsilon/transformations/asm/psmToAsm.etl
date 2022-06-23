@@ -1,0 +1,22 @@
+import "modules/actor.etl";
+import "modules/derived.etl";
+import "modules/data.etl";
+import "modules/operation.etl";
+import "modules/namespace.etl";
+import "modules/transferObject.etl";
+import "modules/type.etl";
+
+post {
+    asmUtils.enrichWithAnnotations();
+    for (a in ASM!EAnnotation.all) {
+        for (d in a.details) {
+            if (d.getId().startsWith("_")) {
+                var oldId = d.getId();
+                d.setId(a.getId() + "/Value");
+                log.debug("Annotation detail id updated: " + oldId + " -> " + d.getId());
+            }
+        }
+    }
+
+    asmUtils.validateUniqueXmiids();
+}

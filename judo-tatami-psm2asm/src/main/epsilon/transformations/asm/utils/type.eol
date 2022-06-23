@@ -1,0 +1,24 @@
+@cached
+operation JUDOPSM!Primitive asmEquivalent() : ASM!EDataType {
+    if (self.isString()) {
+		return self.equivalent("CreateStringType");
+	} else if (self.isInteger()) {
+	    return self.equivalent("CreateIntegerType");
+	} else if (self.isDecimal()) {
+	    return self.equivalent("CreateDecimalType");
+	} else if (self.isBoolean()) {
+	    return self.equivalent("CreateBooleanType");
+	} else if (self.isKindOf(JUDOPSM!EnumerationType)) {
+		return self.equivalent("CreateEnumeration");
+    } else if (self.isDate()) {
+        return self.equivalent("CreateDateType");
+    } else if (self.isTimestamp()) {
+        return self.equivalent("CreateTimestampType");
+    } else if (self.isTime()) {
+        return self.equivalent("CreateTimeType");
+    } else if (self.isKindOf(JUDOPSM!BinaryType)) {
+        return self.equivalent("CreateBinaryType");
+	} else {
+	    return self.equivalent("CreateCustomType");
+	}
+}

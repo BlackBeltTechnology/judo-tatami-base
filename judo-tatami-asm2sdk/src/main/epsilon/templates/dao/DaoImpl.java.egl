@@ -1,0 +1,276 @@
+[%
+  import "../../operations/sdk.eol";  
+  out.setContentType("Java");
+%]
+
+[% 
+    var dtoTypeName = getSdkPrefix() + dto.getDtoTypeName();
+    var name = dto.getClassName() + "Dao";     
+    
+    var sdkUtil = "hu.blackbelt.judo.sdk.SdkUtil";
+    
+%]
+
+package [%= getInternalPrefix() + dto.getClassifierPackageName() %];
+
+/**
+* {@inheritdoc}
+*/
+public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao implements [%= dtoTypeName %].[%= name %] {
+    private final static String FQ_NAME = "[%= asmUtils.getClassifierFqName(dto) %]";
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= dtoTypeName %] create([%= dtoTypeName %] data) {
+        org.eclipse.emf.ecore.EClass eClass = getEClass(FQ_NAME);
+        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.create(eClass, hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(data)), null);
+        return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, resultPayload);
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public void delete([%= dtoTypeName %] subject) {    
+        dao.delete(getEClass(FQ_NAME), subject.get__identifier());
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public java.util.Collection<[%= dtoTypeName %]> getAll() {
+        java.util.List<hu.blackbelt.judo.dao.api.Payload> payloads = dao.getAllOf(getEClass(FQ_NAME));
+        return payloads.stream().map(payload -> [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, payload)).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= dtoTypeName %] getById(java.util.UUID id) {
+        hu.blackbelt.judo.dao.api.Payload payload = dao.getByIdentifier(getEClass(FQ_NAME), id).get();
+        return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, payload);
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= dtoTypeName %] update([%= dtoTypeName %] data) {
+        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.update(getEClass(FQ_NAME), hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(data)), null);
+        return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, resultPayload);
+    }
+    
+    [% for (rel in singleRelations) {%]
+        [% var relatedDto = rel.getEReferenceType();
+            var relatedType = getSdkPrefix() + relatedDto.getDtoTypeName();
+         %]
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObject) {
+        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(relatedObject)), null);
+        return [%= sdkUtil %].fromPayload([%= relatedType %].class, resultPayload);
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
+        org.eclipse.emf.ecore.EReference ref = [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]");
+        final java.util.List<hu.blackbelt.judo.dao.api.Payload> navigationResult = dao.getNavigationResultAt(object.get__identifier(), ref);
+        if (navigationResult.isEmpty()) {
+            return null;
+        }
+        return [%= sdkUtil %].fromPayload([%= relatedType %].class, navigationResult.get(0));
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public void set[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObject) {
+        dao.setReference([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name  %]"), object.get__identifier(), java.util.Arrays.asList(relatedObject.get__identifier()));
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public void unset[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
+        dao.unsetReference([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), object.get__identifier());
+    }
+
+    [% } %]
+    
+    [% for (rel in multiRelations) {%]
+        [% var relatedDto = rel.getEReferenceType();
+            var relatedType = "java.util.Collection<" + getSdkPrefix() + relatedDto.getDtoTypeName() + ">";
+            var singleRelatedType = getSdkPrefix() + relatedDto.getDtoTypeName();
+        %]
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects) {
+        [%=relatedType %] result = new java.util.ArrayList<>();
+        for ([%= singleRelatedType %] element : relatedObjects) {
+            hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(element)), null);
+            result.add([%= sdkUtil %].fromPayload([%= singleRelatedType %].class, resultPayload));
+        }
+    return result;
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
+        org.eclipse.emf.ecore.EReference ref = [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]");
+        java.util.Collection<hu.blackbelt.judo.dao.api.Payload> payloads = dao.getNavigationResultAt(object.get__identifier(), ref);
+        return payloads.stream().map(payload -> [%= sdkUtil %].fromPayload([%= singleRelatedType %].class, payload)).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public void remove[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects) {
+    dao.removeReferences([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), object.get__identifier(), relatedObjects.stream().map(relatedObject -> relatedObject.get__identifier()).collect(java.util.stream.Collectors.toList()));
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public void add[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects) {
+        dao.addReferences([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), object.get__identifier(), relatedObjects.stream().map(relatedObject -> relatedObject.get__identifier()).collect(java.util.stream.Collectors.toList()));
+    }
+    
+    [% } %]
+
+    [% for (attr in dto.eAllAttributes.select(a | a.derived and asmUtils.annotatedAsTrue(a, "parameterized"))) {
+        var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(attr, "parameterized", "type", false).get()).get(); %]
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= attr.getTypeDefinition() %] get[%= attr.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
+        java.util.Optional<hu.blackbelt.judo.dao.api.Payload> result = dao.search(getEClass(FQ_NAME), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
+            .mask(java.util.Collections.singletonMap("[%= attr.name %]", true))
+            .instanceIds(java.util.Collections.singleton(id))
+            .parameters(hu.blackbelt.judo.sdk.SdkUtil.asMap(parameter))
+            .build()).stream().findAny();
+        return result.map(r -> ([%= attr.getTypeDefinition() %])r.get("[%= attr.name %]")).orElse(null);
+    }
+    [% } %]
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= dtoTypeName %].[%= name %].QueryCustomizer search() {
+        return new QueryCustomizerImpl(asmUtils, dao);
+    }
+
+    [% for (ref in dto.eAllReferences.select(r | r.derived and r.many)) { %]
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
+               var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
+
+    abstract class QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %] extends [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl implements [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] {
+        public QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao) {
+            super(asmUtils, dao);
+        }
+
+[%
+    var t = TemplateFactory.load("dao/QueryCustomizerBuilderImpl.java.egl");
+    var queryCustomizer = "QueryCustomizerImplFor" + ref.name.firstToUpperCase();
+    var queryCustomizerDto = ref.eReferenceType;
+    out.print(t.process);
+%]
+
+        @Override
+        public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute() {
+            throw new java.lang.UnsupportedOperationException("Executing search operation needs query parameter");
+        }
+    }
+        [% } %]
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
+               var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
+    public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] search[%=ref.name.firstToUpperCase() %](java.util.UUID id) {
+        return new [%= getInternalPrefix() + dto.getClassifierPackageName() %].[%= name%]Impl.QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](asmUtils, dao) {
+            @Override
+            public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
+        [% } else { %]
+    public [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer search[%=ref.name.firstToUpperCase() %](java.util.UUID id) {
+        return new [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl(asmUtils, dao) {
+            @Override
+            public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute() {
+        [% }%]
+                return dao.searchNavigationResultAt(id, asmUtils.resolveReference("[%= asmUtils.getClassifierFQName(dto) %]#[%= ref.name %]").get(), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
+                    .filter(!filters.isEmpty() ? filters.stream().collect(java.util.stream.Collectors.joining(" and ")) : null)
+                    .orderByList(orderByList)
+                    .mask(mask)
+                    .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) { %]
+                    .parameters(hu.blackbelt.judo.sdk.SdkUtil.asMap(parameter))
+        [% } %]
+                    .build())
+                    .stream()
+                    .map(payload -> [%= sdkUtil %].fromPayload([%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %].class, payload))
+                    .collect(java.util.stream.Collectors.toList());
+            }
+        };
+    }
+    [% } %]
+
+    public static class QueryCustomizerImpl implements [%= dtoTypeName %].[%= name %].QueryCustomizer {
+
+        protected final hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils;
+        protected final hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao;
+
+        protected java.util.Collection<java.lang.String> filters = new java.util.ArrayList<>();
+        protected java.util.List<hu.blackbelt.judo.dao.api.DAO.OrderBy> orderByList = new java.util.ArrayList<>();
+        protected java.util.Map<java.lang.String, java.lang.Object> mask;
+        protected java.lang.Integer limit;
+
+        public QueryCustomizerImpl(hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao) {
+            this.asmUtils = asmUtils;
+            this.dao = dao;
+        }
+
+[%
+    var t = TemplateFactory.load("dao/QueryCustomizerBuilderImpl.java.egl");
+    var queryCustomizer = dtoTypeName + "." + name + ".QueryCustomizer";
+    var queryCustomizerDto = dto;
+    out.print(t.process);
+%]
+
+        /**
+        * {@inheritdoc}
+        */
+        @Override
+        public java.util.List<[%= dtoTypeName %]> execute() {
+            return dao.search((org.eclipse.emf.ecore.EClass) asmUtils.resolve("[%= asmUtils.getClassifierFQName(dto) %]").get(), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
+                .filter(!filters.isEmpty() ? filters.stream().collect(java.util.stream.Collectors.joining(" and ")) : null)
+                .orderByList(orderByList)
+                .mask(mask)
+                .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
+                .build())
+                .stream()
+                .map(payload -> [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, payload))
+                .collect(java.util.stream.Collectors.toList());
+        }
+    }
+}

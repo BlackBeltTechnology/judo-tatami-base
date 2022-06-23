@@ -1,0 +1,36 @@
+import "../../../operations/psm/measure/_importMeasure.eol";
+import "../../../utils/_importAll.eol";
+
+@abstract
+rule CreateMeasure
+    transform s : JUDOPSM!Measure
+    to t : MEASURES!Measure {
+        t.setId("(psm/" + s.getId() + ")/Measure");
+        t.namespace = psmUtils.namespaceToString(s.getNamespace());
+        t.name = s.name;
+        t.symbol = s.symbol;
+    }
+
+rule CreateBaseMeasure
+    transform s : JUDOPSM!Measure
+    to t : MEASURES!BaseMeasure 
+    extends CreateMeasure {
+        guard: not s.isKindOf(JUDOPSM!DerivedMeasure)
+        t.setId("(psm/" + s.getId() + ")/BaseMeasure");
+    }
+
+rule CreateDerivedMeasure
+    transform s : JUDOPSM!DerivedMeasure
+    to t : MEASURES!DerivedMeasure 
+    extends CreateMeasure {
+        t.setId("(psm/" + s.getId() + ")/DerivedMeasure");
+        var baseMeasures = s.getBaseMeasures();
+        for (m in baseMeasures.keySet()) {
+            var term = new MEASURES!BaseMeasureTerm;
+            term.setId("(" + t.getId() + ")_((psm/" + m.getId() + ")/BaseMeasureTerm)");
+            term.exponent = baseMeasures.get(m);
+            term.baseMeasure = m.equivalent();
+            
+            t.terms.add(term);
+        }
+    }

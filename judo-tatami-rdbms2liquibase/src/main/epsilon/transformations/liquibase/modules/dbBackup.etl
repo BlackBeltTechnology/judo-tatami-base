@@ -1,0 +1,32 @@
+/////////////////////////////////////////
+// BACKUP TABLES
+
+@abstract
+rule BackupTables
+    transform s : RDBMS!RdbmsTableOperation
+    to t : LIQUIBASE!SqlFile {
+        var useTable;
+        if (s.isTypeOf(RDBMS!RdbmsModifyTableOperation)) useTable = s.previousTable;
+        else useTable = s.table;
+
+        t.path = backupChangeSetNamePrefix + "_" + useTable.sqlName.toLowerCase() + "_data_" + dialect + ".sql";
+        t.dbms = dialect;
+
+        dbBackupModel.getOrCreateChangeSet("backup-tables-" + context, "backup-tables", dialect, context).sqlFile.add(t);
+        log.info("SqlFile added:\n    " + t.path);
+}
+
+rule BackupDeletedTables
+    transform s : RDBMS!RdbmsDeleteTableOperation
+    to t : LIQUIBASE!SqlFile
+    extends BackupTables {
+}
+
+rule BackupModifiedTables
+    transform s : RDBMS!RdbmsModifyTableOperation
+    to t : LIQUIBASE!SqlFile
+    extends BackupTables {
+}
+
+// BACKUP TABLES
+/////////////////////////////////////////

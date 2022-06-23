@@ -1,0 +1,23 @@
+<spreadsheet>
+	<worksheet name="TableMappingRule" dataTypeStrict ="true">
+        <column name="Symbol" alias="symbol" dataType="string"/>
+        <column name="Opposite" alias="opposite" dataType="boolean"/>
+        <column name="Lower" alias="lower" dataType="integer"/>
+        <column name="Upper" alias="upper" dataType="integer"/>
+        <column name="OppositeLower" alias="oppositeLower" dataType="integer"/>
+        <column name="OppositeUpper" alias="oppositeUpper" dataType="integer"/>
+        <column name="Container" alias="container" dataType="boolean"/>
+        <column name="Containment" alias="containment" dataType="boolean"/>
+        <column name="First" alias="first" dataType="boolean"/>
+
+        <column name="ForeignKey" alias="foreignKey" dataType="boolean"/>
+        <column name="InverseForeignKey" alias="inverseForeignKey" dataType="boolean"/>
+        <column name="ReadOnly" alias="readOnly" dataType="boolean"/>
+        <column name="Cascade" alias="cascade" dataType="boolean"/>
+        <column name="Mandatory" alias="mandatory" dataType="boolean"/>
+        <column name="RangeConstraint" alias="rangeConstraint" dataType="boolean"/>
+        <column name="InverseRangeConstraint" alias="inverseRangeConstraint" dataType="boolean"/>
+        <column name="JoinTable" alias="joinTable" dataType="boolean"/>
+
+	</worksheet>
+</spreadsheet>

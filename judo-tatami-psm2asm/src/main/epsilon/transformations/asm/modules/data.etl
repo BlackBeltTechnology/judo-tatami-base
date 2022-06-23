@@ -1,0 +1,337 @@
+import "../utils/_importUtils.eol";
+import "namespace.etl";
+
+rule CreateEntityAnnotationClass
+	transform s : JUDOPSM!EntityType
+	to t : ASM!EAnnotation {
+	    t.setId("(psm/" + s.getId() + ")/EntityAnnotationClass");
+        t.source = asmUtils.getAnnotationUri("entity");
+        
+        var entity = new ASM!EStringToStringMapEntry;
+        entity.setId(t.getId() + "/Entity");
+        entity.key = "value";
+        entity.value = "true";
+        t.details.add(entity);
+        
+        s.equivalent("CreateEntityClass").eAnnotations.add(t);
+	}
+
+rule CreateDocumentationAnnotationForEntityType
+    transform s : JUDOPSM!EntityType
+    to t : ASM!EAnnotation
+    extends CreateDocumentationAnnotation {
+        t.setId("(psm/" + s.getId() + ")/DocumentationAnnotationForEntityType");
+        s.equivalent("CreateEntityClass").eAnnotations.add(t);
+    }
+
+rule CreateEntityClass
+	transform s : JUDOPSM!EntityType
+	to t : ASM!EClass {
+	    t.setId("(psm/" + s.getId() + ")/EntityClass");
+		t.name = s.name;
+		t.abstract = s.abstract;
+		for (super in s.superEntityTypes) {
+			t.eSuperTypes.add(super.equivalent("CreateEntityClass"));
+		}
+		s.eContainer.asmEquivalent().eClassifiers.add(t);
+	}
+
+rule CreateEntityDefaultRepresentationAnnotation
+    transform s : JUDOPSM!EntityType
+    to t : ASM!EAnnotation {
+        guard: s.defaultRepresentation.isDefined()
+        t.setId("(psm/" + s.getId() + ")/EntityDefaultRepresentationAnnotation");
+        t.source = asmUtils.getAnnotationUri("defaultRepresentation");
+
+        var defaultRepresentation = new ASM!EStringToStringMapEntry;
+        defaultRepresentation.setId(t.getId() + "/DefaultRepresentation");
+        defaultRepresentation.key = "value";
+        defaultRepresentation.value = psmUtils.namespaceElementToString(s.defaultRepresentation).replace("::",".");
+        t.details.add(defaultRepresentation);
+
+        s.equivalent("CreateEntityClass").eAnnotations.add(t);
+    }
+
+@abstract
+rule AddAttributeConstraints
+	transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation {
+        t.setId("(psm/" + s.getId() + ")/AttributeConstraints");
+        t.source = asmUtils.getAnnotationUri("constraints");
+        
+        s.equivalent("CreateAttribute").eAnnotations.add(t);
+    }
+
+rule CreateDocumentationAnnotationForAtrributes
+    transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation
+        extends CreateDocumentationAnnotation {
+        t.setId("(psm/" + s.getId() + ")/DocumentationAnnotationForAtrributes");
+        s.equivalent("CreateAttribute").eAnnotations.add(t);
+    }
+
+rule AddStringAttributeConstraints
+	transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation
+    extends AddAttributeConstraints {
+        guard: s.dataType.isKindOf(JUDOPSM!StringType)
+        t.setId("(psm/" + s.getId() + ")/StringAttributeConstraints");
+        
+        var maxLength = new ASM!EStringToStringMapEntry;
+        maxLength.setId(t.getId() + "/MaxLength");
+        maxLength.key = "maxLength";
+        maxLength.value = s.dataType.maxLength.asString();
+        t.details.add(maxLength);
+
+        if (s.dataType.regExp.isDefined() and s.dataType.regExp.trim().length() > 0) {
+            var pattern = new ASM!EStringToStringMapEntry;
+            pattern.setId(t.getId() + "/Pattern");
+            pattern.key = "pattern";
+            pattern.value = s.dataType.regExp;
+            t.details.add(pattern);
+        }
+    }
+
+rule AddCustomAttributeConstraints
+	transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation
+    extends AddAttributeConstraints {
+        guard: s.dataType.isKindOf(JUDOPSM!CustomType)
+        t.setId("(psm/" + s.getId() + ")/CustomAttributeConstraints");
+
+        var customType = new ASM!EStringToStringMapEntry;
+        customType.setId(t.getId() + "/CustomType");
+        customType.key = "customType";
+        customType.value = psmUtils.namespaceElementToString(s.dataType).replace("::", ".");
+        t.details.add(customType);
+    }
+
+@abstract
+rule AddAbstractNumericAttributeConstraints
+	transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation
+    extends AddAttributeConstraints {
+        t.setId("(psm/" + s.getId() + ")/AbstractNumericAttributeConstraints");
+
+        var precision = new ASM!EStringToStringMapEntry;
+        precision.setId(t.getId() + "/Precision");
+        precision.key = "precision";
+        precision.value = s.dataType.precision.asString();
+        t.details.add(precision);
+        
+        var scale = new ASM!EStringToStringMapEntry;
+        scale.setId(t.getId() + "/Scale");
+        scale.key = "scale";
+        scale.value = s.dataType.scale.asString();
+        t.details.add(scale);
+    }
+
+rule AddNumericAttributeConstraints
+	transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation
+    extends AddAbstractNumericAttributeConstraints {
+        guard: s.dataType.isKindOf(JUDOPSM!NumericType) and not s.dataType.isKindOf(JUDOPSM!MeasuredType)
+        t.setId("(psm/" + s.getId() + ")/NumericAttributeConstraints");
+    }
+
+rule AddMeasuredAttributeConstraints
+    transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation
+    extends AddAbstractNumericAttributeConstraints {
+        guard: s.dataType.isKindOf(JUDOPSM!MeasuredType)
+        t.setId("(psm/" + s.getId() + ")/MeasuredAttributeConstraints");
+        
+        var measure = new ASM!EStringToStringMapEntry;
+        measure.setId(t.getId() + "/Measure");
+        measure.key = "measure";
+        measure.value = psmUtils.namespaceElementToString(s.dataType.storeUnit.eContainer).replace("::", ".");
+        t.details.add(measure);
+        
+        var unit = new ASM!EStringToStringMapEntry;
+        unit.setId(t.getId() + "/Unit");
+        unit.key = "unit";
+        unit.value = s.dataType.storeUnit.name;
+        t.details.add(unit);
+    }
+
+rule CreateAttribute
+	transform s : JUDOPSM!Attribute
+	to t : ASM!EAttribute {
+		guard: s.isPrimitive()
+		t.setId("(psm/" + s.getId() + ")/Attribute");
+		t.name = s.name;
+		if (s.required) {
+			t.lowerBound = 1;
+		} else {
+			t.lowerBound = 0;
+		}
+
+		t.eType = s.dataType.asmEquivalent();
+		s.getEntityType().equivalent("CreateEntityClass").eStructuralFeatures.add(t);
+	}
+
+rule CreateIdentifierAnnotationForAttribute
+    transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation {
+        guard: s.identifier
+        t.setId("(psm/" + s.getId() + ")/IdentifierAnnotationForAttribute");
+        t.source = asmUtils.getAnnotationUri("identifier");
+
+        var identifier = new ASM!EStringToStringMapEntry;
+        identifier.setId(t.getId() + "/Identifier");
+        identifier.key = "value";
+        identifier.value = "true";
+        t.details.add(identifier);
+        s.equivalent("CreateAttribute").eAnnotations.add(t);
+    }
+
+@abstract
+rule CreateRelation
+	transform s : JUDOPSM!Relation
+	to t : ASM!EReference {
+	    t.setId("(psm/" + s.getId() + ")/Relation");
+		t.name = s.name;
+
+		t.lowerBound = s.cardinality.lower;
+		t.upperBound = s.cardinality.upper;
+		t.eType = s.target.equivalent("CreateEntityClass");
+
+		s.getEntityType().equivalent("CreateEntityClass").eStructuralFeatures.add(t);
+	}
+
+rule CreateAssociationEndRelation
+	transform s : JUDOPSM!AssociationEnd
+	to t : ASM!EReference
+	extends CreateRelation {
+	    t.setId("(psm/" + s.getId() + ")/AssociationEndRelation");
+
+		if (s.partner.isDefined()) {
+			t.eOpposite = s.partner.equivalent("CreateAssociationEndRelation");
+		}
+
+        if (s.reverseCascadeDelete) {
+            var reverseCascadeDeleteAnnotation = new ASM!EAnnotation();
+            reverseCascadeDeleteAnnotation.setId(t.getId() + "/ReverseCascadeDeleteAnnotation");
+            reverseCascadeDeleteAnnotation.source = asmUtils.getAnnotationUri("reverseCascadeDelete");
+
+            var reverseCascadeDelete = new ASM!EStringToStringMapEntry;
+            reverseCascadeDelete.setId(reverseCascadeDeleteAnnotation.getId() + "/ReverseCascadeDelete");
+            reverseCascadeDelete.key = "value";
+            reverseCascadeDelete.value = "true";
+            reverseCascadeDeleteAnnotation.details.add(reverseCascadeDelete);
+
+            t.eAnnotations.add(reverseCascadeDeleteAnnotation);
+        }
+}
+
+rule CreateContainmentRelation
+	transform s : JUDOPSM!Containment
+	to t : ASM!EReference
+	extends CreateRelation {
+	    t.setId("(psm/" + s.getId() + ")/ContainmentRelation");
+		t.containment = true;
+}
+
+rule AddUnmappedDefaultOnlyAttributeAnnotation
+	transform s : JUDOPSM!Attribute
+    to t : ASM!EAnnotation {
+        guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() and s.eContainer.defaultRepresentation.attributes.exists(a | a.binding == s and a.defaultValue.isDefined())
+        t.setId("(psm/" + s.getId() + ")/UnmappedDefaultOnlyAttributeAnnotation");
+        t.source = asmUtils.getAnnotationUri("unmappedDefaultOnly");
+
+        var unmappedDefaultOnly = new ASM!EStringToStringMapEntry;
+        unmappedDefaultOnly.setId(t.getId() + "/UnmappedDefaultOnly");
+        unmappedDefaultOnly.key = "value";
+        unmappedDefaultOnly.value = s.unmappedDefaultOnly.asString();
+        t.details.add(unmappedDefaultOnly);
+
+        s.equivalent("CreateAttribute").eAnnotations.add(t);
+    }
+
+rule AddUnmappedDefaultOnlyReferenceAnnotation
+	transform s : JUDOPSM!AssociationEnd
+    to t : ASM!EAnnotation {
+        guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() and s.eContainer.defaultRepresentation.relations.exists(r | r.binding == s and r.defaultValue.isDefined())
+        t.setId("(psm/" + s.getId() + ")/UnmappedDefaultOnlyReferenceAnnotation");
+        t.source = asmUtils.getAnnotationUri("unmappedDefaultOnly");
+
+        var unmappedDefaultOnly = new ASM!EStringToStringMapEntry;
+        unmappedDefaultOnly.setId(t.getId() + "/UnmappedDefaultOnly");
+        unmappedDefaultOnly.key = "value";
+        unmappedDefaultOnly.value = s.unmappedDefaultOnly.asString();
+        t.details.add(unmappedDefaultOnly);
+
+        s.equivalent("CreateAssociationEndRelation").eAnnotations.add(t);
+    }
+
+rule CreateDocumentationAnnotationForAssociationEndRelation
+    transform s : JUDOPSM!AssociationEnd
+    to t : ASM!EAnnotation
+        extends CreateDocumentationAnnotation {
+        t.setId("(psm/" + s.getId() + ")/DocumentationAnnotationForAssociationEndRelation");
+        s.equivalent("CreateAssociationEndRelation").eAnnotations.add(t);
+    }
+
+rule CreateDocumentationAnnotationForContainmentRelation
+    transform s : JUDOPSM!Containment
+    to t : ASM!EAnnotation
+        extends CreateDocumentationAnnotation {
+        t.setId("(psm/" + s.getId() + ")/DocumentationAnnotationForContainmentRelation");
+        s.equivalent("CreateContainmentRelation").eAnnotations.add(t);
+    }
+
+@abstract
+rule CreateSequence
+  transform s : JUDOPSM!`Sequence`
+  to t : ASM!EAnnotation {
+        t.setId("(psm/" + s.getId() + ")/Sequence");
+        t.source = asmUtils.getAnnotationUri("sequence");
+
+        var name = new ASM!EStringToStringMapEntry;
+        name.setId(t.getId() + "/Name");
+        name.key = "name";
+        name.value = s.name;
+        t.details.add(name);
+
+        var initialValue = new ASM!EStringToStringMapEntry;
+        initialValue.setId(t.getId() + "/InitialValue");
+        initialValue.key = "initialValue";
+        initialValue.value = s.initialValue.asString();
+        t.details.add(initialValue);
+
+        var increment = new ASM!EStringToStringMapEntry;
+        increment.setId(t.getId() + "/Increment");
+        increment.key = "increment";
+        increment.value = s.increment.asString();
+        t.details.add(increment);
+
+        if (s.maximumValue.isDefined() and s.maximumValue != 0) {
+            var maximumValue = new ASM!EStringToStringMapEntry;
+            maximumValue.setId(t.getId() + "/MaximumValue");
+            maximumValue.key = "maximumValue";
+            maximumValue.value = s.maximumValue.asString();
+            t.details.add(maximumValue);
+        }
+
+        var cyclic = new ASM!EStringToStringMapEntry;
+        cyclic.setId(t.getId() + "/Cyclic");
+        cyclic.key = "cyclic";
+        cyclic.value = s.cyclic.asString();
+        t.details.add(cyclic);
+    }
+
+rule CreateNamespaceSequence
+    transform s : JUDOPSM!NamespaceSequence
+    to t : ASM!EAnnotation
+    extends CreateSequence {
+        t.setId("(psm/" + s.getId() + ")/NamespaceSequence");
+        s.eContainer.asmEquivalent().eAnnotations.add(t);
+    }
+
+rule CreateEntitySequence
+    transform s : JUDOPSM!EntitySequence
+    to t : ASM!EAnnotation
+    extends CreateSequence {
+        t.setId("(psm/" + s.getId() + ")/EntitySequence");
+        s.eContainer.equivalent("CreateEntityClass").eAnnotations.add(t);
+    }

@@ -1,0 +1,6 @@
+<spreadsheet>
+	<worksheet name="NameMapping">
+        <column name="FullyQualifiedName" alias="FullyQualifiedName" dataType="string"/>
+        <column name="SqlName" alias="SqlName" dataType="string"/>
+	</worksheet>
+</spreadsheet>

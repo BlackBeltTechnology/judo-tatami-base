@@ -1,0 +1,152 @@
+/* Every entity table have an ID */
+rule EClassToTableIdField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsIdentifierField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableIdField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_id";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_id";
+        log.debug("    Add primary key: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		table.primaryKey = t;
+		t.sqlName = "ID";
+		t.fillType("java.util.UUID");
+}
+
+/* Every entity table have a type */
+rule EClassToTableTypeField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableTypeField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_type";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_type";
+        log.debug("    Add type: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "TYPE";
+		t.mandatory = true;
+		t.fillType("java.lang.String");
+}
+
+rule EClassToTableVersionField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableVersionField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_version";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_version";
+        log.debug("    Add version: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "VERSION";
+		t.mandatory = false;
+		t.fillType("java.lang.Integer");
+}
+
+rule EClassToTableCreateUsernameField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableCreateUsernameField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_create_username";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_create_username";
+        log.debug("    Add create username: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "CREATE_USERNAME";
+		t.mandatory = false;
+		t.fillType("java.lang.String");
+}
+
+rule EClassToTableCreateUserIdField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableCreateUserIdField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_create_user_id";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_create_user_id";
+        log.debug("    Add create user ID: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "CREATE_USER_ID";
+		t.mandatory = false;
+		t.fillType("java.util.UUID");
+}
+
+rule EClassToTableCreateTimestampField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableCreateTimestampField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_create_timestamp";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_create_timestamp";
+        log.debug("    Add create timestamp: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "CREATE_TIMESTAMP";
+		t.mandatory = false;
+		t.fillType("java.time.OffsetDateTime");
+}
+
+rule EClassToTableUpdateUsernameField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableUpdateUsernameField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_update_username";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_update_username";
+        log.debug("    Add update username: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "UPDATE_USERNAME";
+		t.mandatory = false;
+		t.fillType("java.lang.String");
+}
+
+rule EClassToTableUpdateUserIdField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableUpdateUserIdField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_update_user_id";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_update_user_id";
+        log.debug("    Add update user ID: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "UPDATE_USER_ID";
+		t.mandatory = false;
+		t.fillType("java.util.UUID");
+}
+
+rule EClassToTableUpdateTimestampField
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsValueField {
+		guard : asmUtils.isEntityType(s)
+		t.setId("(asm/" + s.getId() + ")/TableUpdateTimestampField");
+		t.name = asmUtils.getClassifierFQName(s) + "#_update_timestamp";
+	    t.uuid = asmUtils.getClassifierFQName(s) + "#_update_timestamp";
+        log.debug("    Add update timestamp: " + t.name);
+        var table = s.equivalent("EClassToRdbmsTable");
+	    table.fields.add(t);
+		t.sqlName = "UPDATE_TIMESTAMP";
+		t.mandatory = false;
+		t.fillType("java.time.OffsetDateTime");
+}
+
+@primary
+rule EClassToRdbmsTable
+	transform s : ASM!EClass
+	to t : RDBMS!RdbmsTable {
+		guard : asmUtils.isEntityType(s)
+        log.debug(" Add table: " + asmUtils.getClassifierFQName(s));
+		s.root().equivalent("rootPackegeToModel").rdbmsTables.add(t);
+		t.setId("(asm/" + s.getId() + ")/Table");
+	    t.sqlName = s.tableSqlName();
+	    t.name = asmUtils.getClassifierFQName(s);
+	    t.uuid = asmUtils.getClassifierFQName(s);
+		for (sup in s.eSuperTypes.select(sup | asmUtils.isEntityType(sup))) {
+			t.parents.add(sup.equivalent("EClassToRdbmsTable"));
+		}
+}

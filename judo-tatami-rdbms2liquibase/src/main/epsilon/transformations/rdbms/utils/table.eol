@@ -1,0 +1,57 @@
+/////////////////////////////////////////
+// FIELD
+
+operation RDBMS!RdbmsTable fieldExists(field : RDBMS!RdbmsField) : Boolean {
+	return self.fieldOf(field).isDefined();
+}
+
+operation RDBMS!RdbmsTable fieldOf(field : RDBMS!RdbmsField) : RDBMS!RdbmsField {
+	return self.fields.selectOne(f | f.uuid == field.uuid);
+}
+
+operation RDBMS!RdbmsTable contains(field : RDBMS!RdbmsField) : Boolean {
+	return self.fieldExists(field) and self.fieldOf(field) == field;
+}
+
+// FIELD
+/////////////////////////////////////////
+// INDEX
+
+operation RDBMS!RdbmsTable indexExists(index : RDBMS!RdbmsIndex) : Boolean {
+	return self.indexOf(index).isDefined();
+}
+
+operation RDBMS!RdbmsTable indexOf(index : RDBMS!RdbmsIndex) : RDBMS!RdbmsIndex {
+	return self.indexes.selectOne(i | i.uuid == index.uuid);
+}
+
+operation RDBMS!RdbmsTable contains(index : RDBMS!RdbmsIndex) : Boolean {
+	return self.indexExists(index) and self.indexOf(index) == index;
+}
+
+// INDEX
+/////////////////////////////////////////
+// UNIQUE CONSTRAINT
+
+operation RDBMS!RdbmsTable uniqueConstraintExists(uniqueConstraint : RDBMS!RdbmsUniqueConstraint) : Boolean {
+	return self.uniqueConstraintOf(uniqueConstraint).isDefined();
+}
+
+operation RDBMS!RdbmsTable uniqueConstraintOf(uniqueConstraint : RDBMS!RdbmsUniqueConstraint) : RDBMS!RdbmsUniqueConstraint {
+	return self.uniqueConstraints.selectOne(i | i.uuid == uniqueConstraint.uuid);
+}
+
+operation RDBMS!RdbmsTable contains(uniqueConstraint : RDBMS!RdbmsUniqueConstraint) : Boolean {
+	return self.uniqueConstraintExists(uniqueConstraint) and self.uniqueConstraintOf(uniqueConstraint) == uniqueConstraint;
+}
+
+// UNIQUE CONSTRAINT
+/////////////////////////////////////////
+// RENAME
+
+operation RDBMS!RdbmsTable isSqlNameChanged(field : RDBMS!RdbmsTable) : Boolean {
+	return self.sqlName <> field.sqlName;
+}
+
+// RENAME
+/////////////////////////////////////////

@@ -1,0 +1,269 @@
+[%
+  import "../operations/sdk.eol";
+  out.setContentType("Java");
+  var dtoDoc = dto.getDocumentation();
+%]
+
+package [%= getSdkPrefix() + dto.getClassifierPackageName() %];
+
+[% if (dtoDoc <> "") {%]
+/**
+* [%= dtoDoc %]
+*/
+[% } %]
+public interface [%= dto.getClassName() %] {
+
+    /**
+     * Creates an [%= dto.getTypeDocumentation() %].
+     *
+     * @return [%= dto.getTypeDocumentation() %]
+     */
+    static [%= dto.getClassName() %] create() {
+        return hu.blackbelt.structured.map.proxy.MapProxy.builder([%= dto.getClassName() %].class).withEnumMappingMethod("getOrdinal").newInstance();
+    }
+
+    /**
+     * Creates a builder for [%= dto.getClassName() %].
+     *
+     * @return [%= dto.getClassName() %]Builder
+     */
+    static [%= dto.getClassName() %]Builder builder() {
+        return hu.blackbelt.structured.map.proxy.MapBuilderProxy.builder([%= dto.getClassName() %]Builder.class, [%= dto.getClassName() %].class).withEnumMappingMethod("getOrdinal").withBuilderMethodPrefix("with").newInstance();
+    }
+
+    /**
+     * Creates a builder from a(n) [%= dto.getClassName() %] instance.
+     *
+     * @param instance the [%= dto.getClassName() %] instance from which the builder is created
+     * @return [%= dto.getClassName() %]Builder
+    */
+    static [%= dto.getClassName() %]Builder builderFrom([%= dto.getClassName() %] instance) {
+        return hu.blackbelt.structured.map.proxy.MapBuilderProxy.builder([%= dto.getClassName() %]Builder.class, instance).withEnumMappingMethod("getOrdinal").withBuilderMethodPrefix("with").newInstance();
+    }
+
+    [% if (asmUtils.isMappedTransferObjectType(dto)) { %]
+    /**
+     * Returns the identifier of a(n) [%= dto.getClassName() %] instance.
+     *
+     * @return [%= dto.idType() %]
+     */
+    [%= dto.idType() %] get__identifier();
+
+    /**
+     * Sets the identifier of a(n) [%= dto.getClassName() %] instance.
+     *
+     * @param __identifier the [%= dto.idType() %] instance to be set as identifier of the [%= dto.getClassName() %] instance
+     */
+    void set__identifier([%= dto.idType() %] __identifier);
+
+    /**
+     * Returns the entity type of a(n) [%= dto.getClassName() %] instance as String.
+     *
+     * @return the String representation of the entity type of a(n) [%= dto.getClassName() %] instance
+     */
+    String get__entityType();
+
+    /**
+     * Sets the String representation of the entity type of a(n) [%= dto.getClassName() %] instance.
+     *
+     * @param __entityType the String to be set
+     */
+    void set__entityType(String __entityType);
+
+    [% } %]
+    [% for (field in dto.eAllAttributes.includingAll(dto.eAllReferences.select(r | asmUtils.annotatedAsTrue(r, "embedded"))).select(f | not asmUtils.annotatedAsTrue(f, "parameterized"))) { %]
+
+    /**
+     * Get the [%= field.name %] of a(n) [%= dto.getClassName() %] instance.
+     *
+     * @return [%= field.getTypeDocumentation() %]
+     */
+    [%= field.getTypeDefinition() %] [%= field.getterName() %]();
+    [% } %]
+
+    [% for (field in dto.eAllAttributes.includingAll(dto.eAllReferences).select(f | not asmUtils.annotatedAsTrue(f, "parameterized") and not f.derived)) { %]
+
+    /**
+     * Sets the [%= field.name %] of a(n) [%= dto.getClassName() %] instance.
+     *
+     * @param [%= asmUtils.safeName(field.name.firstToLowerCase()) %] [%= field.name %] to be set
+     */
+    void [%= field.setterName() %]([%= field.getTypeDefinition() %] [%= asmUtils.safeName(field.name.firstToLowerCase()) %]);
+    [% } %]
+
+    interface [%= dto.getClassName() %]Builder {
+
+        [% for (field in dto.eAllAttributes.includingAll(dto.eAllReferences).select(f | not asmUtils.annotatedAsTrue(f, "parameterized") and not f.derived)) { %]
+        /**
+         * Sets the [%= field.name %] value of a(n) [%= dto.getClassName() %]Builder instance and the returns the updated builder instance.
+         *
+         * @param [%= asmUtils.safeName(field.name.firstToLowerCase()) %] the [%= field.getTypeDocumentation() %] to be set as [%= field.name %]
+         * @return [%= dto.getClassName() %]Builder
+         */
+        [%= dto.getClassName() %]Builder [%= field.builderName() %]([%= field.getTypeDefinition() %] [%= asmUtils.safeName(field.name.firstToLowerCase()) %]);
+        [% } %]
+
+        /**
+         * Sets the __identifier of a(n) [%= dto.getClassName() %]Builder instance and the returns the updated builder instance.
+         *
+         * @param __identifier the [%= dto.idType() %] instance to be set
+         * @return [%= dto.getClassName() %]Builder
+         */
+        [%= dto.getClassName() %]Builder with__identifier([%= dto.idType() %] __identifier);
+
+        /**
+         * Creates a(n) [%= dto.getClassName() %] instance based on the [%= dto.getClassName() %]Builder instance.
+         *
+         * @return [%= dto.getClassName() %]
+         */
+        [%= dto.getClassName() %] build();
+    
+    }
+
+    [% if (not dto.getSdkOperations().isEmpty()) { %]
+    interface [%= dto.getClassName() %]Operations {
+    
+        [% for (op in dto.getSdkOperations()) { %]
+            [% var map = getOperationGenerationData(dto, op);
+            var opDoc = op.getDocumentation();
+            %]
+
+        [% if (opDoc <> "") {%]
+        /**
+         * [%= opDoc %]
+         *
+        [% for (param in op.eParameters) {
+        var paramDoc = param.getDocumentation();%]
+         * @param [%= asmUtils.safeName(param.name)%]
+            [% if (paramDoc <> "") { %]
+                [%= paramDoc %]
+            [% } else {
+               var paramName = getSdkPrefix() + param.eType.getDtoTypeName();
+                %]
+                [%= paramName%]
+            [% } %]
+        [% } %]
+
+        [% if (op.eType.isDefined()) {
+            var paramDoc = op.getOutputDocumentation(2);%]
+         * @return
+            [% if (paramDoc <> "") {%]
+                [%= paramDoc %]
+            [% } else {
+               var returnName = getSdkPrefix() + op.eType.getDtoTypeName();
+                %]
+                [%= returnName%]
+            [% } %]
+        [% } %]
+         */
+        [% } %]
+
+        [%= map.get("operationMethod") %][%
+        if (not op.eExceptions.isEmpty()) {
+        %] throws [%= op.eExceptions.collect(ex | ex.getBareTypeDefinition() + ".Exception").concat(",") %][%
+        } %];
+            
+        [% } %]
+    }
+    [% } %]
+    
+    [%
+        if (asmUtils.isMappedTransferObjectType(dto)) { 
+            var t = TemplateFactory .load("dao/Dao.java.egl");
+            out.print(t.process);             
+        } else {
+            var t = TemplateFactory.load("dao/UnmappedInitializer.java.egl");
+            out.print(t.process);
+
+            if (dto.eStructuralFeatures.exists(f | f.derived)) {
+                var t2 = TemplateFactory.load("dao/UnmappedDao.java.egl");
+                out.print(t2.process);
+            }
+        }
+    %]
+
+    [% if (asmUtils.isMappedTransferObjectType(dto) and not dto.eAllAttributes.empty) { %]
+    /**
+     * Attributes of [%= dto.getClassName() %]
+     */
+    enum Attribute implements hu.blackbelt.judo.sdk.NamedElement {
+        [% for (attr in dto.eAllAttributes) {
+            var literal = transformationUtils.camelCaseToSnakeCase(attr.name); %]
+        [%=literal %]("[%=attr.name %]"),
+        [% } %]
+        ;
+
+        private java.lang.String name;
+
+        Attribute(java.lang.String name) {
+            this.name = name;
+        }
+
+        /**
+        * {@inheritdoc}
+        */
+        @Override
+        public java.lang.String getName() {
+            return name;
+        }
+    }
+    [% } %]
+
+    [% if (asmUtils.isMappedTransferObjectType(dto) and not dto.eAllReferences.empty) { %]
+    /**
+     * References of [%= dto.getClassName() %]
+     */
+    enum Reference implements hu.blackbelt.judo.sdk.NamedElement {
+        [% for (ref in dto.eAllReferences) {
+            var literal = transformationUtils.camelCaseToSnakeCase(ref.name); %]
+        [%=literal %]("[%=ref.name %]"),
+        [% } %]
+        ;
+
+        private java.lang.String name;
+
+        Reference(java.lang.String name) {
+            this.name = name;
+        }
+
+        /**
+        * {@inheritdoc}
+        */
+        @Override
+        public java.lang.String getName() {
+            return name;
+        }
+    }
+    [% } %]
+
+    [% if (ASM!EOperation.all.exists(o | o.eExceptions.contains(dto))) { %]
+    /**
+     * Business fault with details represented as [%= dto.getClassName() %].
+     */
+    class Exception extends java.lang.Exception {
+        private [%= dto.getClassName() %] details;
+
+        public Exception([%= dto.getClassName() %] details) {
+            this.details = details;
+        }
+
+        public Exception(java.lang.String errorCode, [%= dto.getClassName() %] details) {
+            super(errorCode);
+            this.details = details;
+        }
+
+        public Exception(java.lang.String errorCode, [%= dto.getClassName() %] details, java.lang.Throwable cause) {
+            super(errorCode, cause);
+            this.details = details;
+        }
+
+        public java.lang.String getErrorCode() {
+            return getMessage();
+        }
+
+        public [%= dto.getClassName() %] getDetails() {
+            return details;
+        }
+    }
+    [% } %]
+}

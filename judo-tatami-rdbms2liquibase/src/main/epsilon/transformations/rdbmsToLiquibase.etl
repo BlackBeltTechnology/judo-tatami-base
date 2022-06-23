@@ -1,0 +1,17 @@
+import "rdbms/utils/field.eol";
+import "rdbms/utils/model.eol";
+import "rdbms/utils/table.eol";
+
+import "liquibase/modules/table.etl";
+import "liquibase/modules/field.etl";
+
+pre {
+	var targetModel : LIQUIBASE!databaseChangeLog = new LIQUIBASE!databaseChangeLog();
+    var context;
+    if (RDBMS!RdbmsModel.all.first.isDefined()) {
+        context = RDBMS!RdbmsModel.all.first.version;
+    }
+}
+
+post {
+}

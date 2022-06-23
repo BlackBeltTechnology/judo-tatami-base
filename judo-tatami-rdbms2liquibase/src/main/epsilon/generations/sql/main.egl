@@ -1,0 +1,14 @@
+[%
+	for (op in RDBMS!RdbmsDeleteTableOperation) {
+        var tempTemplateFactory = TemplateFactory.load("BackupTableData.egl");
+        tempTemplateFactory.populate("table", op.table);
+        backupDataSqlFiles.put(backupChangeSetNamePrefix + "_" +
+            op.table.sqlName.toLowerCase() + "_data_" + dialect + ".sql", tempTemplateFactory.process());
+	}
+	for (op in RDBMS!RdbmsModifyTableOperation) {
+        var tempTemplateFactory = TemplateFactory.load("BackupTableData.egl");
+        tempTemplateFactory.populate("table", op.previousTable);
+        backupDataSqlFiles.put(backupChangeSetNamePrefix + "_" +
+            op.previousTable.sqlName.toLowerCase() + "_data_" + dialect + ".sql", tempTemplateFactory.process());
+	}
+%]

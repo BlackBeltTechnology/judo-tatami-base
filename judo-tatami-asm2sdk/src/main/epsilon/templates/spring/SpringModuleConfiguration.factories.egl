@@ -1,0 +1,5 @@
+[%
+  import "../../operations/sdk.eol";
+%]
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+[%= getSpringModulePrefix() + getModelPackageName() + '.' + getSpringDaoModuleName() %]

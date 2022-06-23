@@ -1,0 +1,9 @@
+@cached
+operation JUDOPSM!DataProperty asmEquivalent() : ASM!EAttribute {
+    return self.equivalent("CreateDataProperty");
+}
+
+@cached
+operation JUDOPSM!NavigationProperty asmEquivalent() : ASM!EReference {
+    return self.equivalent("CreateNavigationProperty");
+}

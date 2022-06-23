@@ -1,0 +1,87 @@
+import "../utils/_importUtils.eol";
+import "operation.etl";
+import "namespace.etl";
+
+@greedy
+rule CreateActorAnnotation
+    transform s : JUDOPSM!TransferObjectType
+    to t : ASM!EAnnotation {
+        guard: s.actorType.isDefined()
+        t.setId("(psm/" + s.getId() + ")/ActorAnnotation");
+        t.source = asmUtils.getAnnotationUri("actor");
+
+        var actorName = new ASM!EStringToStringMapEntry;
+        actorName.setId(t.getId() + "/ActorName");
+        actorName.key = "name";
+        actorName.value = psmUtils.namespaceElementToString(s.actorType);
+        t.details.add(actorName);
+
+        if (s.actorType.realm.isDefined()) {
+            var realm = new ASM!EStringToStringMapEntry;
+            realm.setId(t.getId() + "/Realm");
+            realm.key = "realm";
+            realm.value = s.actorType.realm;
+            t.details.add(realm);
+        }
+
+        s.asmEquivalent().eAnnotations.add(t);
+}
+
+@greedy
+rule CreateActorTypeAnnotation
+    transform s : JUDOPSM!TransferObjectType
+    to t : ASM!EAnnotation {
+        guard: s.isKindOf(JUDOPSM!AbstractActorType)
+        t.setId("(psm/" + s.getId() + ")/ActorTypeAnnotation");
+        t.source = asmUtils.getAnnotationUri("actorType");
+
+        var actorType = new ASM!EStringToStringMapEntry;
+        actorType.setId(t.getId() + "/ActorType");
+        actorType.key = "value";
+        actorType.value = "true";
+        t.details.add(actorType);
+
+        if (s.isKindOf(JUDOPSM!MappedActorType)) {
+            var managed = new ASM!EStringToStringMapEntry;
+            managed.setId(t.getId() + "/Managed");
+            managed.key = "managed";
+            managed.value = s.managed.asString();
+            t.details.add(managed);
+        }
+
+        if (s.kind.isDefined()) {
+            var kind = new ASM!EStringToStringMapEntry;
+            kind.setId(t.getId() + "/Kind");
+            kind.key = "kind";
+            kind.value = s.kind.asString();
+            t.details.add(kind);
+        }
+
+        s.asmEquivalent().eAnnotations.add(t);
+}
+
+@greedy
+rule CreateRealmTypeAnnotation
+    transform s : JUDOPSM!TransferObjectType
+    to t : ASM!EAnnotation {
+        guard: s.isKindOf(JUDOPSM!AbstractActorType) and s.realm.isDefined()
+        t.setId("(psm/" + s.getId() + ")/RealmTypeAnnotation");
+        t.source = asmUtils.getAnnotationUri("realm");
+
+        var realm = new ASM!EStringToStringMapEntry;
+        realm.setId(t.getId() + "/Realm");
+        realm.key = "value";
+        realm.value = s.realm;
+        t.details.add(realm);
+
+        s.asmEquivalent().eAnnotations.add(t);
+}
+
+@greedy
+rule CreateDocumentationAnnotationForActorType
+    transform s : JUDOPSM!AbstractActorType
+    to t : ASM!EAnnotation
+    extends CreateDocumentationAnnotation {
+        t.setId("(psm/" + s.getId() + ")/DocumentationAnnotationForActorType");
+        s.asmEquivalent().eAnnotations.add(t);
+}

@@ -1,0 +1,51 @@
+rule CreateSqlFileForChangingToForeignKeyBefore
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.changedValueFieldToForeignKey
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateBeforeIncrementalModel.getOrCreateChangeSet("change-to-foreign-key-" + tableName + "-" + context, "change-to-foreign-key", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_foreign_key_before_" + dialect + ".sql";
+        var msg : String = "Sql script not found for value field changed to foreign key [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForChangingToValueFieldBefore
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.changedForeignKeyToValueField
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateBeforeIncrementalModel.getOrCreateChangeSet("change-to-value-field-" + tableName + "-" + context, "change-to-value-field", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_value_field_before_" + dialect + ".sql";
+        var msg : String = "Sql script not found for foreign key changed to value field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForSizeChange
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.reviewRequired and s.sizeChanged
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateBeforeIncrementalModel.getOrCreateChangeSet("modify-size-in-" + tableName + "-" + context, "modify-size", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_size_" + dialect + ".sql";
+        var msg : String = "Sql script not found for changed size of field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForTypeChangeBefore
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.typeChanged
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateBeforeIncrementalModel.getOrCreateChangeSet("modify-type-in-before-" + tableName + "-" + context, "modify-type", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_type_before_" + dialect + ".sql";
+        var msg : String = "Sql script not found for changed type of field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}

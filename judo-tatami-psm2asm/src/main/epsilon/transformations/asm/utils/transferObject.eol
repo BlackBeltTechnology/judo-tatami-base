@@ -1,0 +1,33 @@
+@cached
+operation JUDOPSM!MappedTransferObjectType asmEquivalent() : ASM!EClass {
+    return self.equivalent("CreateMappedTransferObject");
+}
+
+@cached
+operation JUDOPSM!UnmappedTransferObjectType asmEquivalent() : ASM!EClass {
+    return self.equivalent("CreateUnmappedTransferObject");
+}
+
+@cached
+operation JUDOPSM!TransferObjectRelation asmEquivalent() : ASM!EReference {
+    return self.equivalent("CreateTransferObjectRelation");
+}
+
+@cached
+operation JUDOPSM!TransferAttribute asmEquivalent() : ASM!EAttribute {
+    return self.equivalent("CreateTransferObjectAttribute");
+}
+
+@cahced
+operation JUDOPSM!TransferObjectType isMetadataType() : Boolean {
+    return JUDOPSM!TransferOperation.all()
+    .exists(o | o.behaviour.isDefined() and o.behaviour.behaviourType == JUDOPSM!TransferOperationBehaviourType#GET_METADATA and
+                o.output.isDefined() and (o.output.type == self or o.output.type.relations.exists(r | r.target == self)));
+}
+
+@cahced
+operation JUDOPSM!TransferObjectType isGetRangeInputType() : Boolean {
+    return JUDOPSM!TransferOperation.all()
+        .exists(o | o.behaviour.isDefined() and o.behaviour.behaviourType == JUDOPSM!TransferOperationBehaviourType#GET_RANGE and
+                    o.input.isDefined() and o.input.type == self);
+}

@@ -1,0 +1,91 @@
+operation RDBMS!RdbmsField fillType(type : String) {
+    var typeMapping : RDBMS!TypeMapping = RDBMS!TypeMapping.all.selectOne(m | m.asmType == type);
+    if (typeMapping.isUndefined()) {
+        throw "Cannot resolve typemapping: " + type;
+    }
+
+    self.rdbmsTypeName = typeMapping.rdbmsType;
+    
+    var rdbmsSize = typeMapping.rdbmsSize;
+    if (rdbmsSize.isDefined() and rdbmsSize.startsWith("#")) {
+        if (type == "java.lang.String") {
+            self.size = 255;
+        }
+    } else if (rdbmsSize.isDefined()) {
+        self.size = rdbmsSize.asFloat().asInteger();
+    }
+    
+    var rdbmsPrecision = typeMapping.rdbmsPrecision;
+    if (rdbmsPrecision.isDefined()) {
+        self.precision = rdbmsPrecision.asFloat().asInteger();
+    }
+    
+    var rdbmsScale = typeMapping.rdbmsScale;
+    if (rdbmsScale.isDefined()) {
+        self.scale = rdbmsScale.asFloat().asInteger();
+    }
+    
+    self.storageByte = -1;
+}
+
+operation RDBMS!RdbmsField fillType(type : String, attribute : ASM!EAttribute) {
+    var typeMapping : RDBMS!TypeMapping = RDBMS!TypeMapping.all.selectOne(m | m.asmType == type);
+    if (typeMapping.isUndefined()) {
+        throw "Cannot resolve typemapping: " + type;
+    }
+    self.rdbmsTypeName = typeMapping.rdbmsType;
+    
+    var rdbmsSize = typeMapping.rdbmsSize;
+    if (rdbmsSize.isDefined() and rdbmsSize.startsWith("#")) {
+        var annotation : String = rdbmsSize.parseAnnotationName();
+        var annotationKey : String = rdbmsSize.parseAnnotationDetailsKey();
+        var maxLength = asmUtils.getExtensionAnnotationCustomValue(attribute, annotation, annotationKey, false);
+        if (maxLength.isPresent()) {
+            self.size = maxLength.get().asInteger();
+        }
+    } else if (rdbmsSize.isDefined()) {
+        self.size = rdbmsSize.asFloat().asInteger();
+    }
+    
+    var rdbmsPrecision = typeMapping.rdbmsPrecision;
+    if (rdbmsPrecision.isDefined() and rdbmsPrecision.startsWith("#")) {
+        var annotation : String = rdbmsPrecision.parseAnnotationName();
+        var annotationKey : String = rdbmsPrecision.parseAnnotationDetailsKey();
+        var precision = asmUtils.getExtensionAnnotationCustomValue(attribute, annotation, annotationKey, false);
+        if (precision.isPresent()) {
+            self.precision = precision.get().asInteger();
+        }
+    } else if (rdbmsPrecision.isDefined()) {
+        self.precision = rdbmsPrecision.asFloat().asInteger();
+    }
+    
+    var rdbmsScale = typeMapping.rdbmsScale;
+    if (rdbmsScale.isDefined() and rdbmsScale.startsWith("#")) {
+        var annotation : String = rdbmsScale.parseAnnotationName();
+        var annotationKey : String = rdbmsScale.parseAnnotationDetailsKey();
+        var scale = asmUtils.getExtensionAnnotationCustomValue(attribute, annotation, annotationKey, false);
+        if (scale.isPresent()) {
+            self.scale = scale.get().asInteger();
+        }
+    } else if (rdbmsScale.isDefined()) {
+        self.scale = rdbmsScale.asFloat().asInteger();
+    }
+    
+    self.storageByte = -1;
+}
+
+operation RDBMS!RdbmsField fromType(type : RDBMS!RdbmsField) {
+    self.rdbmsTypeName = type.rdbmsTypeName;
+    self.size = type.size;
+    self.precision = type.precision;
+    self.scale = type.scale;
+    self.storageByte = type.storageByte;
+}
+
+operation String parseAnnotationName() : String {
+    return self.substring(1).split(":").get(0);
+}
+
+operation String parseAnnotationDetailsKey() : String {
+    return self.substring(1).split(":").get(1);
+}

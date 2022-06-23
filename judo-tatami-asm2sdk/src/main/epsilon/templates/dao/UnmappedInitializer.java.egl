@@ -1,0 +1,13 @@
+[%
+  import "../../operations/sdk.eol";  
+  out.setContentType("Java");
+%]
+
+[% 
+	var dtoTypeName = getSdkPrefix() + dto.getDtoTypeName();
+	var name = dto.getClassName() + "StaticInitializer"; 	
+%]
+
+interface [%= name %] {
+	[%= dtoTypeName %].[%= dto.getClassName() %]Builder initBuilder();
+}

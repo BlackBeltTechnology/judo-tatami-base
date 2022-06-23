@@ -1,0 +1,2 @@
+
+CREATE TABLE [%=backupTableNamePrefix%]_[%=table.sqlName%] AS (SELECT * FROM [%=table.sqlName%])[% if (dialect == "hsqldb") { %] WITH DATA[% } %];

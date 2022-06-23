@@ -1,0 +1,126 @@
+= judo-tatami-base
+
+This project contains the transformation steps which is used to make the full transformation pipeline
+to create application models from source models for JUDO platform. This project contains pipleline
+steps only which can be utilized workflows which defined in other projects (for example https://github.com/BlackBeltTechnology/judo-tatami-jsl[judo-tatami-jsl])
+
+The orders of steps shows the relation between transformation steps source / destination model and how the steps
+can be chained.
+
+== Layers
+
+- PSM means Platform Specific Model. In modeling terminology it is the physical representation of a logical
+model which is contains platform specific representations. JUDO PSM model in the JUDO architectual view means
+the buisness model representation. PSM model contains Classes, Operations, Attributes and Derived expression in
+JQL (JUDO Query Language) form.
+- ASM means Architecture Specific Models. It's a group of models which represent an architecture layer
+presentation. These models loaded in JUDO runtime as the application.
+- LSM means Layer Specific Models. It's a group of models which are concrete technological representation,
+These models loaded in JUDO runtime as the application.
+
+== Diagrams
+[[model-processing-pipeline-steps]]
+ifdef::env-github[image::images/model-processing-pipeline-steps.png[Model pipeline steps]]
+ifndef::env-github[]
+.Model processing steps
+[plantuml, model-processing-pipeline-steps, alt="Model pipeline steps"]
+----
+@startuml
+PSM -> ASM: Psm2Asm
+PSM -> Measure: Psm2Measure
+ASM -> RDBMS: Asm2Rdbms (hsqldb, postgresql)
+ASM -> SDK: Asm2Sdk (hsqldb, postgresql)
+RDBMS -> Liquibase: Rdbms2Liquibase (hsqldb, postgresql)
+
+@enduml
+----
+
+[[model-processing-pipeline]]
+.Model processing flow
+ifdef::env-github[image::images/model-processing-pipeline-diagram.png[Model processing diagram]]
+ifndef::env-github[]
+[plantuml, model-processing-pipeline-diagram, alt="Model processing diagram"]
+----
+start
+
+partition PSM {
+  :judo-meta-psm;
+}
+
+partition ASM {
+  fork
+    :judo-meta-asm;
+  fork again
+    :judo-meta-measure;
+  fork again
+    while (more unprocessed expression?)
+      :judo-meta-jql;
+    endwhile
+    :(extract JQL expression from PSM);
+  end fork
+  :judo-meta-expression;
+}
+
+partition LSM {
+  fork
+    while (more dialect?)
+      :judo-meta-rdbms;
+      fork
+        :judo-meta-liquibase;
+      end fork
+    endwhile
+  fork again
+    :(generate and compile SDK);
+  end fork
+}
+
+stop
+----
+
+[[model-dependencies]]
+.Model dependencies
+ifdef::env-github[image::images/model-dependencies-diagram.png[Model dependencies diagram]]
+ifndef::env-github[]
+[plantuml, model-dependencies-diagram, alt="Model dependencies diagram"]
+----
+
+package "PSM" {
+  [judo-meta-psm]
+}
+
+package "ASM" {
+  [judo-meta-asm] --> [judo-meta-psm]
+  note right of [judo-meta-asm] : psm2asm
+
+  [judo-meta-measure] --> [judo-meta-psm]
+  note right of [judo-meta-measure] : psm2measure
+
+  [judo-meta-jql] --> [judo-meta-psm]
+  note left of [judo-meta-jql] : psm2jql
+
+  [(JQL extractor)] --> [judo-meta-jql]
+  [(JQL extractor)] --> [judo-meta-psm]
+  note left of [(JQL extractor)] : psm2jql
+
+  [judo-meta-expression] --> [judo-meta-asm]
+  [judo-meta-expression] --> [judo-meta-measure]
+  [judo-meta-expression] --> [(JQL extractor)]
+  note right of [judo-meta-expression] : jql2expression
+
+  [judo-meta-evaluation] --> [judo-meta-expression]
+
+  [judo-meta-query] --> [judo-meta-evaluation]
+}
+
+package "LSM" {
+  [judo-meta-rdbms] --> [judo-meta-asm]
+  note right of [judo-meta-rdbms] : asm2rdbms
+
+  [judo-meta-liquibase] --> [judo-meta-rdbms]
+  note right of [judo-meta-liquibase] : asm2liquibase
+
+  [judo-meta-openapi] --> [judo-meta-asm]
+  note right of [judo-meta-openapi] : asm2openapi
+}
+
+----

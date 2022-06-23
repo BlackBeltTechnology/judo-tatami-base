@@ -1,0 +1,83 @@
+[%
+  import "../../operations/sdk.eol";
+  out.setContentType("Java");
+%]
+
+[%
+    var dtoTypeName = getSdkPrefix() + dto.getDtoTypeName();
+    var name = dto.getClassName() + "Dao";
+    var dtoDoc = dto.getDocumentation();
+%]
+
+[% if (dtoDoc <> "") {%]
+/**
+* [%= dtoDoc %]
+*/
+[% } %]
+interface [%= name %] {
+    [% for (attr in dto.eAttributes.select(a | a.derived and not asmUtils.annotatedAsTrue(a, "parameterized"))) {%]
+    /**
+     * Get attribute: [%= attr.name %].
+     *
+     * @return value of derived attribute
+     */
+    [%= attr.getTypeDefinition() %] get[%= attr.name.firstToUpperCase() %]();
+    [% } %]
+
+    [% for (attr in dto.eAllAttributes.select(a | a.derived and asmUtils.annotatedAsTrue(a, "parameterized"))) {
+        var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(attr, "parameterized", "type", false).get()).get(); %]
+    /**
+     * Get parameterized attribute: [%= attr.name %].
+     *
+     * @param parameter query parameter
+     * @return value of derived attribute
+     */
+    [%= attr.getTypeDefinition() %] get[%= attr.name.firstToUpperCase() %]([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+    [% } %]
+
+    [% for (ref in dto.eReferences.select(r | r.derived)) { %]
+    /**
+     * Get referenced instances: [%= ref.name %].
+     *
+     * @return referenced instances of derived relation
+     */
+    [%= ref.getTypeDefinition() %] get[%= ref.name.firstToUpperCase() %]();
+    [% } %]
+
+    [% for (ref in dto.eReferences.select(r | r.derived and r.many)) { %]
+
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
+               var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
+    /**
+     * Query customizer for relation [%= ref.name %].
+     */
+    interface QueryCustomizerFor[%= ref.name.firstToUpperCase() %] extends [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer {
+
+[%
+    var t = TemplateFactory.load("dao/QueryCustomizerBuilder.java.egl");
+    var queryCustomizer = "QueryCustomizerFor" + ref.name.firstToUpperCase();
+    var queryCustomizerDto = ref.eReferenceType;
+    out.print(t.process);
+%]
+        /**
+         * Search instances defined by query customizer.
+         *
+         * @param parameter query parameter
+         * @return search result
+         */
+        java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+    }
+        [% } %]
+
+    /**
+     * Search derived referenced instances: [%= ref.name %].
+     *
+     * @return search result of referenced instances of derived relation
+     */
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) { %]
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] search[%= ref.name.firstToUpperCase() %]();
+        [% } else { %]
+    [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer search[%= ref.name.firstToUpperCase() %]();
+        [% } %]
+    [% } %]
+}

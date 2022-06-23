@@ -1,0 +1,57 @@
+/////////////////////////////////////////
+// BACKUP TABLES
+
+@abstract
+rule PostCheckBackupTables
+    transform s : RDBMS!RdbmsTableOperation
+    to t : DBCHECKUP!TableExists {
+        var useTable;
+        if (s.isTypeOf(RDBMS!RdbmsModifyTableOperation)) useTable = s.previousTable;
+        else useTable = s.table;
+
+        t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
+
+        dbDropBackupModel.preConditions.tableExists.add(t);
+        log.info("TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
+}
+
+rule PostCheckBackupDeletedTables
+    transform s : RDBMS!RdbmsDeleteTableOperation
+    to t : DBCHECKUP!TableExists
+    extends PostCheckBackupTables {
+}
+
+rule PostCheckBackupModifiedTables
+    transform s : RDBMS!RdbmsModifyTableOperation
+    to t : DBCHECKUP!TableExists
+    extends PostCheckBackupTables {
+}
+
+@abstract
+rule DeleteBackupTables
+    transform s : RDBMS!RdbmsTableOperation
+    to t : AFTER_INCREMENTAL!DropTable {
+        var useTable;
+        if (s.isTypeOf(RDBMS!RdbmsModifyTableOperation)) useTable = s.previousTable;
+        else useTable = s.table;
+
+        t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
+
+        dbDropBackupModel.getOrCreateChangeSet("drop-backup-tables-" + context, "drop-backup-tables", dialect, context).dropTable.add(t);
+        log.info("DropTable added: " + backupTableNamePrefix + "_" + useTable.sqlName);
+}
+
+rule DeleteBackupDeletedTables
+    transform s : RDBMS!RdbmsDeleteTableOperation
+    to t : AFTER_INCREMENTAL!DropTable
+    extends DeleteBackupTables {
+}
+
+rule DeleteBackupModifiedTables
+    transform s : RDBMS!RdbmsModifyTableOperation
+    to t : AFTER_INCREMENTAL!DropTable
+    extends DeleteBackupTables {
+}
+
+// BACKUP TABLES
+/////////////////////////////////////////

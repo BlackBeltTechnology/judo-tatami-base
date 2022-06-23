@@ -1,0 +1,14 @@
+import "../operations/util.eol";
+
+pre {
+	var targetModel : RDBMS!NameMappings = new RDBMS!NameMappings();
+}
+
+rule Excel2NameMapping
+	transform s : NAMEMAPPING!NameMapping
+	to t : RDBMS!NameMapping {
+		guard: s.FullyQualifiedName.isDefined()
+		t.fullyQualifiedName = s.FullyQualifiedName;
+		t.rdbmsName = s.SqlName;
+		targetModel.nameMappings.add(t);
+}

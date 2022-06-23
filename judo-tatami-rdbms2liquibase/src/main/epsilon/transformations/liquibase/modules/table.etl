@@ -1,0 +1,47 @@
+@lazy
+@greedy
+rule TableToCreateTable
+	transform s : RDBMS!RdbmsTable
+	to t : LIQUIBASE!CreateTable {
+		t.tableName = s.sqlName;
+		t.remarks = s.uuid;	
+}
+
+@greedy
+rule TableToCreateTableChangeSet
+	transform s : RDBMS!RdbmsTable
+	to t : LIQUIBASE!ChangeSet {
+		targetModel.changeSet.add(t);
+	    t.id = "create-table-" + s.sqlName;
+	    t.author = "tatami-rdbms2liquibase";
+	    t.dbms = dialect;
+	    t.context = "full and " + RDBMS!RdbmsModel.all.first.version;
+		t.createTable.add(s.equivalent("TableToCreateTable"));
+		t.logicalFilePath = "create-tables";
+}
+
+@greedy
+rule TableToCreateForeignKeysChangeSet
+	transform s : RDBMS!RdbmsTable
+	to t : LIQUIBASE!ChangeSet {
+	    guard: s.fields.select(f | f.isTypeOf(RDBMS!RdbmsForeignKey)).size() > 0
+		targetModel.changeSet.add(t);
+	    t.id = "create-foreignkeys-" + s.sqlName;
+	    t.author = "tatami-rdbms2liquibase";
+	    t.dbms = dialect;
+	    t.context = RDBMS!RdbmsModel.all.first.version;
+		t.logicalFilePath = "create-foreignkeys";
+}
+
+@greedy
+rule TableToAddNotNullChangeSet
+	transform s : RDBMS!RdbmsTable
+	to t : LIQUIBASE!ChangeSet {
+	    guard: s.fields.select(f | f.mandatory).size() > 0
+		targetModel.changeSet.add(t);
+	    t.id = "add-not-null-" + s.sqlName;
+	    t.author = "tatami-rdbms2liquibase";
+	    t.dbms = dialect;
+	    t.context = RDBMS!RdbmsModel.all.first.version;
+		t.logicalFilePath = "add-not-null";
+}

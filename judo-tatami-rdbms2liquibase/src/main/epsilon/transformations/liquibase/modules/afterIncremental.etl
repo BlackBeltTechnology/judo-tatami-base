@@ -1,0 +1,88 @@
+/////////////////////////////////////////
+// FOREIGN KEY
+
+rule AddForeignKeyConstraints
+    transform s : RDBMS!RdbmsForeignKey
+    to t : AFTER_INCREMENTAL!AddForeignKeyConstraint {
+        guard: newModel.contains(s.eContainer)
+        t.baseTableName = s.eContainer.sqlName;
+        t.baseColumnNames = s.sqlName;
+        t.constraintName = s.foreignKeySqlName;
+        t.referencedTableName = s.referenceKey.eContainer.sqlName;
+        t.referencedColumnNames = s.referenceKey.sqlName;
+
+        afterIncrementalModel.getOrCreateChangeSet("add-foreign-keys-to-" + s.eContainer.sqlName + "-" + context, "add-foreign-keys", dialect, context)
+            .addForeignKeyConstraint.add(t);
+        log.info("AddForeignKeyConstraint added: " + t.constraintName);
+}
+
+// FOREIGN KEY
+/////////////////////////////////////////
+// NOT NULL CONSTRAINT
+
+@abstract
+rule AddNotNullConstraints
+    transform s : RDBMS!RdbmsField
+    to t : AFTER_INCREMENTAL!AddNotNullConstraint {
+        guard: newModel.contains(s.eContainer) and s.mandatory and newModel.tableOf(s.eContainer).isDefined() and newModel.tableOf(s.eContainer).fieldOf(s).isDefined()
+        t.tableName = s.eContainer.sqlName;
+        t.columnName = s.sqlName;
+
+        afterIncrementalModel.getOrCreateChangeSet("add-not-null-constraints-to-" + s.eContainer.sqlName + "-" + context, "add-not-null-constraints", dialect, context)
+            .addNotNullConstraint.add(t);
+        log.info("AddNotNullConstraint added: " + t.columnName + " (" + t.tableName + ")");
+}
+
+rule AddNotNullConstraintsToValueFields
+    transform s : RDBMS!RdbmsValueField
+    to t : AFTER_INCREMENTAL!AddNotNullConstraint
+    extends AddNotNullConstraints {
+}
+
+rule AddNotNullConstraintsToForeignKeys
+    transform s : RDBMS!RdbmsForeignKey
+    to t : AFTER_INCREMENTAL!AddNotNullConstraint
+    extends AddNotNullConstraints {
+}
+
+// NOT NULL CONSTRAINT
+/////////////////////////////////////////
+// UNIQUE CONSTRAINT
+
+rule AddUniqueConstraints
+    transform s : RDBMS!RdbmsUniqueConstraint
+    to t : AFTER_INCREMENTAL!AddUniqueConstraint {
+        guard: newModel.contains(s.eContainer)
+        t.tableName = "";
+        t.columnNames = "";
+        for (field in s.fields) { // works in theory, but fails when executed on db if there are more then 1 field because UniqueConstraints must be unique
+            var addUniqueConstraint = new AFTER_INCREMENTAL!AddUniqueConstraint();
+            addUniqueConstraint.constraintName = s.sqlName;
+            addUniqueConstraint.tableName = field.eContainer.sqlName;
+            addUniqueConstraint.columnNames = field.sqlName;
+            afterIncrementalModel.getOrCreateChangeSet("add-unique-constraints-to-" + s.eContainer.sqlName + "-" + context, "add-unique-constraints", dialect, context)
+                .addUniqueConstraint.add(addUniqueConstraint);
+            log.info("AddUniqueConstraint added: " + addUniqueConstraint.columnNames + " (" + addUniqueConstraint.tableName + ")");
+        }
+}
+
+// UNIQUE CONSTRAINT
+/////////////////////////////////////////
+// INDEX
+
+rule AddIndexes
+    transform s : RDBMS!RdbmsIndex
+    to t : AFTER_INCREMENTAL!CreateIndex {
+        guard: newModel.contains(s.eContainer)
+        t.indexName = s.sqlName;
+        t.tableName = s.eContainer.sqlName;
+        for (field in s.fields) {
+            t.column.add(new AFTER_INCREMENTAL!Column(name = field.sqlName));
+        }
+        afterIncrementalModel.getOrCreateChangeSet("create-indexes-for-" + s.eContainer.sqlName + "-" + context, "create-indexes", dialect, context)
+            .createIndex.add(t);
+        log.info("CreateIndex added: " + t.indexName);
+}
+
+// INDEX
+/////////////////////////////////////////

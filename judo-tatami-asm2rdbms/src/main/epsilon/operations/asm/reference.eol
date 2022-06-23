@@ -1,0 +1,81 @@
+@cached
+operation ASM!EReference toString() : String {
+	var s = "Name: " + asmUtils.getReferenceFQName(self) + " Reference type: " + asmUtils.getClassifierFQName(self.eReferenceType) + " Containment: " + self.containment + " Container: " + self.container + " " + " Lower: " + self.lowerBound + " Upper: " + self.upperBound;
+	if (self.eOpposite.isDefined()) {
+		s = s + " Opposite: " + asmUtils.getReferenceFQName(self.eOpposite);
+	}
+	return s;
+}
+
+
+@cached
+operation ASM!EReference isForeign() : Boolean {
+	return self.ownerReference() == self;
+}
+
+@cached
+operation ASM!EReference isMandatory() : Boolean {
+	return self.lowerBound == 1 and self.upperBound == 1;
+}
+
+@cached
+operation ASM!EReference referenceIdentifierSqlName() : String {
+    return "C_" +  self.sqlName() + "_ID";
+}
+
+@cached
+operation ASM!EReference referenceInverseIdentifierSqlName() : String {
+    return "C_" +  self.eContainingClass.classSqlName() + "_" + self.sqlName() + "_ID";
+}
+
+@cached
+operation ASM!EReference referenceFkSqlName() : String {
+	return "FK_" + self.eContainingClass.classSqlName() + "_" + self.sqlName();
+}
+
+@cached
+operation ASM!EReference referenceUniFkSqlName() : String {
+	return "FK_" + self.eContainingClass.classSqlName() + "_" + self.sqlName();
+}
+
+
+@cached
+operation ASM!EReference referenceInvFkSqlName() : String {
+	return "FK_INV_" + self.eContainingClass.classSqlName() + "_" + self.sqlName();
+}
+
+
+@cached
+operation ASM!EReference referenceManyToManyTableSqlName() : String {
+	var f1 = self;
+	
+	if (self.eOpposite.isDefined()) {
+		var f2 = self.eOpposite;
+		return "T_" + abbreviate(f1.eReferenceType.classSqlName() + "_" + f1.sqlName() + "_" + f2.eReferenceType.classSqlName() + "_" + f2.sqlName(), sqlNameSize()).toUpperCase();
+	} else {
+		return "T_" + abbreviate(f1.eContainingClass.classSqlName() + "_" + f1.sqlName(), sqlNameSize()).toUpperCase();
+	}
+}
+
+@cached
+operation ASM!EReference isFirst() : Boolean {
+	var ref1 : ASM!EReference = self;
+	var ref2 : ASM!EReference = self.eOpposite;
+
+	if (ref2.isUndefined()) {
+		return true;
+	}
+
+   if (ref1.name.compareTo(ref2.name) < 0) {
+		return true;
+   }
+   return false;
+}
+
+@cached
+operation ASM!EReference ruleMapping() : RDBMS!Rule {
+	var rule : RDBMS!Rule = RDBMS!Rules.all.first.getRuleFromReference(self);
+	log.debug("Reference: " + self.toString() + " RULE: " + rule.toString());
+    return rule;
+}
+

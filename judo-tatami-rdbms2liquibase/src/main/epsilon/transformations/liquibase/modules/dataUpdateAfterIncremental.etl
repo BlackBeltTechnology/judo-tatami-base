@@ -1,0 +1,64 @@
+rule CreateSqlFileForMandatoryReview
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.reviewRequired and s.mandatoryChanged
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateAfterIncrementalModel.getOrCreateChangeSet("modify-mandatory-" + tableName + "-" + context, "modify-mandatory", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_mandatory_" + dialect + ".sql";
+        var msg : String = "Sql script not found for mandatory field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForCreateFieldReview
+    transform s : RDBMS!RdbmsCreateFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.reviewRequired
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateAfterIncrementalModel.getOrCreateChangeSet("create-field-" + tableName + "-" + context, "create-field", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_create_" + dialect + ".sql";
+        var msg : String = "Sql script not found for newly created mandatory field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForChangingToForeignKeyAfter
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.changedValueFieldToForeignKey
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateAfterIncrementalModel.getOrCreateChangeSet("change-to-foreign-key-" + tableName + "-" + context, "change-to-foreign-key", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_foreign_key_after_" + dialect + ".sql";
+        var msg : String = "Sql script not found for value field changed to foreign key [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForChangingToValueFieldAfter
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.changedForeignKeyToValueField
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateAfterIncrementalModel.getOrCreateChangeSet("change-to-value-field-" + tableName + "-" + context, "change-to-value-field", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_value_field_after_" + dialect + ".sql";
+        var msg : String = "Sql script not found for foreign key changed to value field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}
+
+rule CreateSqlFileForTypeChangeAfter
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!SqlFile {
+        guard: s.typeChanged
+
+        var tableName : String = s.eContainer.table.sqlName;
+        var columnName : String = s.field.sqlName;
+        var changeSet : LIQUIBASE!ChangeSet = dataUpdateAfterIncrementalModel.getOrCreateChangeSet("modify-type-in-after-" + tableName + "-" + context, "modify-type", dialect, context);
+        var sqlName : String = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_type_after_" + dialect + ".sql";
+        var msg : String = "Sql script not found for changed type of field [" + columnName + "] of [" + tableName + "]";
+        t.addSqlFileToChangeSet(changeSet, sqlName, msg);
+}

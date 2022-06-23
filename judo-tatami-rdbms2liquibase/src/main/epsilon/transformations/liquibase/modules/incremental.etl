@@ -1,0 +1,136 @@
+/////////////////////////////////////////
+// CREATE TABLES
+
+rule CreateTables
+    transform s : RDBMS!RdbmsCreateTableOperation
+    to t : LIQUIBASE!CreateTable {
+        t.tableName = s.table.sqlName;
+        t.remarks = s.table.uuid;
+
+        for(field in s.table.fields) {
+            var column = new LIQUIBASE!Column;
+            column.name = field.sqlName;
+            column.remarks = field.uuid;
+            column.type = field.toFieldDefinition();
+            if (field == field.eContainer.primaryKey or field.mandatory) {
+                var constraint = new LIQUIBASE!Constraints;
+                if (field == field.eContainer.primaryKey) {
+                    constraint.primaryKey = true;
+                }
+                column.constraints = constraint;
+            }
+            t.column.add(column);
+        }
+
+        targetModel.getOrCreateChangeSet("create-table-" + s.table.sqlName + "-" + context, "create-tables", dialect, context).createTable.add(t);
+        log.info("CreateTable added: " + t.tableName);
+}
+
+// CREATE TABLES
+/////////////////////////////////////////
+// RENAME TABLES
+
+rule RanameTables
+    transform s : RDBMS!RdbmsModifyTableOperation
+    to t : LIQUIBASE!RenameTable {
+        guard: s.nameChanged
+        t.oldTableName = s.previousTable.sqlName;
+        t.newTableName = s.table.sqlName;
+
+        targetModel.getOrCreateChangeSet("rename-tables-" + context, "rename-tables", dialect, context).renameTable.add(t);
+        log.info("RenameTable added: " + t.oldTableName + " -> " + t.newTableName);
+}
+
+// RENAME TABLES
+/////////////////////////////////////////
+// RENAME FIELDS
+
+rule RenameColumns
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!RenameColumn {
+        guard: s.nameChanged
+        t.newColumnName = s.field.sqlName;
+        t.oldColumnName = s.previousField.sqlName;
+        t.tableName = s.eContainer.table.sqlName;
+        t.remarks = s.field.uuid;
+
+        targetModel.getOrCreateChangeSet("rename-fields-in-" + s.eContainer.table.sqlName + "-" + context, "rename-fields", dialect, context)
+            .renameColumn.add(t);
+        log.info("RenameColumn added: " + t.oldColumnName + " -> " + t.newColumnName + " (" + t.tableName + ")");
+}
+
+// RENAME FIELDS
+/////////////////////////////////////////
+// DROP FIELDS
+
+rule DropColumns
+    transform s : RDBMS!RdbmsDeleteFieldOperation
+    to t : LIQUIBASE!DropColumn {
+        t.tableName = s.eContainer.table.sqlName;
+        t.columnName = s.field.sqlName;
+
+        targetModel.getOrCreateChangeSet("drop-fields-in-" + s.eContainer.table.sqlName + "-" + context, "drop-fields", dialect, context)
+            .dropColumn.add(t);
+        log.info("DropColumn added: " + t.columnName + " (" + t.tableName + ")");
+}
+
+// DROP FIELDS
+/////////////////////////////////////////
+// CREATE FIELDS
+
+rule AddColumnDefs
+    transform s : RDBMS!RdbmsCreateFieldOperation
+    to t : LIQUIBASE!AddColumnDef {
+        t.name = s.field.sqlName;
+        t.type = s.field.toFieldDefinition();
+        t.remarks = s.field.uuid;
+        if (s.field == s.field.eContainer.primaryKey or s.field.mandatory) {
+            var constraint = new LIQUIBASE!Constraints;
+            if (s.field == s.field.eContainer.primaryKey) {
+                constraint.primaryKey = true;
+                constraint.primaryKeyName = "PK_" + s.field.sqlName;
+            }
+            t.constraints = constraint;
+        }
+
+        var changeSet = targetModel.getOrCreateChangeSet("create-fields-in-" + s.eContainer.table.sqlName + "-" + context, "create-fields", dialect, context);
+        if (changeSet.addColumn.size == 0) {
+            changeSet.addColumn.add(new LIQUIBASE!AddColumn(tableName = s.eContainer.table.sqlName));
+            log.info("AddColumn added: " + s.eContainer.table.sqlName);
+        }
+        changeSet.addColumn[0].column.add(t);
+        log.info("AddColumnDef added: " + t.name + " (" + s.eContainer.table.sqlName + ")");
+}
+
+// CREATE FIELDS
+/////////////////////////////////////////
+// MODIFY FIELD
+
+rule ModifyDataTypes
+    transform s : RDBMS!RdbmsModifyFieldOperation
+    to t : LIQUIBASE!ModifyDataType {
+        guard: s.typeChanged or s.sizeChanged
+        t.tableName = s.eContainer.table.sqlName;
+        t.columnName = s.field.sqlName;
+        t.newDataType = s.field.toFieldDefinition();
+
+        targetModel.getOrCreateChangeSet("modify-data-types-in-" + s.eContainer.table.sqlName + "-" + context, "modify-data-types", dialect, context)
+            .modifyDataType.add(t);
+        log.info("ModifyDataType added: " + t.columnName + " (" + t.tableName + ") ==> " + s.previousField.toFieldDefinition() + " -> " + s.field.toFieldDefinition());
+}
+
+// MODIFY FIELD
+/////////////////////////////////////////
+// DROP TABLES
+
+rule DropTables
+    transform s : RDBMS!RdbmsDeleteTableOperation
+    to t : LIQUIBASE!DropTable {
+        t.tableName = s.table.sqlName;
+
+        targetModel.getOrCreateChangeSet("drop-tables-" + context, "drop-tables", dialect, context).dropTable.add(t);
+        log.info("DropTable added: " + t.tableName);
+}
+
+// DROP TABLES
+/////////////////////////////////////////

@@ -1,0 +1,63 @@
+[%
+  import "../../operations/sdk.eol";
+  out.setContentType("Java");
+%]
+[%
+    var queryCustomizerDtoTypeName = getSdkPrefix() + queryCustomizerDto.getDtoTypeName();
+    var queryCustomizerDaoName = queryCustomizerDto.getClassName() + "Dao";
+%]
+        [% for (attr in queryCustomizerDto.eAllAttributes) {
+            var literal = transformationUtils.camelCaseToSnakeCase(attr.name);
+            var filterType = attr.getFilterType();
+            if (filterType.isDefined()) { %]
+        /**
+          * Filter by attribute '[%= attr.name %]'.
+          *
+          * @param filter filter criteria
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] filterBy[%= attr.name.firstToUpperCase() %]([%= filterType %] filter);
+            [% } %]
+        [% } %]
+
+        /**
+          * Filter by custom filter.
+          *
+          * @param customFilter custom filter criteria
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] filterBy(java.lang.String customFilter);
+
+        [% if (not queryCustomizerDto.eAllAttributes.empty) { %]
+        /**
+          * Order results.
+          *
+          * @param attribute order by attribute (ascending)
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] orderBy([%= queryCustomizerDtoTypeName %].Attribute attribute);
+
+        /**
+          * Order results.
+          *
+          * @param attribute order by attribute (descending)
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] orderByDescending([%= queryCustomizerDtoTypeName %].Attribute attribute);
+
+        [% } %]
+        /**
+          * Mask result.
+          *
+          * @param mask used to define which features are returned by query.
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] maskedBy([%= queryCustomizerDtoTypeName %].[%= queryCustomizerDaoName %].Mask mask);
+
+        /**
+          * Limit result set.
+          *
+          * @param limit maximum number of result data
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] limit(int limit);
