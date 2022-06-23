@@ -20,9 +20,9 @@ These models loaded in JUDO runtime as the application.
 
 == Diagrams
 [[model-processing-pipeline-steps]]
+.Model processing steps
 ifdef::env-github[image::images/model-processing-pipeline-steps.png[Model pipeline steps]]
 ifndef::env-github[]
-.Model processing steps
 [plantuml, model-processing-pipeline-steps, alt="Model pipeline steps"]
 ----
 @startuml
@@ -34,11 +34,12 @@ RDBMS -> Liquibase: Rdbms2Liquibase (hsqldb, postgresql)
 
 @enduml
 ----
+endif::[]
 
 [[model-processing-pipeline-diagram]]
+.Model processing flow
 ifdef::env-github[image::images/model-processing-pipeline-diagram.png[Model processing diagram]]
 ifndef::env-github[]
-.Model processing flow
 [plantuml, model-processing-pipeline-diagram, alt="Model processing diagram"]
 ----
 start
@@ -76,11 +77,12 @@ partition LSM {
 
 stop
 ----
+endif::[]
 
 [[model-dependencies-diagram]]
+.Model dependencies
 ifdef::env-github[image::images/model-dependencies-diagram.png[Model dependencies diagram]]
 ifndef::env-github[]
-.Model dependencies
 [plantuml, model-dependencies-diagram, alt="Model dependencies diagram"]
 ----
 
@@ -124,3 +126,4 @@ package "LSM" {
 }
 
 ----
+endif::[]
