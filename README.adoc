@@ -19,10 +19,10 @@ presentation. These models loaded in JUDO runtime as the application.
 These models loaded in JUDO runtime as the application.
 
 == Diagrams
-ifdef::env-github[image::images/model-processing-pipeline-steps.png[Model pipeline steps]]
+ifdef::env-github[image::images/model-processing-pipeline-steps.png[title="Model pipeline steps"]]
 ifndef::env-github[]
 [[model-processing-pipeline-steps]]
-.Model processing steps
+.Model pipeline steps diagram
 [plantuml, model-processing-pipeline-steps, alt="Model pipeline steps"]
 ----
 @startuml
@@ -36,11 +36,11 @@ RDBMS -> Liquibase: Rdbms2Liquibase (hsqldb, postgresql)
 ----
 endif::[]
 
-ifdef::env-github[image::images/model-processing-pipeline-diagram.png[Model processing diagram]]
+ifdef::env-github[image::images/model-processing-pipeline-diagram.png[title="Model processing flow diagram"]]
 ifndef::env-github[]
 [[model-processing-pipeline-diagram]]
-.Model processing flow
-[plantuml, model-processing-pipeline-diagram, alt="Model processing diagram"]
+.Model processing flow diagram
+[plantuml, model-processing-pipeline-diagram, alt="Model processing flow diagram"]
 ----
 start
 
@@ -79,10 +79,10 @@ stop
 ----
 endif::[]
 
-ifdef::env-github[image::images/model-dependencies-diagram.png[Model dependencies diagram]]
+ifdef::env-github[image::images/model-dependencies-diagram.png[title="Model dependencies diagram"]]
 ifndef::env-github[]
 [[model-dependencies-diagram]]
-.Model dependencies
+.Model dependencies diagram
 [plantuml, model-dependencies-diagram, alt="Model dependencies diagram"]
 ----
 
