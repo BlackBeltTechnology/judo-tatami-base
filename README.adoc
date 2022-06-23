@@ -83,7 +83,7 @@ ifdef::env-github[image::images/model-dependencies-diagram.png[Model dependencie
 ifndef::env-github[]
 [[model-dependencies-diagram]]
 .Model dependencies
-x[plantuml, model-dependencies-diagram, alt="Model dependencies diagram"]
+[plantuml, model-dependencies-diagram, alt="Model dependencies diagram"]
 ----
 
 package "PSM" {
