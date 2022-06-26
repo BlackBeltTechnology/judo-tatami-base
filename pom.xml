@@ -80,7 +80,7 @@
 
         <java-embedded-compiler-version>1.0.0.20220622_231759_e0a154fd_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.0.20220618_232253_8e92f469_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.0.20220626_230410_79f7971b_develop</judo-tatami-core-version>
 
 
         <!-- Model versions -->
