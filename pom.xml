@@ -88,7 +88,11 @@
         <judo-meta-psm-version>1.1.0.20220618_232648_f4311fb9_develop</judo-meta-psm-version>
         <judo-meta-jql-version>1.0.1.20220618_232004_193cd19d_develop</judo-meta-jql-version>
         <judo-meta-asm-version>1.1.0.20220618_232613_0c08e3ef_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220619_080709_a8a43869_develop</judo-meta-expression-version>
+        <judo-meta-expression-version>1.0.1.20220628_153033_ff0614e1_develop</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.1.20220628_153248_1356c7f2_develop</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.1.20220628_153226_e728941c_develop</judo-meta-expression-asm-version>
+
+
         <judo-meta-measure-version>1.0.0.20220618_232641_47cbbd4b_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220618_232643_9a47d4b3_develop</judo-meta-liquibase-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
@@ -328,12 +332,12 @@
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.expression.builder.jql.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
+                <version>${judo-meta-expression-asm-version}</version>
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
+                <version>${judo-meta-expression-asm-version}</version>
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
@@ -343,7 +347,7 @@
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.psm</artifactId>
-                <version>${judo-meta-expression-version}</version>
+                <version>${judo-meta-expression-psm-version}</version>
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
