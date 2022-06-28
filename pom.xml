@@ -252,12 +252,6 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
-                <version>${judo-meta-script-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
                 <version>${judo-meta-jql-version}</version>
             </dependency>
