@@ -210,10 +210,18 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     @Override
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
                var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
-    public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%=ref.name.firstToUpperCase() %](java.util.UUID id) {
+    public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%=ref.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
         return new [%= getInternalPrefix() + dto.getClassifierPackageName() %].[%= name%]Impl.QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](asmUtils, dao) {
             @Override
-            public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
+            public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] p) {
+                [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] effectiveParams = p;
+                if (effectiveParams == null) {
+                    effectiveParams = parameter;
+                }
+                if (effectiveParams == null) {
+                    effectiveParams = [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %].create();
+                }
+
         [% } else { %]
     public [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer query[%=ref.name.firstToUpperCase() %](java.util.UUID id) {
         return new [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl(asmUtils, dao) {
@@ -226,30 +234,59 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
                     .mask(mask)
                     .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) { %]
-                    .parameters(hu.blackbelt.judo.sdk.SdkUtil.asMap(parameter))
+                    .parameters(hu.blackbelt.judo.sdk.SdkUtil.asMap(effectiveParams))
         [% } %]
                     .build())
                     .stream()
                     .map(payload -> [%= sdkUtil %].fromPayload([%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %].class, payload))
                     .collect(java.util.stream.Collectors.toList());
             }
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) { %]
+            @Override
+            public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute() {
+                return execute(null);
+            }
+        [% } %]
+            
         };
+    }
+
+        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
+               var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%=ref.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
+        return query[%=ref.name.firstToUpperCase() %](object.get__identifier(), parameter);
     }
 
     /**
     * {@inheritdoc}
     */
     @Override
-        [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
-               var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
+    public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%=ref.name.firstToUpperCase() %](java.util.UUID id) {
+        return query[%=ref.name.firstToUpperCase() %](id, null);
+    }
+
+    /**
+    * {@inheritdoc}
+    */
+    @Override
     public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%=ref.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
-        [% } else { %]
-    public [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer query[%=ref.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
-        [% }%]
         return query[%=ref.name.firstToUpperCase() %](object.get__identifier());
     }
 
+        [% } else { %]
+    /**
+    * {@inheritdoc}
+    */
+    @Override
+    public [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer query[%=ref.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
+        return query[%=ref.name.firstToUpperCase() %](object.get__identifier());
+    }
 
+        [% }%]
     [% } %]
 
     public static class QueryCustomizerImpl implements [%= dtoTypeName %].[%= name %].QueryCustomizer {

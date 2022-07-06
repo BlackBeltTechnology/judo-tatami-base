@@ -186,6 +186,25 @@ interface [%= name %] {
      * Query derived referenced instances: [%= ref.name %].
      *
      * @param id of the {@link [%= dtoTypeName %]} instance where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation     
+     * @param parameter {@link [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %]} query parameters
+     * @return query result of referenced instances of derived relation
+     */
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+
+    /**
+     * Query derived referenced instances: [%= ref.name %].
+     *
+     * @param object is instance of the {@link [%= dtoTypeName %]} where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation
+     * @param parameter {@link [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %]} query parameters
+     * @return query result of referenced instances of derived relation
+     */
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+
+
+    /**
+     * Query derived referenced instances: [%= ref.name %].
+     *
+     * @param id of the {@link [%= dtoTypeName %]} instance where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation     
      * @return query result of referenced instances of derived relation
      */
     [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %](java.util.UUID id);
