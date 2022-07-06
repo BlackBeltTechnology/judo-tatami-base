@@ -61,6 +61,15 @@ interface [%= name %] {
          %]
 
     /**
+     * Get a(n) {@link [%= relatedType %]} instance linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
+     *
+     * @param object the {@link [%= dtoTypeName %]} instance that the {@link  [%= relatedType %]} instance is linked to
+     * @return {@link  [%= relatedType %]} instance
+     */
+    [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
+
+			[% if (not rel.derived) { %]
+    /**
      * Creates a(n) {@link  [%= relatedType %]} instance linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
      *
      * @param object the {@link [%= dtoTypeName %]} that the new instance will be linked to
@@ -68,14 +77,6 @@ interface [%= name %] {
      * @return created {@link  [%= relatedType %]} instance
      */
     [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObject);
-
-    /**
-     * Get a(n) {@link [%= relatedType %]} instance linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
-     *
-     * @param object the {@link [%= dtoTypeName %]} instance that the {@link  [%= relatedType %]} instance is linked to
-     * @return {@link  [%= relatedType %]} instance
-     */
-    [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
 
     /**
      * Sets [%= rel.name.firstToUpperCase() %] reference of a(n) {@link [%= dtoTypeName %]} instance.
@@ -91,6 +92,7 @@ interface [%= name %] {
      * @param object  the {@link [%= dtoTypeName %]} instance which has the reference [%= rel.name.firstToUpperCase() %] to be unset
      */
     void unset[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);
+		    [% } %]
 
     [%}%]
     
@@ -101,6 +103,15 @@ interface [%= name %] {
         %]
 
     /**
+     * Get all {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
+     *
+     * @param object  the {@link [%= dtoTypeName %]} instance that the  {@link [%= singleRelatedType %]} instances are linked to
+     * @return collection of {@link [%= singleRelatedType %]} instances
+     */
+    [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
+
+			[% if (not rel.derived) { %]
+    /**
      * Creates  {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
      *
      * @param object the {@link [%= dtoTypeName %]} that the new instances will be linked to
@@ -109,13 +120,6 @@ interface [%= name %] {
      */
     [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects);
 
-    /**
-     * Get all {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
-     *
-     * @param object  the {@link [%= dtoTypeName %]} instance that the  {@link [%= singleRelatedType %]} instances are linked to
-     * @return collection of {@link [%= singleRelatedType %]} instances
-     */
-    [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
 
     /**
      * Removes the given {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
@@ -132,7 +136,7 @@ interface [%= name %] {
      * @param relatedObjects collection of {@link [%= singleRelatedType %]} instances to be added
      */
     void add[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects);
-
+		    [% } %]
     [% } %]
 
     [% for (attr in dto.eAllAttributes.select(a | a.derived and asmUtils.annotatedAsTrue(a, "parameterized"))) {
@@ -144,17 +148,17 @@ interface [%= name %] {
      * @param parameter query parameter
      * @return value of derived attribute
      */
-    [%= attr.getTypeDefinition() %] get[%= attr.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+    [%= attr.getTypeDefinition() %] query[%= attr.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
     [% } %]
 
     /**
-     * Search {@link [%= dto.getClassName() %]} instances by filter defined programmatically.
+     * Query {@link [%= dto.getClassName() %]} instances by filter defined programmatically.
      *
      * @return filter builder for searching
      */
-    QueryCustomizer search();
+    QueryCustomizer query();
 
-    [% for (ref in dto.eAllReferences.select(r | r.derived and r.many)) { %]
+    [% for (ref in dto.eAllReferences.select(r | (not r.isContainment or r.derived) and r.many)) { %]
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
                var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
     /**
@@ -170,28 +174,66 @@ interface [%= name %] {
 %]
 
         /**
-         * Search instances defined by query customizer.
+         * Query instances defined by query customizer.
          *
          * @param parameter query parameter
-         * @return search result
+         * @return query result
          */
         java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
     }
 
     /**
-     * Search derived referenced instances: [%= ref.name %].
+     * Query derived referenced instances: [%= ref.name %].
      *
-     * @return search result of referenced instances of derived relation
+     * @param id of the {@link [%= dtoTypeName %]} instance where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation     
+     * @param parameter {@link [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %]} query parameters
+     * @return query result of referenced instances of derived relation
      */
-    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] search[%= ref.name.firstToUpperCase() %](java.util.UUID id);
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+
+    /**
+     * Query derived referenced instances: [%= ref.name %].
+     *
+     * @param object is instance of the {@link [%= dtoTypeName %]} where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation
+     * @param parameter {@link [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %]} query parameters
+     * @return query result of referenced instances of derived relation
+     */
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+
+
+    /**
+     * Query derived referenced instances: [%= ref.name %].
+     *
+     * @param id of the {@link [%= dtoTypeName %]} instance where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation     
+     * @return query result of referenced instances of derived relation
+     */
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %](java.util.UUID id);
+
+    /**
+     * Query derived referenced instances: [%= ref.name %].
+     *
+     * @param object is instance of the {@link [%= dtoTypeName %]} where the {@link [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation
+     * @return query result of referenced instances of derived relation
+     */
+    [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%= ref.name.firstToUpperCase() %]([%= dtoTypeName %] object);
+
         [% } else { %]
     /**
-     * Search {@link [%= ref.eReferenceType.getClassName() %]} instances by filter defined programmatically linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= ref.name %].
+     * Query {@link [%= ref.eReferenceType.getClassName() %]} instances by filter defined programmatically linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= ref.name %].
      *
-     * @param id referencing instance ID
+     * @param id of the {@link [%= dtoTypeName %]} instance where the {@link  [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation     
      * @result filter builder for searching
      */
-    [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer search[%=ref.name.firstToUpperCase() %](java.util.UUID id);
+    [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer query[%=ref.name.firstToUpperCase() %](java.util.UUID id);
+
+    /**
+     * Query {@link [%= ref.eReferenceType.getClassName() %]} instances by filter defined programmatically linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= ref.name %].
+     *
+     * @param object is instance of the {@link [%= dtoTypeName %]} where the {@link  [%= ref.eReferenceType.getClassName() %]} over [%= ref.name %] relation
+     * @result filter builder for searching
+     */
+    [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer query[%=ref.name.firstToUpperCase() %]([%= dtoTypeName %] object);
+
         [% } %]
     [% } %]
 
