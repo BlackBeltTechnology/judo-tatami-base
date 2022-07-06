@@ -32,11 +32,11 @@ interface [%= name %] {
     void delete([%= dtoTypeName %] subject);
 
     /**
-     * Get the collection of all {@link [%= dtoTypeName %]} instances.
+     * Get all {@link [%= dtoTypeName %]} instances.
      *
-     * @return a collection of all {@link [%= dtoTypeName %]} instances
+     * @return immutable list of all {@link [%= dtoTypeName %]} instances
      */
-    java.util.Collection<[%= dtoTypeName %]> getAll();
+    java.util.List<[%= dtoTypeName %]> getAll();
 
      /**
       * Get an instance of a(n) {@link [%= dtoTypeName %]} by the given identifier.
@@ -98,7 +98,7 @@ interface [%= name %] {
     
     [% for (rel in multiRelations) {%]
         [% var relatedDto = rel.getEReferenceType();
-            var relatedType = "java.util.Collection<" + getSdkPrefix() + relatedDto.getDtoTypeName() + ">";
+            var relatedType = "java.util.List<" + getSdkPrefix() + relatedDto.getDtoTypeName() + ">";
             var singleRelatedType = getSdkPrefix() + relatedDto.getDtoTypeName();
         %]
 
@@ -106,7 +106,7 @@ interface [%= name %] {
      * Get all {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
      *
      * @param object  the {@link [%= dtoTypeName %]} instance that the  {@link [%= singleRelatedType %]} instances are linked to
-     * @return collection of {@link [%= singleRelatedType %]} instances
+     * @return immutable collection of {@link [%= singleRelatedType %]} instances
      */
     [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
 
@@ -116,7 +116,7 @@ interface [%= name %] {
      *
      * @param object the {@link [%= dtoTypeName %]} that the new instances will be linked to
      * @param relatedObjects a collection of {@link [%= singleRelatedType %]} instances to create
-     * @return collection of created {@link [%= singleRelatedType %]} instances
+     * @return immutable collection of created {@link [%= singleRelatedType %]} instances
      */
     [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects);
 
