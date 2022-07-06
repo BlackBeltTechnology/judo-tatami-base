@@ -182,7 +182,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         return new QueryCustomizerImpl(asmUtils, dao);
     }
 
-    [% for (ref in dto.eAllReferences.select(r | r.derived and r.many)) { %]
+    [% for (ref in dto.eAllReferences.select(r | (not r.isContainment or r.derived) and r.many)) { %]
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
                var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
 
