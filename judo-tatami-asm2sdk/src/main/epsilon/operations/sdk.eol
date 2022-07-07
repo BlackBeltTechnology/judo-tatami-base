@@ -22,6 +22,22 @@ operation ASM!ETypedElement getTypeDefinition() : String {
 }
 
 @cached
+operation ASM!ETypedElement getGetterTypeDefinition() : String {
+    var prefix = "";
+    var postfix = "";
+
+    if (self.upperBound == -1 or self.upperBound > 1) {
+        prefix = "java.util.Collection<";
+        postfix = ">";
+    } else if (generateOptionalTypes and self.lowerBound == 0 and self.upperBound == 1) {
+        prefix = "java.util.Optional<";
+        postfix = ">";    
+    }
+
+    return prefix + self.getSingleTypeDefinition() + postfix;
+}
+
+@cached
 operation ASM!ETypedElement getTypeDocumentation() : String {
     var prefix = "";
 
@@ -61,14 +77,35 @@ operation ASM!EClassifier getBareTypeDefinition() : String {
 }
 
 @cached
-operation ASM!EReference isMulti() : Boolean {
+operation ASM!EReference isCollection() : Boolean {
     return self.upperBound == -1 or self.upperBound > 1;
 } 
+
+@cached
+operation ASM!EReference isMandatory() : Boolean {
+	return self.lowerBound == 1 and self.upperBound == 1;
+}
+
+@cached
+operation ASM!EAttribute isMandatory() : Boolean {
+	return self.lowerBound == 1 and self.upperBound == 1;
+}
 
 @cached
 operation ASM!EReference getTypeDefinition() : String {    
     if (self.upperBound == -1 or self.upperBound > 1) {
         return "java.util.Collection<" + self.eReferenceType.getBareTypeDefinition() + ">";
+    } else {
+        return self.eReferenceType.getBareTypeDefinition();
+    }
+}
+
+@cached
+operation ASM!EReference getGetterTypeDefinition() : String {    
+    if (self.upperBound == -1 or self.upperBound > 1) {
+        return "java.util.Collection<" + self.eReferenceType.getBareTypeDefinition() + ">";
+    } else if (generateOptionalTypes and self.lowerBound == 0 and self.upperBound == 1) {
+        return "java.util.Optional<" + self.eReferenceType.getBareTypeDefinition() + ">";
     } else {
         return self.eReferenceType.getBareTypeDefinition();
     }
@@ -173,7 +210,7 @@ operation genDaoImpl(dto: ASM!EClass) : String {
     for (eReference in dto.getEReferences()) {
         var relatedDto = eReference.getEReferenceType();
         if (asmUtils.isMappedTransferObjectType(relatedDto)) {
-            if (eReference.isMulti()) {
+            if (eReference.isCollection()) {
                 multiRelations.add(eReference);
             } else {
                 singleRelations.add(eReference);
@@ -226,7 +263,7 @@ operation genDtoInterface(dto: ASM!EClass) : String {
     for (eReference in dto.getEReferences()) {
         var relatedDto = eReference.getEReferenceType();
         if (asmUtils.isMappedTransferObjectType(relatedDto)) {
-            if (eReference.isMulti()) {
+            if (eReference.isCollection()) {
                 multiRelations.add(eReference);
             } else {
                 singleRelations.add(eReference);

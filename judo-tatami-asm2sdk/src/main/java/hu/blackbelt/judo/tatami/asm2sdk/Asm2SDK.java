@@ -82,6 +82,9 @@ public class Asm2SDK {
         @Builder.Default
         Boolean generateSpring = true;
 
+        @Builder.Default
+        Boolean generateOptionalTypes = true;
+
     }
 
     public static Asm2SDKBundleStreams executeAsm2SDKGeneration(Asm2SDKParameter.Asm2SDKParameterBuilder builder) throws Exception {
@@ -115,6 +118,7 @@ public class Asm2SDK {
                             .put("generateInternal", parameter.generateInternal)
                             .put("generateGuice", parameter.generateGuice)
                             .put("generateSpring", parameter.generateSpring)
+                            .put("generateOptionalTypes", parameter.generateOptionalTypes)
                             .build()
                     )
                     .build();
