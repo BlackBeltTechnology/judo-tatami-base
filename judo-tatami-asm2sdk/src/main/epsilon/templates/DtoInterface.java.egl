@@ -78,7 +78,7 @@ public interface [%= dto.getClassName() %] {
      *
      * @return [%= field.getTypeDocumentation() %]
      */
-    [%= field.getTypeDefinition() %] [%= field.getterName() %]();
+    [%= field.getGetterTypeDefinition() %] [%= field.getterName() %]();
     [% } %]
 
     [% for (field in dto.eAllAttributes.includingAll(dto.eAllReferences).select(f | not asmUtils.annotatedAsTrue(f, "parameterized") and not f.derived)) { %]

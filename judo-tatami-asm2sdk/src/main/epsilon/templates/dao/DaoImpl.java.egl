@@ -67,18 +67,30 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     [% for (rel in singleRelations) {%]
         [% var relatedDto = rel.getEReferenceType();
             var relatedType = getSdkPrefix() + relatedDto.getDtoTypeName();
+            var relatedGetterType = relatedType;
+            if (generateOptionalTypes and not rel.isMandatory()) {
+            	relatedGetterType = "java.util.Optional<" + relatedType + ">";
+            }
          %]
     /**
     * {@inheritdoc}
     */
     @Override
-    public [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
+    public [%= relatedGetterType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object) {
         org.eclipse.emf.ecore.EReference ref = [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]");
         final java.util.List<hu.blackbelt.judo.dao.api.Payload> navigationResult = dao.getNavigationResultAt(object.get__identifier(), ref);
         if (navigationResult.isEmpty()) {
+	            [% if (generateOptionalTypes and not rel.isMandatory()) { %]	            
+            return java.util.Optional.empty();	
+	           	[% } else { %]
             return null;
+	           	[% } %]
         }
+	            [% if (generateOptionalTypes and not rel.isMandatory()) { %]	            
+        return java.util.Optional.of([%= sdkUtil %].fromPayload([%= relatedType %].class, navigationResult.get(0)));	
+    	       	[% } else { %]
         return [%= sdkUtil %].fromPayload([%= relatedType %].class, navigationResult.get(0));
+        	   	[% } %]
     }
 
 			[% if (not rel.derived) { %]
