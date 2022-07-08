@@ -58,6 +58,8 @@ public class Asm2SDKWork extends AbstractTransformationWork {
 		@Builder.Default
 		Boolean generateSpring = false;
 
+		@Builder.Default
+		Boolean generateOptionalTypes = true;
 
 	}
 
@@ -150,7 +152,8 @@ public class Asm2SDKWork extends AbstractTransformationWork {
 				.generateInternal(workParameter.generateInternal)
 				.generateGuice(workParameter.generateGuice)
 				.generateSpring(workParameter.generateSpring)
-				.metricsCollector(metricsCollector));
+				.metricsCollector(metricsCollector)
+				.generateOptionalTypes(workParameter.generateOptionalTypes));
 
 		if (workParameter.createJar) {
 			checkState(bundleStreams != null, "No InputStream created");
