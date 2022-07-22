@@ -61,6 +61,10 @@ public class Asm2SDKWork extends AbstractTransformationWork {
 		@Builder.Default
 		Boolean generateOptionalTypes = true;
 
+		@Builder.Default
+		Boolean generatePayloadValidator = true;
+
+
 	}
 
 	public Asm2SDKWork(TransformationContext transformationContext, URI transformationScriptRoot) {
@@ -153,7 +157,9 @@ public class Asm2SDKWork extends AbstractTransformationWork {
 				.generateGuice(workParameter.generateGuice)
 				.generateSpring(workParameter.generateSpring)
 				.metricsCollector(metricsCollector)
-				.generateOptionalTypes(workParameter.generateOptionalTypes));
+				.generateOptionalTypes(workParameter.generateOptionalTypes)
+				.generatePayloadValidator(workParameter.generatePayloadValidator));
+
 
 		if (workParameter.createJar) {
 			checkState(bundleStreams != null, "No InputStream created");
