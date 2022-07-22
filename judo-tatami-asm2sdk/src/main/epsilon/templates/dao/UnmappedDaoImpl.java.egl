@@ -61,8 +61,8 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
                var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
     class QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %] extends [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl implements [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] {
-        public QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao) {
-            super(asmUtils, dao);
+        public QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao, hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator) {
+            super(asmUtils, dao, payloadValidator);
         }
 
 [%
