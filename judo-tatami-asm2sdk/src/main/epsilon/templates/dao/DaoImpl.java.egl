@@ -25,7 +25,14 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     @Override
     public [%= dtoTypeName %] create([%= dtoTypeName %] data) {
         org.eclipse.emf.ecore.EClass eClass = getEClass(FQ_NAME);
-        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.create(eClass, hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(data)), null);
+        hu.blackbelt.judo.dao.api.Payload payload = hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(data));
+        [% if (generatePayloadValidator) { %]
+        final java.util.Map<String, Object> validationContext = new java.util.TreeMap<>();
+        validationContext.put("location", "");
+        validationContext.put("validateForCreateOrUpdate", true);
+        payloadValidator.validatePayload(eClass, payload, validationContext, true);
+        [% } %]
+        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.create(eClass, payload, null);
         return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, resultPayload);
     }
 
@@ -60,7 +67,15 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     */
     @Override
     public [%= dtoTypeName %] update([%= dtoTypeName %] data) {
-        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.update(getEClass(FQ_NAME), hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(data)), null);
+        hu.blackbelt.judo.dao.api.Payload payload = hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(data));
+        org.eclipse.emf.ecore.EClass eClass = getEClass(FQ_NAME);
+        [% if (generatePayloadValidator) { %]
+        final java.util.Map<String, Object> validationContext = new java.util.TreeMap<>();
+        validationContext.put("location", "");
+        validationContext.put("validateForCreateOrUpdate", true);
+        payloadValidator.validatePayload(eClass, payload, validationContext, true);
+        [% } %]
+        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.update(eClass, payload, null);
         return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, resultPayload);
     }
     
@@ -99,7 +114,16 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     */
     @Override
     public [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObject) {
-        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(relatedObject)), null);
+        hu.blackbelt.judo.dao.api.Payload payload = hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(relatedObject));
+        org.eclipse.emf.ecore.EClass eClass = getEClass(FQ_NAME);
+        org.eclipse.emf.ecore.EReference eReference = [%= sdkUtil %].getReference(eClass, "[%= rel.name %]");
+        [% if (generatePayloadValidator) { %]
+        final java.util.Map<String, Object> validationContext = new java.util.TreeMap<>();
+        validationContext.put("location", "[%= rel.name %]");
+        validationContext.put("validateForCreateOrUpdate", true);
+        payloadValidator.validatePayload(eReference.getEReferenceType(), payload, validationContext, true);
+        [% } %]
+        hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), eReference, payload, null);
         return [%= sdkUtil %].fromPayload([%= relatedType %].class, resultPayload);
     }
 
@@ -144,8 +168,20 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     @Override
     public [%= relatedType %] create[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects) {
         [%=relatedType %] result = new java.util.ArrayList<>();
+        int idx = 0;
         for ([%= singleRelatedType %] element : relatedObjects) {
-            hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), [%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(element)), null);
+            hu.blackbelt.judo.dao.api.Payload payload = hu.blackbelt.judo.dao.api.Payload.asPayload([%= sdkUtil %].asMap(element));
+            org.eclipse.emf.ecore.EClass eClass = getEClass(FQ_NAME);
+            org.eclipse.emf.ecore.EReference eReference = [%= sdkUtil %].getReference(eClass, "[%= rel.name %]");
+
+            [% if (generatePayloadValidator) { %]
+            final java.util.Map<String, Object> validationContext = new java.util.TreeMap<>();
+            validationContext.put("location", "[%= rel.name %]" + "[" + idx + "]");
+            validationContext.put("validateForCreateOrUpdate", true);
+            payloadValidator.validatePayload(eReference.getEReferenceType(), payload, validationContext, true);
+            idx++;
+            [% } %]
+            hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), eReference, payload, null);
             result.add([%= sdkUtil %].fromPayload([%= singleRelatedType %].class, resultPayload));
         }
     	return java.util.Collections.unmodifiableList(result);
@@ -191,7 +227,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     */
     @Override
     public [%= dtoTypeName %].[%= name %].QueryCustomizer query() {
-        return new QueryCustomizerImpl(asmUtils, dao);
+        return new QueryCustomizerImpl(asmUtils, dao, payloadValidator);
     }
 
     [% for (ref in dto.eAllReferences.select(r | (not r.isContainment or r.derived) and r.many)) { %]
@@ -199,8 +235,8 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
                var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
 
     abstract class QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %] extends [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl implements [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] {
-        public QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao) {
-            super(asmUtils, dao);
+        public QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao, hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator) {
+            super(asmUtils, dao, payloadValidator);
         }
 
 [%
@@ -223,7 +259,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) {
                var parameterType = asmUtils.resolve(asmUtils.getExtensionAnnotationCustomValue(ref, "parameterized", "type", false).get()).get(); %]
     public [%= getSdkPrefix() + dto.getClassifierPackageName() %].[%= dto.getClassName() %].[%= name %].QueryCustomizerFor[%= ref.name.firstToUpperCase() %] query[%=ref.name.firstToUpperCase() %](java.util.UUID id, [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
-        return new [%= getInternalPrefix() + dto.getClassifierPackageName() %].[%= name%]Impl.QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](asmUtils, dao) {
+        return new [%= getInternalPrefix() + dto.getClassifierPackageName() %].[%= name%]Impl.QueryCustomizerImplFor[%= ref.name.firstToUpperCase() %](asmUtils, dao, payloadValidator) {
             @Override
             public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] p) {
                 [%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] effectiveParams = p;
@@ -236,7 +272,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
 
         [% } else { %]
     public [%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %].[%= ref.eReferenceType.getClassName() %]Dao.QueryCustomizer query[%=ref.name.firstToUpperCase() %](java.util.UUID id) {
-        return new [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl(asmUtils, dao) {
+        return new [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl(asmUtils, dao, payloadValidator) {
             @Override
             public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute() {
         [% }%]
@@ -305,15 +341,17 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
 
         protected final hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils;
         protected final hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao;
+        protected final hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator;
 
         protected java.util.List<java.lang.String> filters = new java.util.ArrayList<>();
         protected java.util.List<hu.blackbelt.judo.dao.api.DAO.OrderBy> orderByList = new java.util.ArrayList<>();
         protected java.util.Map<java.lang.String, java.lang.Object> mask;
         protected java.lang.Integer limit;
 
-        public QueryCustomizerImpl(hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao) {
+        public QueryCustomizerImpl(hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao, hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator) {
             this.asmUtils = asmUtils;
             this.dao = dao;
+            this.payloadValidator = payloadValidator;
         }
 
 [%

@@ -4,30 +4,28 @@
 %]
 package [%= getSpringModulePrefix() + getModelPackageName() %];
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-
-@Configuration
+@org.springframework.context.annotation.Configuration
 public class [%= getSpringDaoModuleName() %] {
 
-    @Autowired
-    DAO dao;
+    @org.springframework.beans.factory.annotation.Autowired
+    hu.blackbelt.judo.dao.api.DAO dao;
 
-    @Autowired
-    AsmModel asmModel;
+    @org.springframework.beans.factory.annotation.Autowired
+    hu.blackbelt.judo.meta.asm.runtime.AsmModel asmModel;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator;
 
     [% for (dto in getAllDTOs()) {
         if (asmUtils.isMappedTransferObjectType(dto)) {
             var daoInterfaceName = dto.getClassName() + "Dao";
     %]
-    @Bean
+    @org.springframework.context.annotation.Bean
     [%= getSdkPrefix() + dto.getDtoTypeName()%].[%= daoInterfaceName%] provide_[%= (getSdkPrefix() + dto.getDtoTypeName() + daoInterfaceName).replaceAll("\\.", "__") %]() {
             [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl daoImpl = new [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl();
         daoImpl.setDao(dao);
         daoImpl.setAsmModel(asmModel);
+        daoImpl.setPayloadValidator(payloadValidator);
         return daoImpl;
     }
 
