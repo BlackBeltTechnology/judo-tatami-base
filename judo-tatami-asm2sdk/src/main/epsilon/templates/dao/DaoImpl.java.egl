@@ -50,9 +50,13 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     * {@inheritdoc}
     */
     @Override
-    public [%= dtoTypeName %] getById(java.util.UUID id) {
-        hu.blackbelt.judo.dao.api.Payload payload = dao.getByIdentifier(getEClass(FQ_NAME), id).get();
-        return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, payload);
+    public java.util.Optional<[%= dtoTypeName %]> getById(java.util.UUID id) {
+        java.util.Optional<Payload> payload = dao.getByIdentifier(getEClass(FQ_NAME), id);
+        if (payload.isPresent()) {
+            return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, payload);
+        } else {
+            return Optional.empty();
+        }
     }
 
     /**
