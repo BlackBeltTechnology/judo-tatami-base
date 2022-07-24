@@ -125,6 +125,68 @@ operation ASM!EReference getTypeDocumentation() : String {
     }
 }
 
+@cached
+operation ASM!EReference isSetAllowed() : Boolean {
+    if (self.derived) {
+       return false;
+    }
+    if (self.eOpposite <> null and  self.eOpposite.lowerBound == 1) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+@cached
+operation ASM!EReference isCreateAllowed() : Boolean {
+    if (self.derived) {
+       return false;
+    }
+    if (self.eOpposite <> null and  self.eOpposite.lowerBound == 1) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+@cached
+operation ASM!EReference isUnsetAllowed() : Boolean {
+    if (self.derived) {
+       return false;
+    }
+    if (self.lowerBound == 0) {
+        if (self.eOpposite <> null and  self.eOpposite.lowerBound == 1) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
+
+@cached
+operation ASM!EReference isAddAllowed() : Boolean {
+    if (self.derived) {
+       return false;
+    }
+    if (self.upperBound == -1) {
+        return true;
+    }
+    return false;
+}
+
+@cached
+operation ASM!EReference isRemoveAllowed() : Boolean {
+    if (self.derived) {
+       return false;
+    }
+    if (self.upperBound == -1) {
+        return true;
+    }
+    return false;
+}
+
 
 /*
  DTO
