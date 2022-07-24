@@ -108,7 +108,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         	   	[% } %]
     }
 
-			[% if (not rel.derived) { %]
+			[% if (not rel.derived and not rel.isMandatory()) { %]
     /**
     * {@inheritdoc}
     */

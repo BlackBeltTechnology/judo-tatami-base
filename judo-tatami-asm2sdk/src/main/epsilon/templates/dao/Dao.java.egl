@@ -72,7 +72,7 @@ interface [%= name %] {
      */
     [%= relatedGetterType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
 
-			[% if (not rel.derived) { %]
+			[% if (not rel.derived and not rel.isMandatory()) { %]
     /**
      * Creates a(n) {@link  [%= relatedType %]} instance linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
      *
