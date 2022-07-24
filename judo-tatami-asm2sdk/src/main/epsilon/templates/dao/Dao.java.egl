@@ -42,9 +42,9 @@ interface [%= name %] {
       * Get an instance of a(n) {@link [%= dtoTypeName %]} by the given identifier.
       *
       * @param id the uuid of a(n) {@link [%= dtoTypeName %]} instance
-      * @return [%= dtoTypeName %]
+      * @return java.util.Optional<[%= dtoTypeName %]>
       */
-    [%= dtoTypeName %] getById(java.util.UUID id);
+    java.util.Optional<[%= dtoTypeName %]> getById(java.util.UUID id);
 
     /**
      * Updates a(n) {@link [%= dtoTypeName %]} instance.
