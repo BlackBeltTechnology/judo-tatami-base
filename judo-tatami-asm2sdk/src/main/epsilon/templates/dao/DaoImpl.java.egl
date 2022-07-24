@@ -112,7 +112,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         	   	[% } %]
     }
 
-			[% if (not rel.derived) { %]
+			[% if (rel.isCreateAllowed()) { %]
     /**
     * {@inheritdoc}
     */
@@ -130,7 +130,9 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         hu.blackbelt.judo.dao.api.Payload resultPayload = dao.createNavigationInstanceAt(object.get__identifier(), eReference, payload, null);
         return [%= sdkUtil %].fromPayload([%= relatedType %].class, resultPayload);
     }
+			[% } %]
 
+			[% if (rel.isSetAllowed()) { %]
     /**
     * {@inheritdoc}
     */
@@ -138,7 +140,9 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     public void set[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObject) {
         dao.setReference([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name  %]"), object.get__identifier(), java.util.Arrays.asList(relatedObject.get__identifier()));
     }
+			[% } %]
 
+			[% if (rel.isUnsetAllowed()) { %]
     /**
     * {@inheritdoc}
     */
@@ -165,7 +169,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         return java.util.Collections.unmodifiableList(payloads.stream().map(payload -> [%= sdkUtil %].fromPayload([%= singleRelatedType %].class, payload)).collect(java.util.stream.Collectors.toList()));
     }
 
-			[% if (not rel.derived) { %]
+			[% if (rel.isCreateAllowed()) { %]
     /**
     * {@inheritdoc}
     */
@@ -190,7 +194,9 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         }
     	return java.util.Collections.unmodifiableList(result);
     }
+			[% } %]
 
+			[% if (rel.isRemoveAllowed()) { %]
     /**
     * {@inheritdoc}
     */
@@ -198,7 +204,9 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     public void remove[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects) {
         dao.removeReferences([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), object.get__identifier(), relatedObjects.stream().map(relatedObject -> relatedObject.get__identifier()).collect(java.util.stream.Collectors.toList()));
     }
+			[% } %]
 
+			[% if (rel.isAddAllowed()) { %]
     /**
     * {@inheritdoc}
     */
@@ -206,7 +214,6 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
     public void add[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object, [%= relatedType %] relatedObjects) {
         dao.addReferences([%= sdkUtil %].getReference(getEClass(FQ_NAME), "[%= rel.name %]"), object.get__identifier(), relatedObjects.stream().map(relatedObject -> relatedObject.get__identifier()).collect(java.util.stream.Collectors.toList()));
     }
-    
 		    [% } %]    
     [% } %]
 
