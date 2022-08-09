@@ -11,6 +11,11 @@ steps only which can be utilized in workflows defined in other projects (for exa
 The orders of steps show the relation between transformation steps source / destination model and how the steps
 can be chained.
 
+== Context
+
+This project is a building block of the https://github.com/BlackBeltTechnology/judo-community[judo-community] aggregator
+project. In order to better understand how this module fits into our ecosystem, please check the corresponding documentation!
+
 == Contributing to the project
 
 Everyone is welcome to contribute to JUDO! As a starter, please read the corresponding link:CONTRIBUTING.adoc[CONTRIBUTING] guide for details!
