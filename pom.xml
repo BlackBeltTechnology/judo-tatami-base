@@ -76,7 +76,7 @@
         <surefire-version>3.0.0-M5</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>1.4.0.20220629_123622_4279f257_develop</epsilon-runtime-version>
+        <epsilon-runtime-version>1.5.0</epsilon-runtime-version>
 
         <java-embedded-compiler-version>1.0.0.20220628_233650_32ca0303_develop</java-embedded-compiler-version>
 
@@ -100,7 +100,7 @@
         <judo-dispatcher-api-version>1.0.2.20220901_121018_b6e9cf92_develop</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.0.20220902_155843_fae617e1_develop</judo-operation-utils-version>
 
-        <structured-map-proxy-version>1.1.0.20220807_065738_525bb031_develop</structured-map-proxy-version>
+        <structured-map-proxy-version>1.1.0</structured-map-proxy-version>
 
         <xtext-version>2.27.0</xtext-version>
 
