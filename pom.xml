@@ -44,7 +44,7 @@
     </developers>
 
     <properties>
-        <revision>1.1.0-SNAPSHOT</revision>
+        <revision>1.1.1-SNAPSHOT</revision>
         <maven>3.8.3</maven>
 
         <project-shortname>judo-tatami</project-shortname>
@@ -577,7 +577,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
-                    <version>2.5.2</version>
+                    <version>3.0.1</version>
                 </plugin>
 
                 <plugin>
