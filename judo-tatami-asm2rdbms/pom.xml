@@ -132,7 +132,6 @@
 							<cleanupDaemonThreads>false</cleanupDaemonThreads>
 						</configuration>
 					</execution>
-
 				</executions>
 			</plugin>
 
