@@ -44,7 +44,7 @@
     </developers>
 
     <properties>
-        <revision>1.1.0</revision>
+        <revision>1.1.1</revision>
         <maven>3.8.3</maven>
 
         <project-shortname>judo-tatami</project-shortname>
@@ -97,11 +97,11 @@
         <judo-meta-measure-version>1.0.0</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0</judo-meta-liquibase-version>
         <judo-dao-api-version>1.0.2</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.0</judo-sdk-common-version>
+        <judo-sdk-common-version>1.0.1</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.0</judo-operation-utils-version>
 
-        <structured-map-proxy-version>1.1.0</structured-map-proxy-version>
+        <structured-map-proxy-version>1.2.0</structured-map-proxy-version>
 
         <xtext-version>2.28.0</xtext-version>
 
@@ -153,7 +153,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -773,7 +772,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>1.3.0</version>
                 <configuration>
                     <updatePomFile>true</updatePomFile>
                     <flattenMode>resolveCiFriendliesOnly</flattenMode>
@@ -836,7 +835,7 @@
                     <plugin>
                         <groupId>net.nicoulaj.maven.plugins</groupId>
                         <artifactId>checksum-maven-plugin</artifactId>
-                        <version>1.10</version>
+                        <version>1.11</version>
                         <executions>
                             <execution>
                                 <goals>
