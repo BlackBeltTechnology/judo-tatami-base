@@ -101,7 +101,7 @@
         <judo-dispatcher-api-version>1.0.2</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.0</judo-operation-utils-version>
 
-        <structured-map-proxy-version>1.1.0</structured-map-proxy-version>
+        <structured-map-proxy-version>1.2.0</structured-map-proxy-version>
 
         <xtext-version>2.28.0</xtext-version>
 
