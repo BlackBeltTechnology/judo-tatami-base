@@ -87,11 +87,11 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0</judo-meta-rdbms-version>
         <judo-meta-psm-version>1.2.1</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.1</judo-meta-jql-version>
+        <judo-meta-jql-version>1.0.2.20221003_101232_565a9d7a_feature_JNG_4086_missing_in_unary_operators_wrong_number_terminal</judo-meta-jql-version>
         <judo-meta-asm-version>1.1.1</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.2.20220930_112053_c0bce21c_develop</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.2.20220930_113136_72df9fe3_develop</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.2.20220930_113156_298c6ce2_develop</judo-meta-expression-asm-version>
+        <judo-meta-expression-version>1.0.2.20221003_102930_213f6e94_feature_JNG_4086_missing_in_unary_operators_wrong_number_terminal</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.2.20221003_110847_3758bb94_feature_JNG_4086_missing_in_unary_operators_wrong_number_terminal</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.2.20221003_103931_53d0ab51_feature_JNG_4086_missing_in_unary_operators_wrong_number_terminal</judo-meta-expression-asm-version>
 
 
         <judo-meta-measure-version>1.0.0</judo-meta-measure-version>
