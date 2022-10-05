@@ -87,7 +87,7 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0</judo-meta-rdbms-version>
         <judo-meta-psm-version>1.2.1</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.1</judo-meta-jql-version>
+        <judo-meta-jql-version>1.0.2.20221003_101232_565a9d7a_feature_JNG_4086_missing_in_unary_operators_wrong_number_terminal</judo-meta-jql-version>
         <judo-meta-asm-version>1.1.1</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.2.20221003_073953_751eab06_feature_JNG_3795_Support_capitalize_on_strings</judo-meta-expression-version>
         <judo-meta-expression-psm-version>1.0.2.20221003_132519_541c176b_feature_JNG_3795_Support_capitalize_on_strings</judo-meta-expression-psm-version>
