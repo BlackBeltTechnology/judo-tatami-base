@@ -89,9 +89,9 @@
         <judo-meta-psm-version>1.2.2.20221006_004445_31fba004_develop</judo-meta-psm-version>
         <judo-meta-jql-version>1.0.2.20221006_004537_4e35baab_develop</judo-meta-jql-version>
         <judo-meta-asm-version>1.1.2.20221006_004501_e2ea11fc_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.2.20221006_004907_eade56d0_develop</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.2.20221006_005225_a2ffd41e_develop</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.2.20221006_005238_c760786d_develop</judo-meta-expression-asm-version>
+        <judo-meta-expression-version>1.0.2.20221006_142619_41d2c4d1_JNG_4140_Extend_JSL_JQL_functions</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.2.20221006_143052_6eb12aca_JNG_4140_Extend_JSL_JQL_functions</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.2.20221006_143033_b6efe6de_JNG_4140_Extend_JSL_JQL_functions</judo-meta-expression-asm-version>
 
 
         <judo-meta-measure-version>1.0.1.20221006_004558_6a14e94b_develop</judo-meta-measure-version>
