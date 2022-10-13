@@ -6,7 +6,7 @@ rule CreateUnmappedTransferObjectForStaticData
     transform s : JUDOPSM!StaticData
     to t : ASM!EClass {
         t.setId("(psm/" + s.getId() + ")/UnmappedTransferObjectForStaticData");
-		t.name = s.name;
+		t.name = s.name.firstToUpperCase();
 		s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
@@ -15,7 +15,7 @@ rule CreateUnmappedTransferObjectForStaticNavigation
     transform s : JUDOPSM!StaticNavigation
     to t : ASM!EClass {
         t.setId("(psm/" + s.getId() + ")/UnmappedTransferObjectForStaticNavigation");
-		t.name = s.name;
+		t.name = s.name.firstToUpperCase();
 		s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
