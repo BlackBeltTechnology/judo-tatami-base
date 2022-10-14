@@ -1,0 +1,148 @@
+import "../utils/_importUtils.eol";
+import "namespace.etl";
+
+
+@greedy
+rule CreateUnmappedTransferObjectForStaticData
+    transform s : JUDOPSM!StaticData
+    to t : ASM!EClass {
+        t.setId("(psm/" + s.getId() + ")/UnmappedTransferObjectForStaticData");
+		t.name = s.name.firstToUpperCase();
+		s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateUnmappedTransferObjectForStaticNavigation
+    transform s : JUDOPSM!StaticNavigation
+    to t : ASM!EClass {
+        t.setId("(psm/" + s.getId() + ")/UnmappedTransferObjectForStaticNavigation");
+		t.name = s.name.firstToUpperCase();
+		s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateStaticDataQueryAnnotation
+    transform s : JUDOPSM!StaticData
+    to t : ASM!EAnnotation {
+        t.setId("(psm/" + s.getId() + ")/StaticDataQueryAnnotation");
+        t.source = asmUtils.getAnnotationUri("staticQuery");
+        s.equivalent("CreateUnmappedTransferObjectForStaticData").eAnnotations.add(t);
+    }
+
+@greedy
+rule CreateStaticNavigationQueryAnnotation
+    transform s : JUDOPSM!StaticNavigation
+    to t : ASM!EAnnotation {
+        t.setId("(psm/" + s.getId() + ")/StaticNavigationQueryAnnotation");
+        t.source = asmUtils.getAnnotationUri("staticQuery");
+        s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
+    }
+
+
+@greedy
+rule CreateStaticDataTransferObjectTypeAnnotationClass
+	transform s : JUDOPSM!StaticData
+	to t : ASM!EAnnotation {
+	    t.setId("(psm/" + s.getId() + ")/StaticDataTransferObjectTypeAnnotationClass");
+        t.source = asmUtils.getAnnotationUri("transferObjectType");
+        
+        var transferObject = new ASM!EStringToStringMapEntry;
+        transferObject.setId(t.getId() + "/StaticDataTransferObjectType");
+        transferObject.key = "value";
+        transferObject.value = "true";
+        t.details.add(transferObject);
+
+        s.equivalent("CreateUnmappedTransferObjectForStaticData").eAnnotations.add(t);
+	}
+
+@greedy
+rule CreateStaticNavigationTransferObjectTypeAnnotationClass
+	transform s : JUDOPSM!StaticNavigation
+	to t : ASM!EAnnotation {
+	    t.setId("(psm/" + s.getId() + ")/StaticNavigationTransferObjectTypeAnnotationClass");
+        t.source = asmUtils.getAnnotationUri("transferObjectType");
+        
+        var transferObject = new ASM!EStringToStringMapEntry;
+        transferObject.setId(t.getId() + "/StaticNavigationTransferObjectType");
+        transferObject.key = "value";
+        transferObject.value = "true";
+        t.details.add(transferObject);
+
+        s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
+	}
+
+
+@greedy
+rule CreateStaticDataQueryCustomizerAnnotationForQueryCustomizerClass
+	transform s : JUDOPSM!StaticData
+	to t : ASM!EAnnotation {
+	    t.setId("(psm/" + s.getId() + ")/StaticDataQueryCustomizerAnnotationForQueryCustomizerClass");
+        t.source = asmUtils.getAnnotationUri("queryCustomizer");
+
+        var queryCustomizer = new ASM!EStringToStringMapEntry;
+        queryCustomizer.setId(t.getId() + "/StaticDataQueryCustomizer");
+        queryCustomizer.key = "value";
+        queryCustomizer.value = "true";
+        t.details.add(queryCustomizer);
+
+        s.equivalent("CreateUnmappedTransferObjectForStaticData").eAnnotations.add(t);
+	}
+
+
+@greedy
+rule CreateStaticNavigationQueryCustomizerAnnotationForQueryCustomizerClass
+	transform s : JUDOPSM!StaticNavigation
+	to t : ASM!EAnnotation {
+	    t.setId("(psm/" + s.getId() + ")/StaticNavigationQueryCustomizerAnnotationForQueryCustomizerClass");
+        t.source = asmUtils.getAnnotationUri("queryCustomizer");
+
+        var queryCustomizer = new ASM!EStringToStringMapEntry;
+        queryCustomizer.setId(t.getId() + "/StaticNavigationQueryCustomizer");
+        queryCustomizer.key = "value";
+        queryCustomizer.value = "true";
+        t.details.add(queryCustomizer);
+
+        s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
+	}
+
+
+/*
+rule CreateStaticQueryAttribute
+	transform s : JUDOPSM!StaticData
+	to t : ASM!EAttribute {
+		t.setId("(psm/" + s.getId() + ")/StaticQueryAttribute");
+		t.name = s.name;
+
+		if (s.required) {
+			t.lowerBound = 1;
+		} else {
+			t.lowerBound = 0;
+		}
+		
+		t.eType = s.dataType.asmEquivalent();
+		t.derived = true; //s.binding.isDefined() and not s.binding.isKindOf(JUDOPSM!Attribute);
+		t.changeable = false;
+
+		s.equivalent("CreateUnmappedTransferObjectForStaticData").eStructuralFeatures.add(t);
+
+	}
+
+rule CreateStaticQueryNavigation
+    transform s : JUDOPSM!StaticNavigation
+	to t : ASM!EReference {
+	    t.setId("(psm/" + s.getId() + ")/StaticQueryNavigation");
+		t.name = s.name;
+		t.containment = false;
+
+		t.lowerBound = s.cardinality.lower;
+		t.upperBound = s.cardinality.upper;
+		
+		//t.eType = s.target.asmEquivalent();
+		//t.eType = s.target.asmEquivalent();
+		t.eType = s.target.equivalent("CreateEntityClass");
+		t.derived = false;
+		t.changeable = false;
+
+		s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eStructuralFeatures.add(t);
+	}
+*/
