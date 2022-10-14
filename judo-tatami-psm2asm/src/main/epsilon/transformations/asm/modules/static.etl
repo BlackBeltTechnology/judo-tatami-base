@@ -1,7 +1,6 @@
 import "../utils/_importUtils.eol";
 import "namespace.etl";
 
-
 @greedy
 rule CreateUnmappedTransferObjectForStaticData
     transform s : JUDOPSM!StaticData
@@ -105,8 +104,6 @@ rule CreateStaticNavigationQueryCustomizerAnnotationForQueryCustomizerClass
         s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
 	}
 
-
-/*
 rule CreateStaticQueryAttribute
 	transform s : JUDOPSM!StaticData
 	to t : ASM!EAttribute {
@@ -145,4 +142,3 @@ rule CreateStaticQueryNavigation
 
 		s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eStructuralFeatures.add(t);
 	}
-*/
