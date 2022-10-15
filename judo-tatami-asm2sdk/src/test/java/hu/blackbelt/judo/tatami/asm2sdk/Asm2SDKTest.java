@@ -30,6 +30,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 
+import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.SaveArguments.asmSaveArgumentsBuilder;
+import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.SaveArguments.psmSaveArgumentsBuilder;
 import static hu.blackbelt.judo.tatami.asm2sdk.Asm2SDK.executeAsm2SDKGeneration;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
@@ -39,7 +41,8 @@ public class Asm2SDKTest {
 
 	public static final String MODEL_NAME = "northwind";
 	public static final String TARGET_TEST_CLASSES = "target/test-classes";
-	public static final String NORTHWIND_ASM_MODEL = "northwind-asm.model";
+	public static final String NORTHWIND_ASM_MODEL = "asm2sdk_northwind-asm.model";
+	public static final String NORTHWIND_PSM_MODEL = "asm2sdk_northwind-psm.model";
 	public static final String GENERATED_JAVA = "generated/java";
 
 	AsmModel asmModel;
@@ -54,6 +57,20 @@ public class Asm2SDKTest {
 		executePsm2AsmTransformation(psm2AsmParameter()
 				.psmModel(psmModel)
 				.asmModel(asmModel));
+
+		
+        
+        asmModel.saveAsmModel(asmSaveArgumentsBuilder()
+                .file(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_MODEL))
+                .build());
+
+		
+        
+        psmModel.savePsmModel(psmSaveArgumentsBuilder()
+                .file(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_MODEL))
+                .build());
+
+
 	}
 
 	@Test
