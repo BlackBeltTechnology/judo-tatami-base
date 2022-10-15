@@ -1,7 +1,6 @@
 import "../utils/_importUtils.eol";
 import "namespace.etl";
 
-@greedy
 rule CreateUnmappedTransferObjectForStaticData
     transform s : JUDOPSM!StaticData
     to t : ASM!EClass {
@@ -10,13 +9,44 @@ rule CreateUnmappedTransferObjectForStaticData
 		s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
-@greedy
-rule CreateUnmappedTransferObjectForStaticNavigation
+rule CreateMappedTransferObjectForStaticNavigation
     transform s : JUDOPSM!StaticNavigation
     to t : ASM!EClass {
-        t.setId("(psm/" + s.getId() + ")/UnmappedTransferObjectForStaticNavigation");
+		guard: s.target.defaultRepresentation.isDefined()
+        t.setId("(psm/" + s.getId() + ")/MappedTransferObjectForStaticNavigation");
 		t.name = s.name.firstToUpperCase();
 		s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
+
+@greedy
+rule CreateMappedEntityTypeAnnotationOnStaticNavigationTransferObject
+    transform s : JUDOPSM!StaticNavigation
+    to t : ASM!EAnnotation {
+		guard: s.target.defaultRepresentation.isDefined()
+        t.setId("(psm/" + s.getId() + ")/MappedEntityTypeAnnotationOnStaticNavigationTransferObject");
+        t.source = asmUtils.getAnnotationUri("mappedEntityType");
+		
+		var mappedEntityType = new ASM!EStringToStringMapEntry;
+		mappedEntityType.setId(t.getId() + "/MappedEntityType");
+        mappedEntityType.key = "value";
+        mappedEntityType.value = asmUtils.getClassifierFQName(s.entityType.equivalent("CreateEntityClass"));
+        t.details.add(mappedEntityType);
+
+        if (s.filter.isDefined()) {
+            var filter = new ASM!EStringToStringMapEntry;
+            filter.setId(t.getId() + "/Filter");
+            filter.key = "filter";
+            filter.value = s.filter.expression;
+            t.details.add(filter);
+
+            var filterDialect = new ASM!EStringToStringMapEntry;
+            filterDialect.setId(t.getId() + "/FilterDialect");
+            filterDialect.key = "filter.dialect";
+            filterDialect.value = s.filter.dialect.asString();
+            t.details.add(filterDialect);
+        }
+
+        s.equivalent("CreateMappedTransferObject").eAnnotations.add(t);
     }
 
 @greedy
@@ -32,9 +62,10 @@ rule CreateStaticDataQueryAnnotation
 rule CreateStaticNavigationQueryAnnotation
     transform s : JUDOPSM!StaticNavigation
     to t : ASM!EAnnotation {
+		guard: s.target.defaultRepresentation.isDefined()
         t.setId("(psm/" + s.getId() + ")/StaticNavigationQueryAnnotation");
         t.source = asmUtils.getAnnotationUri("staticQuery");
-        s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
+        s.equivalent("CreateMappedTransferObjectForStaticNavigation").eAnnotations.add(t);
     }
 
 
@@ -58,6 +89,7 @@ rule CreateStaticDataTransferObjectTypeAnnotationClass
 rule CreateStaticNavigationTransferObjectTypeAnnotationClass
 	transform s : JUDOPSM!StaticNavigation
 	to t : ASM!EAnnotation {
+		guard: s.target.defaultRepresentation.isDefined()
 	    t.setId("(psm/" + s.getId() + ")/StaticNavigationTransferObjectTypeAnnotationClass");
         t.source = asmUtils.getAnnotationUri("transferObjectType");
         
@@ -67,9 +99,8 @@ rule CreateStaticNavigationTransferObjectTypeAnnotationClass
         transferObject.value = "true";
         t.details.add(transferObject);
 
-        s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
+        s.equivalent("CreateMappedTransferObjectForStaticNavigation").eAnnotations.add(t);
 	}
-
 
 @greedy
 rule CreateStaticDataQueryCustomizerAnnotationForQueryCustomizerClass
@@ -92,6 +123,7 @@ rule CreateStaticDataQueryCustomizerAnnotationForQueryCustomizerClass
 rule CreateStaticNavigationQueryCustomizerAnnotationForQueryCustomizerClass
 	transform s : JUDOPSM!StaticNavigation
 	to t : ASM!EAnnotation {
+		guard: s.target.defaultRepresentation.isDefined()
 	    t.setId("(psm/" + s.getId() + ")/StaticNavigationQueryCustomizerAnnotationForQueryCustomizerClass");
         t.source = asmUtils.getAnnotationUri("queryCustomizer");
 
@@ -101,7 +133,7 @@ rule CreateStaticNavigationQueryCustomizerAnnotationForQueryCustomizerClass
         queryCustomizer.value = "true";
         t.details.add(queryCustomizer);
 
-        s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eAnnotations.add(t);
+        s.equivalent("CreateMappedTransferObjectForStaticNavigation").eAnnotations.add(t);
 	}
 
 rule CreateStaticQueryAttribute
@@ -127,6 +159,7 @@ rule CreateStaticQueryAttribute
 rule CreateStaticQueryNavigation
     transform s : JUDOPSM!StaticNavigation
 	to t : ASM!EReference {
+		guard: s.target.defaultRepresentation.isDefined()
 	    t.setId("(psm/" + s.getId() + ")/StaticQueryNavigation");
 		t.name = s.name;
 		t.containment = false;
@@ -136,9 +169,66 @@ rule CreateStaticQueryNavigation
 		
 		//t.eType = s.target.asmEquivalent();
 		//t.eType = s.target.asmEquivalent();
-		t.eType = s.target.equivalent("CreateEntityClass");
-		t.derived = false;
+		//t.eType = s.target.defaultRepresentation.equivalent("CreateMappedTransferObject");
+
+		t.eType = s.target.defaultRepresentation.equivalent("CreateMappedTransferObject");
+
+		t.derived = true;
 		t.changeable = false;
 
-		s.equivalent("CreateUnmappedTransferObjectForStaticNavigation").eStructuralFeatures.add(t);
+		s.equivalent("CreateMappedTransferObjectForStaticNavigation").eStructuralFeatures.add(t);
 	}
+
+rule CreateStaticNavigationExpression
+    transform s : JUDOPSM!StaticNavigation
+    to t : ASM!EAnnotation {
+		guard: s.target.defaultRepresentation.isDefined()
+        t.setId("(psm/" + s.getId() + ")/StaticNavigationExpression");
+        t.source = asmUtils.getAnnotationUri("expression");
+
+        var getter = new ASM!EStringToStringMapEntry;
+        getter.setId(t.getId() + "/Getter");
+        getter.key = "getter";
+        getter.value = s.getterExpression.expression;
+        t.details.add(getter);
+
+        var getterDialect = new ASM!EStringToStringMapEntry;
+        getterDialect.setId(t.getId() + "/GetterDialect");
+        getterDialect.key = "getter.dialect";
+        getterDialect.value = s.getterExpression.dialect.asString();
+        t.details.add(getterDialect);
+
+        if (s.getterExpression.parameterType.isDefined()) {
+            var getterParameterType = new ASM!EStringToStringMapEntry;
+            getterParameterType.setId(t.getId() + "/GetterParameterType");
+            getterParameterType.key = "getter.parameter";
+            getterParameterType.value = asmUtils.getClassifierFQName(s.getterExpression.parameterType.asmEquivalent());
+            t.details.add(getterParameterType);
+        }
+
+        if (s.setterExpression.isDefined()) {
+            var setter = new ASM!EStringToStringMapEntry;
+            setter.setId(t.getId() + "/Setter");
+            setter.key = "setter";
+            setter.value = s.setterExpression.expression;
+            t.details.add(setter);
+
+            var setterDialect = new ASM!EStringToStringMapEntry;
+            setterDialect.setId(t.getId() + "/SetterDialect");
+            setterDialect.key = "setter.dialect";
+            setterDialect.value = s.setterExpression.dialect.asString();
+            t.details.add(setterDialect);
+
+            if (s.setterExpression.parameterType.isDefined()) {
+                var setterParameterType = new ASM!EStringToStringMapEntry;
+                setterParameterType.setId(t.getId() + "/SetterParameterType");
+                setterParameterType.key = "setter.parameter";
+                setterParameterType.value = asmUtils.getClassifierFQName(s.setterExpression.parameterType.asmEquivalent());
+                t.details.add(setterParameterType);
+            }
+        }
+
+        s.equivalent("CreateStaticQueryNavigation").eAnnotations.add(t);
+}
+
+	
