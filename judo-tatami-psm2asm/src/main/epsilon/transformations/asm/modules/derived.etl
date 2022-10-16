@@ -150,12 +150,6 @@ rule CreatePrimitiveAccessorExpressionAnnotation
             }
 	    }
    		s.asmEquivalent().eAnnotations.add(t);
-		/*
-        if (s.isKindOf(JUDOPSM!StaticData)) {
-	        s.equivalent("CreateStaticQueryData").eAnnotations.add(t);
-        } else {
-       		s.asmEquivalent().eAnnotations.add(t);
-   		} */
 	}
 
 @greedy
@@ -209,13 +203,6 @@ rule CreateReferenceAccessorExpressionAnnotation
 	    }
         
         s.asmEquivalent().eAnnotations.add(t);
-		/*
-        if (s.isKindOf(JUDOPSM!StaticData)) {
-	        s.equivalent("CreateStaticQueryNavigation").eAnnotations.add(t);
-        } else {
-       		s.asmEquivalent().eAnnotations.add(t);
-   		} */
-
 	}
 
 @abstract
