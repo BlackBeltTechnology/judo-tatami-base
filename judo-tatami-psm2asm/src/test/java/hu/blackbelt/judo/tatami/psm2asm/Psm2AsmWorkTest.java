@@ -20,19 +20,26 @@ package hu.blackbelt.judo.tatami.psm2asm;
  * #L%
  */
 
+import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.SaveArguments.asmSaveArgumentsBuilder;
+import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.SaveArguments.psmSaveArgumentsBuilder;
+
 import static hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngineBuilder.aNewWorkFlowEngine;
 import static hu.blackbelt.judo.tatami.core.workflow.flow.SequentialFlow.Builder.aNewSequentialFlow;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.calculatePsm2AsmTransformationScriptURI;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel.AsmValidationException;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.meta.psm.runtime.PsmModel.PsmValidationException;
 import hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngine;
 import hu.blackbelt.judo.tatami.core.workflow.flow.WorkFlow;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
@@ -46,6 +53,8 @@ class Psm2AsmWorkTest {
 
     public static final String NORTHWIND = "northwind";
     public static final String NORTHWIND_PSM_MODEL = "northwind-psm.model";
+    public static final String NORTHWIND_ASM_MODEL = "northwind-asm.model";
+
     public static final String TARGET_TEST_CLASSES = "target/test-classes";
 
     Psm2AsmWork psm2AsmWork;
@@ -62,7 +71,7 @@ class Psm2AsmWorkTest {
 	}
 
 	@Test
-	void testSimpleWorkflow() {
+	void testSimpleWorkflow() throws IllegalArgumentException, IOException, AsmValidationException, PsmValidationException {
 		WorkFlow workflow = aNewSequentialFlow().execute(psm2AsmWork).build();
 
 		WorkFlowEngine workFlowEngine = aNewWorkFlowEngine().build();
@@ -70,6 +79,22 @@ class Psm2AsmWorkTest {
 
 		log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
 		assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+		
+		
+        transformationContext.getByClass(AsmModel.class)
+        	.orElseThrow(() -> new IllegalArgumentException("Could not get ASM Model"))
+        	.saveAsmModel(asmSaveArgumentsBuilder()
+                .file(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_MODEL))
+                .build());
+
+		
+        transformationContext.getByClass(PsmModel.class)
+        	.orElseThrow(() -> new IllegalArgumentException("Could not get PSM Model"))
+        	.savePsmModel(psmSaveArgumentsBuilder()
+                .file(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_MODEL))
+                .build());
+
+
 	}
 
 }
