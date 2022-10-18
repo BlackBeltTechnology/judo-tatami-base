@@ -5,6 +5,7 @@ import "modules/operation.etl";
 import "modules/namespace.etl";
 import "modules/transferObject.etl";
 import "modules/type.etl";
+import "modules/static.etl";
 
 post {
     asmUtils.enrichWithAnnotations();
