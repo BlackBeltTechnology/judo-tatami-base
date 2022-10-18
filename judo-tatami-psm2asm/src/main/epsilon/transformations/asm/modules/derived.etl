@@ -149,8 +149,7 @@ rule CreatePrimitiveAccessorExpressionAnnotation
                 t.details.add(setterParameterType);
             }
 	    }
-        
-        s.asmEquivalent().eAnnotations.add(t);
+   		s.asmEquivalent().eAnnotations.add(t);
 	}
 
 @greedy
