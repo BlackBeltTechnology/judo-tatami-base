@@ -19,6 +19,7 @@ package [%= getInternalPrefix() + dto.getClassifierPackageName() %];
 public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao implements [%= dtoTypeName %].[%= name %] {
     private final static String FQ_NAME = "[%= asmUtils.getClassifierFqName(dto) %]";
 
+    [% if (not dto.abstract) { %]
     /**
     * {@inheritdoc}
     */
@@ -35,6 +36,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         hu.blackbelt.judo.dao.api.Payload resultPayload = dao.create(eClass, payload, null);
         return [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, resultPayload);
     }
+    [% } %]
 
     /**
     * {@inheritdoc}
