@@ -16,7 +16,7 @@
 [% } %]
 interface [%= name %] {
 
-    [% if (not dto.abstract) { %]
+    [% if (not asmUtils.getMappedEntityType(dto).orElseThrow().abstract) { %]
     /**
      * Creates a new instance of a(n) {@link [%= dtoTypeName %]}.
      *

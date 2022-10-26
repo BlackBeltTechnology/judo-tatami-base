@@ -19,7 +19,7 @@ package [%= getInternalPrefix() + dto.getClassifierPackageName() %];
 public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao implements [%= dtoTypeName %].[%= name %] {
     private final static String FQ_NAME = "[%= asmUtils.getClassifierFqName(dto) %]";
 
-    [% if (not dto.abstract) { %]
+    [% if (not asmUtils.getMappedEntityType(dto).orElseThrow().abstract) { %]
     /**
     * {@inheritdoc}
     */
