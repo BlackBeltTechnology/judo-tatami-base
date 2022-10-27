@@ -44,7 +44,7 @@
     </developers>
 
     <properties>
-        <revision>1.1.1</revision>
+        <revision>1.1.2</revision>
         <maven>3.8.3</maven>
 
         <project-shortname>judo-tatami</project-shortname>
@@ -81,25 +81,25 @@
 
         <java-embedded-compiler-version>1.0.0</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.0</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.2</judo-tatami-core-version>
 
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.0</judo-meta-rdbms-version>
-        <judo-meta-psm-version>1.2.1</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.1</judo-meta-jql-version>
-        <judo-meta-asm-version>1.1.1</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.1</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.1</judo-meta-expression-asm-version>
+        <judo-meta-rdbms-version>1.0.1</judo-meta-rdbms-version>
+        <judo-meta-psm-version>1.2.2</judo-meta-psm-version>
+        <judo-meta-jql-version>1.0.2</judo-meta-jql-version>
+        <judo-meta-asm-version>1.1.2</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.2</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.2</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.2</judo-meta-expression-asm-version>
 
 
-        <judo-meta-measure-version>1.0.0</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.0</judo-meta-liquibase-version>
+        <judo-meta-measure-version>1.0.1</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.1</judo-meta-liquibase-version>
         <judo-dao-api-version>1.0.2</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.1</judo-sdk-common-version>
+        <judo-sdk-common-version>1.0.2</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.0</judo-operation-utils-version>
+        <judo-operation-utils-version>1.1.1</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.2.0</structured-map-proxy-version>
 
@@ -1059,7 +1059,7 @@
                                         <toc>left</toc>
                                         <icons>font</icons>
                                         <sectanchors>true</sectanchors>
-                                        <idprefix/>
+                                        <idprefix />
                                         <idseparator>-</idseparator>
                                     </attributes>
                                 </configuration>
