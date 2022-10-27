@@ -76,7 +76,7 @@
 
         <surefire-version>3.0.0-M7</surefire-version>
 
-        <liquibase-version>4.4.3</liquibase-version>
+        <liquibase-version>4.17.1</liquibase-version>
         <epsilon-runtime-version>1.5.0</epsilon-runtime-version>
 
         <java-embedded-compiler-version>1.1.0</java-embedded-compiler-version>
