@@ -79,7 +79,7 @@
         <liquibase-version>4.4.3</liquibase-version>
         <epsilon-runtime-version>1.5.0</epsilon-runtime-version>
 
-        <java-embedded-compiler-version>1.1.0</java-embedded-compiler-version>
+        <java-embedded-compiler-version>1.0.0</java-embedded-compiler-version>
 
         <judo-tatami-core-version>1.1.1.20221027_003317_6fb393b8_develop</judo-tatami-core-version>
 
