@@ -16,6 +16,7 @@
 [% } %]
 interface [%= name %] {
 
+    [% if (not asmUtils.getMappedEntityType(dto).orElseThrow().abstract) { %]
     /**
      * Creates a new instance of a(n) {@link [%= dtoTypeName %]}.
      *
@@ -23,6 +24,7 @@ interface [%= name %] {
      * @return [%= dtoTypeName %]
      */
     [%= dtoTypeName %] create([%= dtoTypeName %] data);
+    [% } %]
 
     /**
      * Deletes a(n) {@link [%= dtoTypeName %]} instance.
