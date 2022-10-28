@@ -25,19 +25,4 @@ public class [%= getGuiceDaoProviderModuleName() %] extends com.google.inject.Ab
 
 [%        }
      }%]
-
-     [% for (dto in getAllStaticQueryDTOs()) {
-             var daoInterfaceName = dto.getClassName() + "Dao";
-         %]
-         @com.google.inject.Provides
-         [%= getSdkPrefix() + dto.getDtoTypeName()%].[%= daoInterfaceName%] provide_[%= (getSdkPrefix() + dto.getDtoTypeName() + daoInterfaceName).replaceAll("\\.", "__") %](hu.blackbelt.judo.dao.api.DAO dao, hu.blackbelt.judo.meta.asm.runtime.AsmModel asmModel, hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator) {
-                 [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl daoImpl = new [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl();
-             daoImpl.setDao(dao);
-             daoImpl.setAsmModel(asmModel);
-             daoImpl.setPayloadValidator(payloadValidator);
-
-             return daoImpl;
-         }
-[%
-      }%]
 }
