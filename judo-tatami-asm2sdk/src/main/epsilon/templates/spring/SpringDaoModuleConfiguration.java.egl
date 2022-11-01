@@ -33,7 +33,6 @@ public class [%= getSpringDaoModuleName() %] {
      }%]
 
     [% for (dto in getAllStaticQueryDTOs()) {
-        if (asmUtils.isMappedTransferObjectType(dto)) {
             var daoInterfaceName = dto.getClassName() + "Dao";
     %]
     @org.springframework.context.annotation.Bean
@@ -45,6 +44,6 @@ public class [%= getSpringDaoModuleName() %] {
         return daoImpl;
     }
 
-[%        }
+[%
      }%]
 }
