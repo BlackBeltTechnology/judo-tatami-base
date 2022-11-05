@@ -40,6 +40,13 @@ interface [%= name %] {
      */
     java.util.List<[%= dtoTypeName %]> getAll();
 
+    /**
+     * Count all {@link [%= dtoTypeName %]} instances.
+     *
+     * @return number of all {@link [%= dtoTypeName %]} instances
+     */
+    long countAll();
+
      /**
       * Get an instance of a(n) {@link [%= dtoTypeName %]} by the given identifier.
       *
@@ -120,6 +127,14 @@ interface [%= name %] {
      */
     [%= relatedType %] get[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);    
 
+    /**
+     * Count all {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
+     *
+     * @param object  the {@link [%= dtoTypeName %]} instance that the  {@link [%= singleRelatedType %]} instances are linked to
+     * @return number of {@link [%= singleRelatedType %]} instances
+     */
+    long count[%= rel.name.firstToUpperCase() %]([%= dtoTypeName %] object);
+
 			[% if (rel.isCreateAllowed()) { %]
     /**
      * Creates  {@link [%= singleRelatedType %]} instances linked to a(n) {@link [%= dtoTypeName %]} instance by the reference [%= rel.name.firstToUpperCase() %].
@@ -193,6 +208,16 @@ interface [%= name %] {
          * @return query result
          */
         java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+
+
+        /**
+         * Count instances defined by query customizer.
+         *
+         * @param parameter query parameter
+         * @return query result
+         */
+        long count([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter);
+
     }
 
     /**
@@ -307,5 +332,13 @@ interface [%= name %] {
          * @return search result
          */
         java.util.List<[%= dto.getClassName() %]> execute();
+
+        /**
+         * Count instances defined by query customizer.
+         *
+         * @return number of search result
+         */
+        long count();
+
     }
 }
