@@ -78,3 +78,12 @@
             this.limit = limit;
             return this;
         }
+
+        /**
+        * {@inheritdoc}
+        */
+        @Override
+        public [%= queryCustomizer %] offset(int offset) {
+            this.offset = offset;
+            return this;
+        }

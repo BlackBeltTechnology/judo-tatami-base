@@ -61,3 +61,11 @@
           * @return query customizer (builder)
           */
         [%= queryCustomizer %] limit(int limit);
+
+        /**
+          * Offset result set.
+          *
+          * @param offset of result data
+          * @return query customizer (builder)
+          */
+        [%= queryCustomizer %] offset(int offset);
