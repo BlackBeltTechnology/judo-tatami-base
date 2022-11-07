@@ -289,11 +289,18 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
             @Override
             public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute() {
         [% }%]
+                hu.blackbelt.judo.dao.api.DAO.Seek.SeekBuilder seekBuilder = null;
+                if (limit != null) {
+                    seekBuilder = hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit);
+                }
+                if (seekBuilder != null && offset != null) {
+                    seekBuilder.offset(offset);
+                }
                 return java.util.Collections.unmodifiableList(dao.searchNavigationResultAt(id, asmUtils.resolveReference("[%= asmUtils.getClassifierFQName(dto) %]#[%= ref.name %]").get(), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
                     .filter(!filters.isEmpty() ? filters.stream().collect(java.util.stream.Collectors.joining(" and ")) : null)
                     .orderByList(orderByList)
                     .mask(mask)
-                    .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
+                    .seek(seekBuilder != null ? seekBuilder.build() : null)
         [% if (asmUtils.annotatedAsTrue(ref, "parameterized")) { %]
                     .parameters(hu.blackbelt.judo.sdk.SdkUtil.asMap(effectiveParams))
         [% } %]
@@ -308,7 +315,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
                 return execute(null);
             }
         [% } %]
-            
+
         };
     }
 
@@ -360,6 +367,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         protected java.util.List<hu.blackbelt.judo.dao.api.DAO.OrderBy> orderByList = new java.util.ArrayList<>();
         protected java.util.Map<java.lang.String, java.lang.Object> mask;
         protected java.lang.Integer limit;
+        protected java.lang.Integer offset;
 
         public QueryCustomizerImpl(hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao, hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator) {
             this.asmUtils = asmUtils;
@@ -379,11 +387,18 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         */
         @Override
         public java.util.List<[%= dtoTypeName %]> execute() {
+            hu.blackbelt.judo.dao.api.DAO.Seek.SeekBuilder seekBuilder = null;
+            if (limit != null) {
+                seekBuilder = hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit);
+            }
+            if (seekBuilder != null && offset != null) {
+                seekBuilder.offset(offset);
+            }
             return java.util.Collections.unmodifiableList(dao.search((org.eclipse.emf.ecore.EClass) asmUtils.resolve("[%= asmUtils.getClassifierFQName(dto) %]").get(), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
                 .filter(!filters.isEmpty() ? filters.stream().collect(java.util.stream.Collectors.joining(" and ")) : null)
                 .orderByList(orderByList)
                 .mask(mask)
-                .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
+                .seek(seekBuilder != null ? seekBuilder.build() : null)
                 .build())
                 .stream()
                 .map(payload -> [%= sdkUtil %].fromPayload([%= dtoTypeName %].class, payload))
