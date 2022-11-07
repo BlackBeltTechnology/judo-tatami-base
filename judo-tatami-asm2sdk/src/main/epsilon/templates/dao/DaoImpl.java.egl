@@ -430,6 +430,7 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         protected java.util.List<hu.blackbelt.judo.dao.api.DAO.OrderBy> orderByList = new java.util.ArrayList<>();
         protected java.util.Map<java.lang.String, java.lang.Object> mask;
         protected java.lang.Integer limit;
+        protected java.lang.Integer offset;
 
         public QueryCustomizerImpl(hu.blackbelt.judo.meta.asm.runtime.AsmUtils asmUtils, hu.blackbelt.judo.dao.api.DAO<java.util.UUID> dao, hu.blackbelt.judo.dao.api.PayloadValidator payloadValidator) {
             this.asmUtils = asmUtils;
