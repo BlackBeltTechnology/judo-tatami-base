@@ -80,11 +80,18 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         @Override
         public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute([%= getSdkPrefix() + parameterType.getClassifierPackageName() %].[%= parameterType.getClassName() %] parameter) {
             org.eclipse.emf.ecore.EReference reference = asmUtils.resolveReference("[%= asmUtils.getClassifierFqName(dto) %]#[%= ref.name %]").get();
+            hu.blackbelt.judo.dao.api.DAO.Seek.SeekBuilder seekBuilder = null;
+            if (limit != null) {
+                seekBuilder = hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit);
+            }
+            if (seekBuilder != null && offset != null) {
+                seekBuilder.offset(offset);
+            }
             return dao.searchReferencedInstancesOf(reference, reference.getEReferenceType(), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
                 .filter(!filters.isEmpty() ? filters.stream().collect(java.util.stream.Collectors.joining(" and ")) : null)
                 .orderByList(orderByList)
                 .mask(mask)
-                .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
+                .seek(seekBuilder != null ? seekBuilder.build() : null)
                 .parameters(hu.blackbelt.judo.sdk.SdkUtil.asMap(parameter))
                 .build())
                 .stream()
@@ -107,11 +114,18 @@ public class [%= name%]Impl extends hu.blackbelt.judo.sdk.AbstractSdkDao impleme
         return new [%= getInternalPrefix() + ref.eReferenceType.getClassifierPackageName() %].[%= ref.eReferenceType.getClassName() %]DaoImpl.QueryCustomizerImpl(asmUtils, dao, payloadValidator) {
             @Override
             public java.util.List<[%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %]> execute() {
+                hu.blackbelt.judo.dao.api.DAO.Seek.SeekBuilder seekBuilder = null;
+                if (limit != null) {
+                    seekBuilder = hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit);
+                }
+                if (seekBuilder != null && offset != null) {
+                    seekBuilder.offset(offset);
+                }
                 return dao.searchReferencedInstancesOf(reference, reference.getEReferenceType(), hu.blackbelt.judo.dao.api.DAO.QueryCustomizer.<java.util.UUID>builder()
                     .filter(!filters.isEmpty() ? filters.stream().collect(java.util.stream.Collectors.joining(" and ")) : null)
                     .orderByList(orderByList)
                     .mask(mask)
-                    .seek(limit != null ? hu.blackbelt.judo.dao.api.DAO.Seek.builder().limit(limit).build() : null)
+                    .seek(seekBuilder != null ? seekBuilder.build() : null)
                     .build())
                     .stream()
                     .map(payload -> [%= sdkUtil %].fromPayload([%= getSdkPrefix() + ref.eReferenceType.getDtoTypeName() %].class, payload))
