@@ -31,4 +31,19 @@ public class [%= getSpringDaoModuleName() %] {
 
 [%        }
      }%]
+
+    [% for (dto in getAllStaticQueryDTOs()) {
+            var daoInterfaceName = dto.getClassName() + "Dao";
+    %]
+    @org.springframework.context.annotation.Bean
+    [%= getSdkPrefix() + dto.getDtoTypeName()%].[%= daoInterfaceName%] provide_[%= (getSdkPrefix() + dto.getDtoTypeName() + daoInterfaceName).replaceAll("\\.", "__") %]() {
+            [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl daoImpl = new [%=  getInternalPrefix() + dto.getDtoTypeName()%]DaoImpl();
+        daoImpl.setDao(dao);
+        daoImpl.setAsmModel(asmModel);
+        daoImpl.setPayloadValidator(payloadValidator);
+        return daoImpl;
+    }
+
+[%
+     }%]
 }
