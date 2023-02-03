@@ -43,6 +43,8 @@ import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelR
 import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
 import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
 import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTransformation;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
 
 
 @Component(immediate = true, service = Asm2RdbmsTransformationSerivce.class)
@@ -98,9 +100,9 @@ public class Asm2RdbmsTransformationSerivce {
             asm2rdbmsTransformationTraceRegistration.put(asmModel,
                     bundleContext.registerService(TransformationTrace.class, asm2RdbmsTransformationTrace, new Hashtable<>()));
 
-            log.info("\u001B[33m {}\u001B[0m", logger.getBuffer());
+            log.info(yellow("{}"), logger.getBuffer());
         } catch (Exception e) {
-            log.info("\u001B[31m {}\u001B[0m", logger.getBuffer());
+            log.info(red("{}"), logger.getBuffer());
             throw e;
         }
         return rdbmsModel;

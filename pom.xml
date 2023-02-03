@@ -77,11 +77,11 @@
         <surefire-version>3.0.0-M7</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>1.5.1.20230104_095653_96994f3f_develop</epsilon-runtime-version>
+        <epsilon-runtime-version>1.5.1-SNAPSHOT</epsilon-runtime-version>
 
         <java-embedded-compiler-version>1.0.0</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20230120_213946_6dbe65b7_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4-SNAPSHOT</judo-tatami-core-version>
 
 
         <!-- Model versions -->
