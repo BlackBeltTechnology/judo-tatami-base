@@ -77,11 +77,11 @@
         <surefire-version>3.0.0-M7</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>1.5.1-SNAPSHOT</epsilon-runtime-version>
+        <epsilon-runtime-version>1.5.1.20230206_072506_d82eb27f_feature_JNG_3932_LogVerbosity</epsilon-runtime-version>
 
         <java-embedded-compiler-version>1.0.0</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4-SNAPSHOT</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4.20230206_073020_6b7a850f_feature_JNG_3932_LogVerbosity</judo-tatami-core-version>
 
 
         <!-- Model versions -->
