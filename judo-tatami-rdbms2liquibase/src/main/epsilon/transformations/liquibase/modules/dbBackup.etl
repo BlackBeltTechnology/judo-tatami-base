@@ -13,7 +13,7 @@ rule BackupTables
         t.dbms = dialect;
 
         dbBackupModel.getOrCreateChangeSet("backup-tables-" + context, "backup-tables", dialect, context).sqlFile.add(t);
-        log.info("SqlFile added:\n    " + t.path);
+        log.debug("SqlFile added:\n    " + t.path);
 }
 
 rule BackupDeletedTables

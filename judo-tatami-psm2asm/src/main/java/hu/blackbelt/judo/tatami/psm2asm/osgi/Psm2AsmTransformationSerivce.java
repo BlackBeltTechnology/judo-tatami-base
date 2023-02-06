@@ -39,6 +39,8 @@ import org.osgi.service.component.annotations.Component;
 import java.util.Hashtable;
 import java.util.Map;
 
+import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
 
 /**
@@ -84,9 +86,9 @@ public class Psm2AsmTransformationSerivce {
 
             psm2AsmTransformationTraceRegistration.put(psmModel,
                     bundleContext.registerService(TransformationTrace.class, transformationTrace, new Hashtable<>()));
-            log.info("\u001B[33m {}\u001B[0m", logger.getBuffer());
+            log.info(yellow("{}"), logger.getBuffer());
         } catch (Exception e) {
-            log.info("\u001B[31m {}\u001B[0m", logger.getBuffer());
+            log.info(red("{}"), logger.getBuffer());
             throw e;
         }
         return asmModel;

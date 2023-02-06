@@ -14,6 +14,6 @@ operation LIQUIBASE!databaseChangeLog getOrCreateChangeSet(id : String, logicalF
                                             dbms = dbms,
                                             context = context);
     self.changeSet.add(changeSet);
-    log.info("ChangeSet added: " + changeSet.id);
+    log.debug("ChangeSet added: " + changeSet.id);
     return changeSet;
 }

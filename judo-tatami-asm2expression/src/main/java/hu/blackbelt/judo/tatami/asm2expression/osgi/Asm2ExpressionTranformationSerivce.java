@@ -27,9 +27,13 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.tatami.asm2expression.Asm2Expression;
+import hu.blackbelt.judo.tatami.core.AnsiColor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.osgi.service.component.annotations.Component;
+
+import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
 
 @Component(immediate = true, service = Asm2ExpressionTranformationSerivce.class)
 @Slf4j
@@ -53,9 +57,9 @@ public class Asm2ExpressionTranformationSerivce {
                     .measureModel(measureModel)
                     .expressionModel(expressionModel));
 
-            log.info("\u001B[33m {}\u001B[0m", logger.getBuffer());
+            log.info(yellow("{}"), logger.getBuffer());
         } catch (Exception e) {
-            log.info("\u001B[31m {}\u001B[0m", logger.getBuffer());
+            log.info(red("{}"), logger.getBuffer());
             throw e;
         }
         return expressionModel;

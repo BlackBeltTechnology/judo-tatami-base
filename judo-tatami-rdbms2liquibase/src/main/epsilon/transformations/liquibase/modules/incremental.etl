@@ -23,7 +23,7 @@ rule CreateTables
         }
 
         targetModel.getOrCreateChangeSet("create-table-" + s.table.sqlName + "-" + context, "create-tables", dialect, context).createTable.add(t);
-        log.info("CreateTable added: " + t.tableName);
+        log.debug("CreateTable added: " + t.tableName);
 }
 
 // CREATE TABLES
@@ -38,7 +38,7 @@ rule RanameTables
         t.newTableName = s.table.sqlName;
 
         targetModel.getOrCreateChangeSet("rename-tables-" + context, "rename-tables", dialect, context).renameTable.add(t);
-        log.info("RenameTable added: " + t.oldTableName + " -> " + t.newTableName);
+        log.debug("RenameTable added: " + t.oldTableName + " -> " + t.newTableName);
 }
 
 // RENAME TABLES
@@ -56,7 +56,7 @@ rule RenameColumns
 
         targetModel.getOrCreateChangeSet("rename-fields-in-" + s.eContainer.table.sqlName + "-" + context, "rename-fields", dialect, context)
             .renameColumn.add(t);
-        log.info("RenameColumn added: " + t.oldColumnName + " -> " + t.newColumnName + " (" + t.tableName + ")");
+        log.debug("RenameColumn added: " + t.oldColumnName + " -> " + t.newColumnName + " (" + t.tableName + ")");
 }
 
 // RENAME FIELDS
@@ -71,7 +71,7 @@ rule DropColumns
 
         targetModel.getOrCreateChangeSet("drop-fields-in-" + s.eContainer.table.sqlName + "-" + context, "drop-fields", dialect, context)
             .dropColumn.add(t);
-        log.info("DropColumn added: " + t.columnName + " (" + t.tableName + ")");
+        log.debug("DropColumn added: " + t.columnName + " (" + t.tableName + ")");
 }
 
 // DROP FIELDS
@@ -96,10 +96,10 @@ rule AddColumnDefs
         var changeSet = targetModel.getOrCreateChangeSet("create-fields-in-" + s.eContainer.table.sqlName + "-" + context, "create-fields", dialect, context);
         if (changeSet.addColumn.size == 0) {
             changeSet.addColumn.add(new LIQUIBASE!AddColumn(tableName = s.eContainer.table.sqlName));
-            log.info("AddColumn added: " + s.eContainer.table.sqlName);
+            log.debug("AddColumn added: " + s.eContainer.table.sqlName);
         }
         changeSet.addColumn[0].column.add(t);
-        log.info("AddColumnDef added: " + t.name + " (" + s.eContainer.table.sqlName + ")");
+        log.debug("AddColumnDef added: " + t.name + " (" + s.eContainer.table.sqlName + ")");
 }
 
 // CREATE FIELDS
@@ -116,7 +116,7 @@ rule ModifyDataTypes
 
         targetModel.getOrCreateChangeSet("modify-data-types-in-" + s.eContainer.table.sqlName + "-" + context, "modify-data-types", dialect, context)
             .modifyDataType.add(t);
-        log.info("ModifyDataType added: " + t.columnName + " (" + t.tableName + ") ==> " + s.previousField.toFieldDefinition() + " -> " + s.field.toFieldDefinition());
+        log.debug("ModifyDataType added: " + t.columnName + " (" + t.tableName + ") ==> " + s.previousField.toFieldDefinition() + " -> " + s.field.toFieldDefinition());
 }
 
 // MODIFY FIELD
@@ -129,7 +129,7 @@ rule DropTables
         t.tableName = s.table.sqlName;
 
         targetModel.getOrCreateChangeSet("drop-tables-" + context, "drop-tables", dialect, context).dropTable.add(t);
-        log.info("DropTable added: " + t.tableName);
+        log.debug("DropTable added: " + t.tableName);
 }
 
 // DROP TABLES

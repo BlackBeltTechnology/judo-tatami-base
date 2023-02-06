@@ -12,7 +12,7 @@ rule PostCheckBackupTables
         t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
 
         dbDropBackupModel.preConditions.tableExists.add(t);
-        log.info("TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
+        log.debug("TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
 }
 
 rule PostCheckBackupDeletedTables
@@ -38,7 +38,7 @@ rule DeleteBackupTables
         t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
 
         dbDropBackupModel.getOrCreateChangeSet("drop-backup-tables-" + context, "drop-backup-tables", dialect, context).dropTable.add(t);
-        log.info("DropTable added: " + backupTableNamePrefix + "_" + useTable.sqlName);
+        log.debug("DropTable added: " + backupTableNamePrefix + "_" + useTable.sqlName);
 }
 
 rule DeleteBackupDeletedTables

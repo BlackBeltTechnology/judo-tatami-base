@@ -35,6 +35,8 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 
+import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
 import static hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase.executeRdbms2LiquibaseTransformation;
 
 @Component(immediate = true, service = Rdbms2LiquibaseTranformationSerivce.class)
@@ -80,9 +82,9 @@ public class Rdbms2LiquibaseTranformationSerivce {
                     .scriptUri(scriptUri)
                     .dialect("hsqldb"));
 
-            log.info("\u001B[33m {}\u001B[0m", logger.getBuffer());
+            log.info(yellow("{}"), logger.getBuffer());
         } catch (Exception e) {
-            log.info("\u001B[31m {}\u001B[0m", logger.getBuffer());
+            log.info(red("{}"), logger.getBuffer());
             throw e;
         }
 

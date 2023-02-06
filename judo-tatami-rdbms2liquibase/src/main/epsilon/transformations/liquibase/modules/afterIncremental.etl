@@ -13,7 +13,7 @@ rule AddForeignKeyConstraints
 
         afterIncrementalModel.getOrCreateChangeSet("add-foreign-keys-to-" + s.eContainer.sqlName + "-" + context, "add-foreign-keys", dialect, context)
             .addForeignKeyConstraint.add(t);
-        log.info("AddForeignKeyConstraint added: " + t.constraintName);
+        log.debug("AddForeignKeyConstraint added: " + t.constraintName);
 }
 
 // FOREIGN KEY
@@ -30,7 +30,7 @@ rule AddNotNullConstraints
 
         afterIncrementalModel.getOrCreateChangeSet("add-not-null-constraints-to-" + s.eContainer.sqlName + "-" + context, "add-not-null-constraints", dialect, context)
             .addNotNullConstraint.add(t);
-        log.info("AddNotNullConstraint added: " + t.columnName + " (" + t.tableName + ")");
+        log.debug("AddNotNullConstraint added: " + t.columnName + " (" + t.tableName + ")");
 }
 
 rule AddNotNullConstraintsToValueFields
@@ -62,7 +62,7 @@ rule AddUniqueConstraints
             addUniqueConstraint.columnNames = field.sqlName;
             afterIncrementalModel.getOrCreateChangeSet("add-unique-constraints-to-" + s.eContainer.sqlName + "-" + context, "add-unique-constraints", dialect, context)
                 .addUniqueConstraint.add(addUniqueConstraint);
-            log.info("AddUniqueConstraint added: " + addUniqueConstraint.columnNames + " (" + addUniqueConstraint.tableName + ")");
+            log.debug("AddUniqueConstraint added: " + addUniqueConstraint.columnNames + " (" + addUniqueConstraint.tableName + ")");
         }
 }
 
@@ -81,7 +81,7 @@ rule AddIndexes
         }
         afterIncrementalModel.getOrCreateChangeSet("create-indexes-for-" + s.eContainer.sqlName + "-" + context, "create-indexes", dialect, context)
             .createIndex.add(t);
-        log.info("CreateIndex added: " + t.indexName);
+        log.debug("CreateIndex added: " + t.indexName);
 }
 
 // INDEX
