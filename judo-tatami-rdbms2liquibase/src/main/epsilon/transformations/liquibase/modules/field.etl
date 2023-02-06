@@ -81,7 +81,7 @@ rule IndexToCreateIndex
 
         targetModel.getOrCreateChangeSet("create-indexes-in-" + s.eContainer.sqlName, "create-indexes", dialect, context)
             .createIndex.add(t);
-        log.info("CreateIndex added: " + t.indexName);
+        log.debug("CreateIndex added: " + t.indexName);
 }
 
 rule AddUniqueConstraints
@@ -96,6 +96,6 @@ rule AddUniqueConstraints
             addUniqueConstraint.columnNames = field.sqlName;
             targetModel.getOrCreateChangeSet("add-unique-constraints-to-" + s.eContainer.sqlName, "add-unique-constraints", dialect, context)
                 .addUniqueConstraint.add(addUniqueConstraint);
-            log.info("AddUniqueConstraint added: " + addUniqueConstraint.columnNames + " (" + addUniqueConstraint.tableName + ")");
+            log.debug("AddUniqueConstraint added: " + addUniqueConstraint.columnNames + " (" + addUniqueConstraint.tableName + ")");
         }
 }

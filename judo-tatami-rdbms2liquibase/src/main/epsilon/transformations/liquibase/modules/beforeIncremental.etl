@@ -9,7 +9,7 @@ rule DropIndexes
         t.tableName = s.eContainer.sqlName;
         beforeIncrementalModel.getOrCreateChangeSet("drop-indexes-from-" + s.eContainer.sqlName + "-" + context, "drop-indexes", dialect, context)
             .dropIndex.add(t);
-        log.info("DropIndex added: " + t.indexName + " (" + t.tableName + ")");
+        log.debug("DropIndex added: " + t.indexName + " (" + t.tableName + ")");
 }
 
 // INDEX
@@ -28,7 +28,7 @@ rule DropUniqueConstraints
             dropUniqueConstraint.uniqueColumns = field.sqlName;
             beforeIncrementalModel.getOrCreateChangeSet("drop-unique-constraints-from-" + s.eContainer.sqlName + "-" + context, "drop-unique-constraints", dialect, context)
                 .dropUniqueConstraint.add(dropUniqueConstraint);
-            log.info("DropUniqueConstraint added: " + dropUniqueConstraint.uniqueColumns + " (" + dropUniqueConstraint.tableName + ")");
+            log.debug("DropUniqueConstraint added: " + dropUniqueConstraint.uniqueColumns + " (" + dropUniqueConstraint.tableName + ")");
         }
 }
 
@@ -46,7 +46,7 @@ rule DropNotNullConstraints
 
         beforeIncrementalModel.getOrCreateChangeSet("drop-not-null-constraints-from-" + s.eContainer.sqlName + "-" + context, "drop-not-null-constraints", dialect, context)
             .dropNotNullConstraint.add(t);
-        log.info("DropNotNullConstraint added: " + t.columnName + " (" + t.tableName + ")");
+        log.debug("DropNotNullConstraint added: " + t.columnName + " (" + t.tableName + ")");
 }
 
 rule DropNotNullConstraintsFromValueFields
@@ -74,7 +74,7 @@ rule DropForeignKeyConstraints
 
         beforeIncrementalModel.getOrCreateChangeSet("drop-foreign-keys-from-" + s.eContainer.sqlName + "-" + context, "drop-foreign-keys", dialect, context)
             .dropForeignKeyConstraint.add(t);
-        log.info("DropForeignKeyConstraint added: " + t.constraintName + " (" + t.baseTableName + ")");
+        log.debug("DropForeignKeyConstraint added: " + t.constraintName + " (" + t.baseTableName + ")");
 }
 
 // FOREIGN KEY

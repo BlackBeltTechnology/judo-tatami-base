@@ -8,7 +8,7 @@ rule CheckTables
         t.tableName = s.sqlName;
 
         dbCheckupModel.preConditions.tableExists.add(t);
-        log.info("TableExists added: " + t.tableName);
+        log.debug("TableExists added: " + t.tableName);
 }
 
 rule CheckJunctionTables
@@ -35,7 +35,7 @@ rule PreCheckBackupTables
             dbCheckupModel.preConditions.`not`.add(new DBCHECKUP!Not());
         }
         dbCheckupModel.preConditions.`not`[0].tableExists.add(t);
-        log.info("Not TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
+        log.debug("Not TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
 }
 
 rule PreCheckBackupDeletedTables
@@ -62,7 +62,7 @@ rule CheckFields
         t.columnName = s.sqlName;
 
         dbCheckupModel.preConditions.columnExists.add(t);
-        log.info("ColumnExists added: " + t.columnName + " (" + t.tableName + ")");
+        log.debug("ColumnExists added: " + t.columnName + " (" + t.tableName + ")");
 }
 
 rule CheckValueFields
@@ -95,7 +95,7 @@ rule CheckForeignKeyConstraints
         t.foreignKeyName = s.foreignKeySqlName;
 
         dbCheckupModel.preConditions.foreignKeyConstraintExists.add(t);
-        log.info("ForeignKeyConstraintExists added: " + t.foreignKeyName + " (" + t.foreignKeyTableName + ")");
+        log.debug("ForeignKeyConstraintExists added: " + t.foreignKeyName + " (" + t.foreignKeyTableName + ")");
 }
 
 // FOREIGN KEY CONSTRAINTS
@@ -112,7 +112,7 @@ rule CheckIndexes
             indexExists.tableName = field.eContainer.sqlName;
             indexExists.columnNames = field.sqlName;
             dbCheckupModel.preConditions.indexExists.add(indexExists);
-            log.info("IndexExists added: " + indexExists.columnNames + " (" + indexExists.tableName + ")");
+            log.debug("IndexExists added: " + indexExists.columnNames + " (" + indexExists.tableName + ")");
         }
 }
 
@@ -130,7 +130,7 @@ rule CheckUniqueConstraints
             indexExists.tableName = field.eContainer.sqlName;
             indexExists.columnNames = field.sqlName;
             dbCheckupModel.preConditions.indexExists.add(indexExists);
-            log.info("IndexExists added: " + indexExists.columnNames + " (" + indexExists.tableName + ")");
+            log.debug("IndexExists added: " + indexExists.columnNames + " (" + indexExists.tableName + ")");
         }
 }
 */

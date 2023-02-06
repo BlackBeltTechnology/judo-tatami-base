@@ -44,6 +44,8 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static hu.blackbelt.judo.tatami.asm2sdk.Asm2SDK.executeAsm2SDKGeneration;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
+import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
 
 @Component(immediate = true, service = Asm2SDKService.class)
 @Slf4j
@@ -92,9 +94,9 @@ public class Asm2SDKService {
             bundles.add(bundleContext.installBundle(this.getClass().getName(), bundleStreams.getSdkBundleStream()));
             bundles.add(bundleContext.installBundle(this.getClass().getName(), bundleStreams.getInternalBundleStream()));
 			asm2sdkAPIBundles.put(asmModel, bundles);
-            log.info("\u001B[33m {}\u001B[0m", logger.getBuffer());
+            log.info(yellow("{}"), logger.getBuffer());
         } catch (Exception e) {
-            log.info("\u001B[31m {}\u001B[0m", logger.getBuffer());
+            log.info(red("{}"), logger.getBuffer());
             throw e;
         }
         for (Bundle bundle : asm2sdkAPIBundles.get(asmModel)) {
