@@ -49,8 +49,6 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
 		Boolean createTrace = true;
 		@Builder.Default
 		Boolean parallel = true;
-		@Builder.Default
-		String modelVersion = "1.0.0";
 	}
 
 	final URI transformationScriptRoot;
@@ -94,7 +92,10 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
 				.orElseGet(() -> Asm2RdbmsWork.Asm2RdbmsWorkParameter.asm2RdbmsWorkParameter().build());
 
 		RdbmsModel rdbmsModel = getTransformationContext().getByClass(RdbmsModel.class)
-				.orElseGet(() -> buildRdbmsModel().name(asmModel.get().getName()).version(workParameter.modelVersion).build());
+				.orElseGet(() -> buildRdbmsModel()
+						.name(asmModel.get().getName())
+						.version(asmModel.get().getVersion())
+						.build());
 
 		// The RDBMS model resources have to know the mapping models
 		registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
@@ -115,7 +116,6 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
 					.excelModelUri(modelRoot)
 					.dialect(dialect)
 					.parallel(workParameter.parallel)
-					.modelVersion(workParameter.modelVersion)
 					.createTrace(workParameter.createTrace));
 
 			putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);
