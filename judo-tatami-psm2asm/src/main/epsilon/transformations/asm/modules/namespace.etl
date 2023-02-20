@@ -16,6 +16,22 @@ rule ModelToPackage
     t.nsPrefix = nsPrefix + s.name.firstToUpperCase();
 }
 
+rule ModelToPackageVersion
+	transform s : JUDOPSM!Model
+    to t : ASM!EAnnotation {
+        guard: s.isInput()
+        t.setId("(psm/" + s.getId() + ")/ModelToPackageVersion");
+        t.source = asmUtils.getAnnotationUri("ModelVersion");
+
+        var version = new ASM!EStringToStringMapEntry;
+        version.setId(t.getId() + "/Version");
+        version.key = "value";
+        version.value = s.version;
+        t.details.add(documentation);
+        s.equivalent("ModelToPackage").eAnnotations.add(t);
+    }
+
+
 rule PackageToPackage
 	transform s : JUDOPSM!Package
 	to t : ASM!EPackage
