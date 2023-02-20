@@ -19,7 +19,6 @@ rule ModelToPackage
 rule ModelToPackageVersion
 	transform s : JUDOPSM!Model
     to t : ASM!EAnnotation {
-        guard: s.isInput()
         t.setId("(psm/" + s.getId() + ")/ModelToPackageVersion");
         t.source = asmUtils.getAnnotationUri("ModelVersion");
 
@@ -27,7 +26,7 @@ rule ModelToPackageVersion
         version.setId(t.getId() + "/Version");
         version.key = "value";
         version.value = s.version;
-        t.details.add(documentation);
+        t.details.add(version);
         s.equivalent("ModelToPackage").eAnnotations.add(t);
     }
 
