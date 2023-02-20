@@ -87,7 +87,10 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
 
         final LiquibaseModel liquibaseModel = getTransformationContext()
                 .getByClass(LiquibaseModel.class)
-                .orElseGet(() -> buildLiquibaseModel().name(rdbmsModel.getName()).build());
+                .orElseGet(() -> buildLiquibaseModel()
+                        .name(rdbmsModel.getName())
+                        .version(rdbmsModel.getVersion())
+                        .build());
         putLiquibaseModel(getTransformationContext(), liquibaseModel, dialect);
 
         try (final Log logger = new StringBuilderLogger(log)) {

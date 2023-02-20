@@ -66,7 +66,10 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
 		psmModel.orElseThrow(() -> new IllegalArgumentException("PSM Model does not found in transformation context"));
 
 		MeasureModel measureModel = getTransformationContext().getByClass(MeasureModel.class)
-				.orElseGet(() -> buildMeasureModel().name(psmModel.get().getName()).build());
+				.orElseGet(() -> buildMeasureModel()
+						.name(psmModel.get().getName())
+						.version(psmModel.get().getVersion())
+						.build());
 		getTransformationContext().put(measureModel);
 
 		Psm2MeasureWorkParameter workParam = getTransformationContext().getByClass(Psm2MeasureWorkParameter.class)
