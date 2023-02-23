@@ -69,7 +69,6 @@ public class Rdbms2LiquibaseTest {
 
         // Create empty ASM model
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name(NORTHWIND)
                 .build();
 
         executePsm2AsmTransformation(psm2AsmParameter()
@@ -78,7 +77,7 @@ public class Rdbms2LiquibaseTest {
 
         // Create empty RDBMS model
         rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(NORTHWIND)
+                .name(asmModel.getName())
                 .build();
 
         registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());

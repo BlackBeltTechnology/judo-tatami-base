@@ -67,8 +67,6 @@ public class Psm2AsmWork extends AbstractTransformationWork {
 
 		AsmModel asmModel = getTransformationContext().getByClass(AsmModel.class)
 				.orElseGet(() -> buildAsmModel()
-						.name(psmModel.get().getName())
-						.version(psmModel.get().getVersion())
 						.build());
 		getTransformationContext().put(asmModel);
 

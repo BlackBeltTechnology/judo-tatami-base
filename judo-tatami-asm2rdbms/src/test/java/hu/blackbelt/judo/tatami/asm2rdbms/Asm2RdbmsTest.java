@@ -59,7 +59,6 @@ public class Asm2RdbmsTest {
 
         // Create empty ASM model
         asmModel = AsmModel.buildAsmModel()
-                .name(NORTHWIND)
                 .build();
 
         executePsm2AsmTransformation(psm2AsmParameter()
@@ -68,7 +67,7 @@ public class Asm2RdbmsTest {
         
         // Create empty RDBMS model
         rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(NORTHWIND)
+                .name(asmModel.getName())
                 .build();
 
         // The RDBMS model resourceset have to know the mapping models

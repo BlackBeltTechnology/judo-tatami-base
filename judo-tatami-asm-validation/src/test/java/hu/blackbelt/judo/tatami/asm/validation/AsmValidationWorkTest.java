@@ -55,7 +55,7 @@ class AsmValidationWorkTest {
 		Demo demo = new Demo();
 		PsmModel psmModel = demo.fullDemo();
 
-		AsmModel asmModel = buildAsmModel().name(NORTHWIND).build();
+		AsmModel asmModel = buildAsmModel().build();
 
 		executePsm2AsmTransformation(psm2AsmParameter()
 				.psmModel(psmModel)

@@ -66,8 +66,6 @@ public class Asm2RdbmsTransformationSerivce {
                 .name(asmModel.getName())
                 .version(asmModel.getVersion())
                 .uri(URI.createURI("rdbms:" + asmModel.getName() + ".model"))
-                .checksum(asmModel.getChecksum())
-                .tags(asmModel.getTags())
                 .build();
 
         // The RDBMS model resourceset have to know the mapping models

@@ -62,17 +62,17 @@ class ExpressionValidationOnAsmWorkTest {
 		Demo demo = new Demo();
 		PsmModel psmModel = demo.fullDemo();
 
-		AsmModel asmModel = buildAsmModel().name(NORTHWIND).build();
+		AsmModel asmModel = buildAsmModel().build();
 		executePsm2AsmTransformation(psm2AsmParameter()
 				.psmModel(psmModel)
 				.asmModel(asmModel));
 
-		MeasureModel measureModel = buildMeasureModel().name(NORTHWIND).build();
+		MeasureModel measureModel = buildMeasureModel().name(psmModel.getName()).build();
 		executePsm2MeasureTransformation(psm2MeasureParameter()
 				.psmModel(psmModel)
 				.measureModel(measureModel));
 
-		ExpressionModel expressionModel = buildExpressionModel().name(NORTHWIND).build();
+		ExpressionModel expressionModel = buildExpressionModel().name(asmModel.getName()).build();
 		executeAsm2Expression(asm2ExpressionParameter()
 				.asmModel(asmModel)
 				.measureModel(measureModel)

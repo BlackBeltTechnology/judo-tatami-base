@@ -20,14 +20,12 @@ package hu.blackbelt.judo.tatami.asm2expression.osgi;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.tatami.asm2expression.Asm2Expression;
-import hu.blackbelt.judo.tatami.core.AnsiColor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.osgi.service.component.annotations.Component;
@@ -45,8 +43,6 @@ public class Asm2ExpressionTranformationSerivce {
                 .name(asmModel.getName())
                 .version(asmModel.getVersion())
                 .uri(URI.createURI("expression:" + asmModel.getName() + ".model"))
-                .checksum(asmModel.getChecksum())
-                .tags(asmModel.getTags())
                 .build();
 
         StringBuilderLogger logger = new StringBuilderLogger(Slf4jLog.determinateLogLevel(log));
