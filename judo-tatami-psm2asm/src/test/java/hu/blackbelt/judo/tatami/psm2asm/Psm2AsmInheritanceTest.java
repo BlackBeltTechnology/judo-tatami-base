@@ -82,7 +82,6 @@ public class Psm2AsmInheritanceTest {
         // Loading PSM to isolated ResourceSet, because in Tatami
         // there is no new namespace registration made.
         psmModel = buildPsmModel()
-                .name(MODEL_NAME)
                 .build();
 
         // When model is invalid the loader have to throw exception. This checks that invalid model cannot valid -if
@@ -95,7 +94,6 @@ public class Psm2AsmInheritanceTest {
 
         // Create empty ASM model
         asmModel = buildAsmModel()
-                .name(MODEL_NAME)
                 .build();
     }
 

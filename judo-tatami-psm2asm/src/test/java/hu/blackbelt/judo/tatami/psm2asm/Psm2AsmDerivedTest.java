@@ -81,10 +81,10 @@ public class Psm2AsmDerivedTest {
 	public void setUp() {
 		// Loading PSM to isolated ResourceSet, because in Tatami
 		// there is no new namespace registration made.
-		psmModel = buildPsmModel().name(MODEL_NAME).build();
+		psmModel = buildPsmModel().build();
 		psmUtils = new PsmUtils();
 		// Create empty ASM model
-		asmModel = buildAsmModel().name(MODEL_NAME).build();
+		asmModel = buildAsmModel().build();
 		asmUtils = new AsmUtils(asmModel.getResourceSet());
 	}
 

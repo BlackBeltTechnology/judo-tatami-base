@@ -66,12 +66,10 @@ public class Asm2SDKOperationTest {
         // Loading PSM to isolated ResourceSet, because in Tatami
         // there is no new namespace registration made.
         psmModel = buildPsmModel()
-                .name(MODEL_NAME)
                 .build();
         
         // Create empty ASM model
         asmModel = buildAsmModel()
-                .name(MODEL_NAME)
                 .build();
         
         fillPsmModel();

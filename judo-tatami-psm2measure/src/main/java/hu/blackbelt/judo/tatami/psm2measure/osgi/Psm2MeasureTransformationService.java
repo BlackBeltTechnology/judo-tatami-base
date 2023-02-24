@@ -63,8 +63,6 @@ public class Psm2MeasureTransformationService {
                 .name(psmModel.getName())
                 .version(psmModel.getVersion())
                 .uri(URI.createURI("measure:" + psmModel.getName() + ".measure"))
-                .checksum(psmModel.getChecksum())
-                .tags(psmModel.getTags())
                 .build();
 
         StringBuilderLogger logger = new StringBuilderLogger(Slf4jLog.determinateLogLevel(log));

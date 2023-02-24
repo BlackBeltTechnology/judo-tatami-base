@@ -55,7 +55,7 @@ import static hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase.executeRd
 @Slf4j
 public class Rdbms2LiquibaseTest {
 
-    public static final String NORTHWIND = "northwind";
+    public static final String NORTHWIND = "demo";
     public static final String NORTHWIND_RDBMS_MODEL = "northwind-rdbms_hsqldb.model";
     public static final String NORTHWIND_LIQUIBASE_MODEL = "northwind.changelog.xml";
     public static final String TARGET_TEST_CLASSES = "target/test-classes";
@@ -69,7 +69,6 @@ public class Rdbms2LiquibaseTest {
 
         // Create empty ASM model
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name(NORTHWIND)
                 .build();
 
         executePsm2AsmTransformation(psm2AsmParameter()
@@ -78,7 +77,6 @@ public class Rdbms2LiquibaseTest {
 
         // Create empty RDBMS model
         rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(NORTHWIND)
                 .build();
 
         registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());

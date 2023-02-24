@@ -59,12 +59,11 @@ public class Asm2ExpressionWorkTest {
 
         // Create empty ASM model
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name(NORTHWIND)
                 .build();
 
         // Create empty Measure model
         MeasureModel measureModel = MeasureModel.buildMeasureModel()
-                .name(NORTHWIND)
+                .name(psmModel.getName())
                 .build();
 
 		executePsm2AsmTransformation(psm2AsmParameter().psmModel(psmModel).asmModel(asmModel));

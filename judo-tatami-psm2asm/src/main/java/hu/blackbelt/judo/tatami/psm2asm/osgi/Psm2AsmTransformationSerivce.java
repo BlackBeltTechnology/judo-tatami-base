@@ -63,11 +63,7 @@ public class Psm2AsmTransformationSerivce {
 
     public AsmModel install(PsmModel psmModel) throws Exception {
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name(psmModel.getName())
-                .version(psmModel.getVersion())
                 .uri(URI.createURI("asm:" + psmModel.getName() + ".asm"))
-                .checksum(psmModel.getChecksum())
-                .tags(psmModel.getTags())
                 .build();
 
         StringBuilderLogger logger = new StringBuilderLogger(Slf4jLog.determinateLogLevel(log));

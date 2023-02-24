@@ -43,7 +43,7 @@ public class Rdbms2LiquibaseIncrementalWorkTest {
     @Test
     public void testSimpleWorkflow() {
         final TransformationContext transformationContext = new TransformationContext("M");
-        DIALECTS.forEach(dialect -> transformationContext.put("rdbms-incremental:" + dialect, buildRdbmsModel().name("Incremental").build()));
+        DIALECTS.forEach(dialect -> transformationContext.put("rdbms-incremental:" + dialect, buildRdbmsModel().build()));
 
         final Work[] works = DIALECTS.stream().map(d -> new Rdbms2LiquibaseIncrementalWork(transformationContext, d)).toArray(Work[]::new);
         final WorkFlow workFlow = aNewSequentialFlow().execute(works).build();

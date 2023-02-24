@@ -85,9 +85,6 @@ public class Asm2Rdbms {
         @Builder.Default
         Boolean parallel = true;
 
-        @Builder.Default
-        String modelVersion = "1.0.0";
-
     }
 
     private static MD5Utils MD5_UTILS = new MD5Utils();
@@ -108,7 +105,6 @@ public class Asm2Rdbms {
             RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
                     rdbmsLoadArgumentsBuilder()
                             .validateModel(false)
-                            .name("mapping-" + parameter.dialect)
                             .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + parameter.dialect + "-rdbms"))
                             .inputStream(UriUtil.resolve("mapping-" + parameter.dialect + "-rdbms.model", parameter.excelModelUri)
                                     .toURL()
@@ -154,7 +150,7 @@ public class Asm2Rdbms {
             EtlExecutionContext asm2rdbmsExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToRdbms.etl", parameter.scriptUri))
                     .parameters(ImmutableList.of(
-                            programParameterBuilder().name("modelVersion").value(parameter.modelVersion).build(),
+                            programParameterBuilder().name("modelVersion").value(parameter.asmModel.getVersion()).build(),
                             programParameterBuilder().name("dialect").value(parameter.dialect).build(),
                             programParameterBuilder().name("extendedMetadataURI")
                                     .value("http://blackbelt.hu/judo/meta/ExtendedMetadata").build()
