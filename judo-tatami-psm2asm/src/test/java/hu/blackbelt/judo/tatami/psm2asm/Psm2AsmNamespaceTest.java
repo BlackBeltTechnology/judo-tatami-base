@@ -56,8 +56,6 @@ public class Psm2AsmNamespaceTest {
     public static final String NS_URI = "http://blackbelt.hu/judo/" + MODEL_NAME;
     public static final String NS_PREFIX = "runtime" + MODEL_NAME;
     public static final String EXTENDED_METADATA_URI = "http://blackbelt.hu/judo/meta/ExtendedMetadata";
-    
-    public static final String TEST_MODEL_NAME = "Model";
 
     PsmModel psmModel;
     AsmModel asmModel;
@@ -68,11 +66,9 @@ public class Psm2AsmNamespaceTest {
         // Loading PSM to isolated ResourceSet, because in Tatami
         // there is no new namespace registration made.
         psmModel = buildPsmModel()
-                .name(MODEL_NAME)
                 .build();
         // Create empty ASM model
         asmModel = buildAsmModel()
-                .name(MODEL_NAME)
                 .build();
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
@@ -104,7 +100,7 @@ public class Psm2AsmNamespaceTest {
     	
 		Package packOfModel = newPackageBuilder().withPackages(packOfPack).withName("packageA").build();
 
-		Model model = newModelBuilder().withName(TEST_MODEL_NAME).withPackages(packOfModel)
+		Model model = newModelBuilder().withName(MODEL_NAME).withPackages(packOfModel)
 				.withElements(ImmutableList.of()).build();
 
         psmModel.addContent(model);
@@ -118,16 +114,16 @@ public class Psm2AsmNamespaceTest {
         final Optional<EPackage> asmPackOfModel = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(packOfModel.getName())).findAny();
         final Optional<EPackage> asmModel = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(model.getName())).findAny();
         assertTrue(asmPackOfPack.isPresent());
-        assertTrue(asmPackOfPack.get().getNsPrefix().equals(NS_PREFIX + TEST_MODEL_NAME + packageANameFirstUpperCase + packageBNameFirstUpperCase));
-        assertTrue(asmPackOfPack.get().getNsURI().equals(NS_URI + "/" + TEST_MODEL_NAME + "/" + packOfModel.getName() + "/" + packOfPack.getName()));
+        assertTrue(asmPackOfPack.get().getNsPrefix().equals(NS_PREFIX + MODEL_NAME + packageANameFirstUpperCase + packageBNameFirstUpperCase));
+        assertTrue(asmPackOfPack.get().getNsURI().equals(NS_URI + "/" + MODEL_NAME + "/" + packOfModel.getName() + "/" + packOfPack.getName()));
         
         assertTrue(asmPackOfModel.isPresent());
-        assertTrue(asmPackOfModel.get().getNsPrefix().equals(NS_PREFIX + TEST_MODEL_NAME + packageANameFirstUpperCase));
-        assertTrue(asmPackOfModel.get().getNsURI().equals(NS_URI + "/" + TEST_MODEL_NAME + "/" + packOfModel.getName()));
+        assertTrue(asmPackOfModel.get().getNsPrefix().equals(NS_PREFIX + MODEL_NAME + packageANameFirstUpperCase));
+        assertTrue(asmPackOfModel.get().getNsURI().equals(NS_URI + "/" + MODEL_NAME + "/" + packOfModel.getName()));
         
         assertTrue(asmModel.isPresent());
-        assertTrue(asmModel.get().getNsPrefix().equals(NS_PREFIX + TEST_MODEL_NAME));
-        assertTrue(asmModel.get().getNsURI().equals(NS_URI + "/" + TEST_MODEL_NAME));
+        assertTrue(asmModel.get().getNsPrefix().equals(NS_PREFIX + MODEL_NAME));
+        assertTrue(asmModel.get().getNsURI().equals(NS_URI + "/" + MODEL_NAME));
       
     }
 }

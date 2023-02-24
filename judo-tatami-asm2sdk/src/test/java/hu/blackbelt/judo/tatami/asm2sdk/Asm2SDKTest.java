@@ -52,7 +52,7 @@ public class Asm2SDKTest {
 		final PsmModel psmModel = new Demo().fullDemo();
 
 		// Create empty ASM model
-		asmModel = AsmModel.buildAsmModel().name(MODEL_NAME).build();
+		asmModel = AsmModel.buildAsmModel().build();
 
 		executePsm2AsmTransformation(psm2AsmParameter()
 				.psmModel(psmModel)
