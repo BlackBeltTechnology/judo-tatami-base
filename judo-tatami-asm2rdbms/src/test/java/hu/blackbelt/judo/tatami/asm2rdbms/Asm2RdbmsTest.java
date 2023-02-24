@@ -45,7 +45,7 @@ import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformat
 
 @Slf4j
 public class Asm2RdbmsTest {
-    public static final String NORTHWIND = "northwind";
+    public static final String NORTHWIND = "demo";
     public static final String NORTHWIND_RDBMS_MODEL = "northwind-rdbms.model";
     public static final String NORTHWIND_ASM_2_RDBMS_MODEL = "northwind-asm2rdbms.model";
     public static final String TARGET_TEST_CLASSES = "target/test-classes";
@@ -67,7 +67,6 @@ public class Asm2RdbmsTest {
         
         // Create empty RDBMS model
         rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(asmModel.getName())
                 .build();
 
         // The RDBMS model resourceset have to know the mapping models

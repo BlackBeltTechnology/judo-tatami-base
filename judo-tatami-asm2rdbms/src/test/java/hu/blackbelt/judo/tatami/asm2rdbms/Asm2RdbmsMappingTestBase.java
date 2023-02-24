@@ -71,7 +71,7 @@ public class Asm2RdbmsMappingTestBase {
 
         logger.debug("Building models");
         asmModel = buildAsmModel().build();
-        rdbmsModel = buildRdbmsModel().name(RDBMS_MODEL_NAME).build();
+        rdbmsModel = buildRdbmsModel().build();
 
         registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
         registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());

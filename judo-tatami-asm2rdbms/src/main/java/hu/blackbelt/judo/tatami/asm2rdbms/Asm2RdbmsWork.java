@@ -93,8 +93,6 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
 
 		RdbmsModel rdbmsModel = getTransformationContext().getByClass(RdbmsModel.class)
 				.orElseGet(() -> buildRdbmsModel()
-						.name(asmModel.get().getName())
-						.version(asmModel.get().getVersion())
 						.build());
 
 		// The RDBMS model resources have to know the mapping models
