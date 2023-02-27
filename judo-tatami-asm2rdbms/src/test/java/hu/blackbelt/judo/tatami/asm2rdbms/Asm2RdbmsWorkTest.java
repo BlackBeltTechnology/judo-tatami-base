@@ -62,7 +62,6 @@ public class Asm2RdbmsWorkTest {
 
         // Create empty ASM model
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name(NORTHWIND)
                 .build();
 
 		executePsm2AsmTransformation(psm2AsmParameter()

@@ -21,7 +21,6 @@ package hu.blackbelt.judo.tatami.asm2rdbms.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
@@ -63,11 +62,7 @@ public class Asm2RdbmsTransformationSerivce {
     public RdbmsModel install(AsmModel asmModel, String dialect) throws Exception {
 
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(asmModel.getName())
-                .version(asmModel.getVersion())
                 .uri(URI.createURI("rdbms:" + asmModel.getName() + ".model"))
-                .checksum(asmModel.getChecksum())
-                .tags(asmModel.getTags())
                 .build();
 
         // The RDBMS model resourceset have to know the mapping models

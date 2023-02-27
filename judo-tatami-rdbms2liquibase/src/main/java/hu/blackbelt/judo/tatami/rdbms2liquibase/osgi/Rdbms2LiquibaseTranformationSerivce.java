@@ -20,7 +20,6 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.osgi;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.epsilon.runtime.osgi.BundleURIHandler;
@@ -62,8 +61,6 @@ public class Rdbms2LiquibaseTranformationSerivce {
                 .name(rdbmsModel.getName())
                 .version(rdbmsModel.getVersion())
                 .uri(liquibasUri)
-                .checksum(rdbmsModel.getChecksum())
-                .tags(rdbmsModel.getTags())
                 .uriHandler(liquibaseNamespaceFixUriHandlerFromBundle)
                 .build();
 

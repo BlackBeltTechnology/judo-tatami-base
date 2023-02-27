@@ -132,7 +132,7 @@ public class ExcelMappingModels2Rdbms {
         File rdbmsModelFile = new File(args[0]);
         String dialect = args[1];
 
-        RdbmsModel rdbmsModel = buildRdbmsModel().name("mapping-" + dialect).build();
+        RdbmsModel rdbmsModel = buildRdbmsModel().build();
 
         // The RDBMS model resources have to know the mapping models
         registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());

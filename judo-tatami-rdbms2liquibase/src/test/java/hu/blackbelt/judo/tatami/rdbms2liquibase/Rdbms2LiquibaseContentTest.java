@@ -135,7 +135,7 @@ public class Rdbms2LiquibaseContentTest {
         // setup rdbms model
 
         final String MODEL_NAME = "TestModel";
-        final RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel().name(MODEL_NAME).build();
+        final RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel().build();
 
         registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
         registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
@@ -182,6 +182,7 @@ public class Rdbms2LiquibaseContentTest {
 
         rdbmsModel.addContent(
                 newRdbmsModelBuilder()
+                        .withName(MODEL_NAME)
                         .withRdbmsTables(rdbmsTable1)
                         .withRdbmsTables(rdbmsTable2)
                         .withRdbmsTables(rdbmsJunctionTable)
