@@ -66,7 +66,8 @@ public class Psm2AsmWork extends AbstractTransformationWork {
 		psmModel.orElseThrow(() -> new IllegalArgumentException("PSM Model does not found in transformation context"));
 
 		AsmModel asmModel = getTransformationContext().getByClass(AsmModel.class)
-				.orElseGet(() -> buildAsmModel().name(psmModel.get().getName()).build());
+				.orElseGet(() -> buildAsmModel()
+						.build());
 		getTransformationContext().put(asmModel);
 
 		Psm2AsmWorkParameter workParam = getTransformationContext().getByClass(Psm2AsmWorkParameter.class)

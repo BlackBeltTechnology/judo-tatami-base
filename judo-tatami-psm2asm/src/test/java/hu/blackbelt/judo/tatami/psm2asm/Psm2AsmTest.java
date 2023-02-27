@@ -72,7 +72,6 @@ public class Psm2AsmTest {
 
         // Create empty ASM model
         asmModel = buildAsmModel()
-                .name(DEMO)
                 .build();
     }
 

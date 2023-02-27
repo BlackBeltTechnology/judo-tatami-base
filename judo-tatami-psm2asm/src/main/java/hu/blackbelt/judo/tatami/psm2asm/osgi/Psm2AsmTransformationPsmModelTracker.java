@@ -60,9 +60,6 @@ public class Psm2AsmTransformationPsmModelTracker extends AbstractModelTracker<P
     @Override
     public void install(PsmModel psmModel) {
         String key = psmModel.getName();
-        if (!needToTransform(psmModel)) {
-            return;
-        }
         AsmModel asmModel = null;
         if (models.containsKey(key)) {
             log.error("Model already loaded: " + psmModel.getName());
@@ -85,9 +82,6 @@ public class Psm2AsmTransformationPsmModelTracker extends AbstractModelTracker<P
     @Override
     public void uninstall(PsmModel psmModel) {
         String key = psmModel.getName();
-        if (!needToTransform(psmModel)) {
-            return;
-        }
         if (!registrations.containsKey(key)) {
             log.error("Model is not registered: " + psmModel.getName());
         } else {
@@ -101,16 +95,6 @@ public class Psm2AsmTransformationPsmModelTracker extends AbstractModelTracker<P
     @Override
     public Class<PsmModel> getModelClass() {
         return PsmModel.class;
-    }
-
-    private boolean needToTransform(PsmModel psmModel) {
-        if (psmModel.getTags().isEmpty()
-                || (!psmModel.getTags().contains("!transform-psm2asm"))
-                || (psmModel.getTags().contains("transform-psm2asm"))
-        ) {
-            return true;
-        }
-        return false;
     }
 
 }

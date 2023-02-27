@@ -4,6 +4,7 @@ rule rootPackegeToModel
 		guard : s.eSuperPackage.isUndefined()
 		t.setId("(asm/" + s.getId() + ")/Model");
 		t.version = modelVersion;
+		t.name = s.name;
 }
 
 rule rootPackegeToConfiguration

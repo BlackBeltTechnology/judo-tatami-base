@@ -21,6 +21,8 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
  */
 
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.meta.rdbms.util.builder.RdbmsConfigurationBuilder;
+import hu.blackbelt.judo.meta.rdbms.util.builder.RdbmsModelBuilder;
 import hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngine;
 import hu.blackbelt.judo.tatami.core.workflow.flow.WorkFlow;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
@@ -47,7 +49,15 @@ public class Rdbms2LiquibaseWorkTest {
 
     @Test
     void testSimpleWorkflow() {
-        final RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel().name(NORTHWIND).build();
+        final RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel().build();
+
+        rdbmsModel.getRdbmsModelResourceSupport().addContent(RdbmsModelBuilder.create()
+                .withName(NORTHWIND)
+                .withVersion("1.0.0")
+                .withConfiguration(RdbmsConfigurationBuilder.create()
+                        .withDialect("hsqldb")
+                        .build())
+                .build());
 
         final TransformationContext transformationContext = new TransformationContext(NORTHWIND);
         DIALECT_LIST.forEach(dialect -> transformationContext.put("rdbms:" + dialect, rdbmsModel));

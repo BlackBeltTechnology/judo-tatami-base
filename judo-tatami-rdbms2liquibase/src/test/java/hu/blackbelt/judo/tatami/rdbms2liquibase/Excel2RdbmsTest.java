@@ -78,14 +78,16 @@ public class Excel2RdbmsTest {
     private static final String TARGET_TEST_CLASSES = "target/test-classes";
     private static final String GENERATED_SQL_LOCATION = TARGET_TEST_CLASSES + "/sql";
     private static final String GENERATED_REVIEW_LOCATION = "src/test/resources/review";
+    public static final String NEW_MODEL_NAME = "NewModel";
+    public static final String INCREMENTAL_MODEL_NAME = "IncrementalModel";
 
     @Test
     public void executeExcel2RdbmsModel(RdbmsDatasourceFixture datasource) throws Exception {
         // change dialect with -Ddialect maven property (default: hsqldb)
         final String dialect = datasource.getDialect();
 
-        RdbmsModel originalModel = buildRdbmsModel().name(ORIGINAL_MODEL_NAME).build();
-        RdbmsModel newModel = buildRdbmsModel().name("NewModel").build();
+        RdbmsModel originalModel = buildRdbmsModel().build();
+        RdbmsModel newModel = buildRdbmsModel().build();
 
         try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
             // Execution context
@@ -153,7 +155,7 @@ public class Excel2RdbmsTest {
         /////////////////////////////////////////
         // delta model
 
-        RdbmsModel incrementalModel = buildRdbmsModel().name("IncrementalModel").build();
+        RdbmsModel incrementalModel = buildRdbmsModel().build();
         transformRdbmsIncrementalModel(originalModel, newModel, incrementalModel, dialect, true);
 
         saveRdbms(incrementalModel, dialect);
@@ -162,7 +164,7 @@ public class Excel2RdbmsTest {
         LiquibaseModel dbBackupLiquibaseModel = buildLiquibaseModel().name("DbBackup").build();
         LiquibaseModel beforeIncrementalModel = buildLiquibaseModel().name("BeforeIncremental").build();
         LiquibaseModel updateDataBeforeIncrementalModel = buildLiquibaseModel().name("UpdateDataBeforeIncremental").build();
-        LiquibaseModel incrementalLiquibaseModel = buildLiquibaseModel().name("IncrementalModel").build();
+        LiquibaseModel incrementalLiquibaseModel = buildLiquibaseModel().name(INCREMENTAL_MODEL_NAME).build();
         LiquibaseModel updateDataAfterIncrementalModel = buildLiquibaseModel().name("UpdateDataAfterIncremental").build();
         LiquibaseModel afterIncrementalModel = buildLiquibaseModel().name("AfterIncremental").build();
         LiquibaseModel dbDropBackupLiquibaseModel = buildLiquibaseModel().name("DbDropBackup").build();
