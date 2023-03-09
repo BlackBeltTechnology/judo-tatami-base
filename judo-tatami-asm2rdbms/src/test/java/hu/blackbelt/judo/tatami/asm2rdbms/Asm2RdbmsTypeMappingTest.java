@@ -47,7 +47,6 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
     private static final String BOOLEAN = "BOOLEAN";
     private static final String DATE = "DATE";
     private static final String TIMESTAMP = "TIMESTAMP";
-    private static final String TIME = "TIME";
 
     /**
      * Asserts the fundamental properties of a RdbmsField
@@ -595,7 +594,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#javasqlTimeAttr").get(),
-                TIME,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
@@ -615,7 +614,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#javatimeLocalTimeAttr").get(),
-                TIME,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
@@ -635,7 +634,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#orgjodatimeLocalTimeAttr").get(),
-                TIME,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
