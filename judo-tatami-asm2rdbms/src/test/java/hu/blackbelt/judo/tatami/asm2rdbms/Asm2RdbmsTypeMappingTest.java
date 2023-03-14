@@ -47,9 +47,6 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
     private static final String BOOLEAN = "BOOLEAN";
     private static final String DATE = "DATE";
     private static final String TIMESTAMP = "TIMESTAMP";
-    private static final String TIME = "TIME";
-    private static final String TIME_WITH_TIMEZONE = "TIME WITH TIME ZONE";
-    private static final String TIMESTAMP_WITH_TIMEZONE = "TIMESTAMP WITH TIME ZONE";
 
     /**
      * Asserts the fundamental properties of a RdbmsField
@@ -592,12 +589,12 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#javasqlTimestampAttr").get(),
-                TIMESTAMP_WITH_TIMEZONE,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#javasqlTimeAttr").get(),
-                TIMESTAMP  ,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
@@ -607,12 +604,12 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#javatimeOffsetDateTimeAttr").get(),
-                TIMESTAMP_WITH_TIMEZONE,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#javatimeZonedDateTimeAttr").get(),
-                TIMESTAMP_WITH_TIMEZONE,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
@@ -622,7 +619,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#orgjodatimeDateTimeAttr").get(),
-                TIMESTAMP_WITH_TIMEZONE,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
@@ -632,7 +629,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 -1,
                 -1);
         typeAsserter(rdbmsUtils.getRdbmsField(RDBMS_TABLE_NAME, RDBMS_TABLE_NAME + "#orgjodatimeMutableDateTimeAttr").get(),
-                TIMESTAMP_WITH_TIMEZONE,
+                TIMESTAMP,
                 -1,
                 -1,
                 -1);
