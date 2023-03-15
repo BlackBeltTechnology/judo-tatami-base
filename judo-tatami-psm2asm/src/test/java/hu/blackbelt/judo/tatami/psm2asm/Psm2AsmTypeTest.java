@@ -67,7 +67,7 @@ public class Psm2AsmTypeTest {
     public static final String DOUBLE = "java.lang.Double";
     public static final String BOOLEAN = "java.lang.Boolean";
     public static final String LOCALE_DATE = "java.time.LocalDate";
-    public static final String DATE_TIME = "java.time.OffsetDateTime";
+    public static final String DATE_TIME = "java.time.LocalDateTime";
     public static final String TIME = "java.time.LocalTime";
     public static final String OBJECT = "java.lang.Object";
     
