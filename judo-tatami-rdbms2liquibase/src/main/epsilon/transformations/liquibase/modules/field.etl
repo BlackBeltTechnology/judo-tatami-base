@@ -3,71 +3,71 @@ import "../utils/changeSet.eol";
 @abstract
 @greedy
 rule FieldToColumn
-	transform s : RDBMS!RdbmsField
-	to t : LIQUIBASE!Column {
-		t.name = s.sqlName;
-		t.type = s.toFieldDefinition();
-		t.remarks = s.uuid;	
+    transform s : RDBMS!RdbmsField
+    to t : LIQUIBASE!Column {
+        t.name = s.sqlName;
+        t.type = s.toFieldDefinition();
+        t.remarks = s.uuid;
 }
 
 @abstract
 rule ForeignKeyFieldToAddForeignKeyConstraint
-	transform s : RDBMS!RdbmsForeignKey
-	to t : LIQUIBASE!AddForeignKeyConstraint {
-		t.baseTableName = s.table().sqlName;
-		t.baseColumnNames = s.sqlName;		
-		t.constraintName = s.foreignKeySqlName;
-		t.referencedColumnNames = s.referenceKey.table().primaryKey.sqlName;
-		t.referencedTableName = s.referenceKey.table().sqlName;
+    transform s : RDBMS!RdbmsForeignKey
+    to t : LIQUIBASE!AddForeignKeyConstraint {
+        t.baseTableName = s.table().sqlName;
+        t.baseColumnNames = s.sqlName;
+        t.constraintName = s.foreignKeySqlName;
+        t.referencedColumnNames = s.referenceKey.table().primaryKey.sqlName;
+        t.referencedTableName = s.referenceKey.table().sqlName;
 }
 
 @abstract
 @greedy
 rule FieldToAddNotNullConstraint
-	transform s : RDBMS!RdbmsField
-	to t : LIQUIBASE!AddNotNullConstraint {
-		t.columnDataType = s.toFieldDefinition();
-		t.columnName = s.sqlName;
-		t.tableName = s.table().sqlName;
+    transform s : RDBMS!RdbmsField
+    to t : LIQUIBASE!AddNotNullConstraint {
+        t.columnDataType = s.toFieldDefinition();
+        t.columnName = s.sqlName;
+        t.tableName = s.table().sqlName;
 }
 
 @greedy
 rule IdentifierFieldToCreateTableColumn
-	transform s : RDBMS!RdbmsIdentifierField
-	to t : LIQUIBASE!Column 
-	extends FieldToColumn {
-		s.table().equivalent("TableToCreateTable").column.add(t);
+    transform s : RDBMS!RdbmsIdentifierField
+    to t : LIQUIBASE!Column
+    extends FieldToColumn {
+        s.table().equivalent("TableToCreateTable").column.add(t);
 }
 
 rule IdentifierFieldToCreateTableColumnAddPrimaryKeyConstraint
-	transform s : RDBMS!RdbmsIdentifierField
-	to t : LIQUIBASE!Constraints {
-	    t.primaryKey = true;
-	    t.nullable = false;
-		s.equivalent("IdentifierFieldToCreateTableColumn").setConstraints(t);
+    transform s : RDBMS!RdbmsIdentifierField
+    to t : LIQUIBASE!Constraints {
+        t.primaryKey = true;
+        t.nullable = false;
+        s.equivalent("IdentifierFieldToCreateTableColumn").setConstraints(t);
 }
 
 rule ValueFieldToCreateTableColumn
-	transform s : RDBMS!RdbmsValueField
-	to t : LIQUIBASE!Column 
-	extends FieldToColumn {
-		s.table().equivalent("TableToCreateTable").column.add(t);
+    transform s : RDBMS!RdbmsValueField
+    to t : LIQUIBASE!Column
+    extends FieldToColumn {
+        s.table().equivalent("TableToCreateTable").column.add(t);
 }
 
 rule ForeignKeyFieldToCreateTableAddForeignKeyConstraint
-	transform s : RDBMS!RdbmsForeignKey
-	to t : LIQUIBASE!AddForeignKeyConstraint 
-	extends ForeignKeyFieldToAddForeignKeyConstraint {
-		s.table().equivalent("TableToCreateForeignKeysChangeSet").addForeignKeyConstraint.add(t);
+    transform s : RDBMS!RdbmsForeignKey
+    to t : LIQUIBASE!AddForeignKeyConstraint
+    extends ForeignKeyFieldToAddForeignKeyConstraint {
+        s.table().equivalent("TableToCreateForeignKeysChangeSet").addForeignKeyConstraint.add(t);
 }
 
 @greedy
 rule FieldToCreateTableAddNotNullConstraint
-	transform s : RDBMS!RdbmsField
-	to t : LIQUIBASE!AddNotNullConstraint 
-	extends FieldToAddNotNullConstraint {
-	    guard: s.mandatory
-		s.table().equivalent("TableToAddNotNullChangeSet").addNotNullConstraint.add(t);
+    transform s : RDBMS!RdbmsField
+    to t : LIQUIBASE!AddNotNullConstraint
+    extends FieldToAddNotNullConstraint {
+        guard: s.mandatory
+        s.table().equivalent("TableToAddNotNullChangeSet").addNotNullConstraint.add(t);
 }
 
 rule IndexToCreateIndex
