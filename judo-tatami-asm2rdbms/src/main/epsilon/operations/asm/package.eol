@@ -6,9 +6,9 @@ operation ASM!EPackage packageSqlName() : String {
 
 @cached
 operation ASM!EPackage root() : ASM!EPackage {
-	var current = self;
-	while (current.eSuperPackage.isDefined()) {
-		current = current.eSuperPackage;
-	}
-	return current;
+    var current = self;
+    while (current.eSuperPackage.isDefined()) {
+        current = current.eSuperPackage;
+    }
+    return current;
 }
