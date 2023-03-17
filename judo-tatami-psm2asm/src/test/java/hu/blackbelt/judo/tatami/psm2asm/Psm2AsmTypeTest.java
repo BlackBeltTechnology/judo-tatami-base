@@ -211,10 +211,10 @@ public class Psm2AsmTypeTest {
         assertTrue(asmDateType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmDateType.get().getInstanceClassName().equals(LOCALE_DATE));
         
-        final Optional<EDataType> asmTimeStampType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timestampType.getName())).findAny();
-        assertTrue(asmTimeStampType.isPresent());
-        assertTrue(asmTimeStampType.get().getEPackage().equals(asmTestModel));
-        assertTrue(asmTimeStampType.get().getInstanceClassName().equals(DATE_TIME));
+        final Optional<EDataType> asmTimestampType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timestampType.getName())).findAny();
+        assertTrue(asmTimestampType.isPresent());
+        assertTrue(asmTimestampType.get().getEPackage().equals(asmTestModel));
+        assertTrue(asmTimestampType.get().getInstanceClassName().equals(DATE_TIME));
 
         final Optional<EDataType> asmTimeType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timeType.getName())).findAny();
         assertTrue(asmTimeType.isPresent());
