@@ -67,7 +67,7 @@ public class Psm2AsmTypeTest {
     public static final String DOUBLE = "java.lang.Double";
     public static final String BOOLEAN = "java.lang.Boolean";
     public static final String LOCALE_DATE = "java.time.LocalDate";
-    public static final String DATE_TIME = "java.time.OffsetDateTime";
+    public static final String DATE_TIME = "java.time.LocalDateTime";
     public static final String TIME = "java.time.LocalTime";
     public static final String OBJECT = "java.lang.Object";
     
@@ -134,7 +134,7 @@ public class Psm2AsmTypeTest {
     	XMLType xmlType = newXMLTypeBuilder().withName("xml").build();
 
     	DateType dateType = newDateTypeBuilder().withName("date").build();
-    	TimestampType timeStampType = newTimestampTypeBuilder().withName("timestamp").build();
+    	TimestampType timestampType = newTimestampTypeBuilder().withName("timestamp").build();
         TimeType timeType = newTimeTypeBuilder().withName("time").build();
 
     	CustomType custom = newCustomTypeBuilder().withName("object").build();
@@ -147,7 +147,7 @@ public class Psm2AsmTypeTest {
 		Model model = newModelBuilder().withName(TEST_MODEL_NAME)
 				.withElements(ImmutableList.of(
 						enumType,strType,intType,longType,bigDecimalIntType,
-						floatType,doubleType,bigDecimalType,boolType,dateType,timeStampType,timeType,custom,
+						floatType,doubleType,bigDecimalType,boolType,dateType,timestampType,timeType,custom,
 						m,measuredType)).build();
 
         psmModel.addContent(model);
@@ -211,10 +211,10 @@ public class Psm2AsmTypeTest {
         assertTrue(asmDateType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmDateType.get().getInstanceClassName().equals(LOCALE_DATE));
         
-        final Optional<EDataType> asmTimeStampType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timeStampType.getName())).findAny();
-        assertTrue(asmTimeStampType.isPresent());
-        assertTrue(asmTimeStampType.get().getEPackage().equals(asmTestModel));
-        assertTrue(asmTimeStampType.get().getInstanceClassName().equals(DATE_TIME));
+        final Optional<EDataType> asmTimestampType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timestampType.getName())).findAny();
+        assertTrue(asmTimestampType.isPresent());
+        assertTrue(asmTimestampType.get().getEPackage().equals(asmTestModel));
+        assertTrue(asmTimestampType.get().getInstanceClassName().equals(DATE_TIME));
 
         final Optional<EDataType> asmTimeType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timeType.getName())).findAny();
         assertTrue(asmTimeType.isPresent());
