@@ -1,7 +1,7 @@
 /*
 operation RDBMS!RdbmsTable addSuperPrimaryKey(class : ASM!EClass) {
-	var f : RDBMS!RdbmsField = class.primaryKeyAttribute().equivalent("EAttributeToTableIdField").clone();
-	self.fields.add(f);	 
-	self.primaryKey = f;
-} 
+    var f : RDBMS!RdbmsField = class.primaryKeyAttribute().equivalent("EAttributeToTableIdField").clone();
+    self.fields.add(f);
+    self.primaryKey = f;
+}
 */

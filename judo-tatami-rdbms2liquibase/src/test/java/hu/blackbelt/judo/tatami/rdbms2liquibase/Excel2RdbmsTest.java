@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -303,40 +303,40 @@ public class Excel2RdbmsTest {
     }
 
     //// EMF Compare experiment
-	/*
-	 * 		com.google.common.base.Function<EObject, String> idFunction = new com.google.common.base.Function<EObject, String>() {
-			@Override
-			public @Nullable String apply(@Nullable EObject input) {
-				if (input instanceof RdbmsElement) {
-					String s = input.getClass().getSimpleName() + 
-							((RdbmsElement)input).getUuid();
-					System.out.println(s);
-					return s;
-				} else {
-					return null;
-				}
-			}
-		};
-		
-//		IEObjectMatcher fallBackMatcher = DefaultMatchEngine.createDefaultEObjectMatcher(UseIdentifiers.WHEN_AVAILABLE);
-//		IEObjectMatcher customIDMatcher = new IdentifierEObjectMatcher(fallBackMatcher, idFunction);
-//		 
-//		IComparisonFactory comparisonFactory = new DefaultComparisonFactory(new DefaultEqualityHelperFactory());
-//		 
-//		IMatchEngine.Factory.Registry registry = MatchEngineFactoryRegistryImpl.createStandaloneInstance();
-//		final MatchEngineFactoryImpl matchEngineFactory = new MatchEngineFactoryImpl(customIDMatcher, comparisonFactory);
-//		matchEngineFactory.setRanking(20); // default engine ranking is 10, must be higher to override.
-//		registry.add(matchEngineFactory);
-//
-//		
-//    	DefaultComparisonScope scope = new DefaultComparisonScope(newModel.getResource(), originalModel.getResource(), null);
-//		Comparison comparison = EMFCompare.builder()
-//				.setMatchEngineFactoryRegistry(registry)
-//					.build().compare(scope);
-//		for (Diff diff : comparison.getDifferences()) {
-//			System.out.println(diff);
-//		}
-    
+    /*
+     *         com.google.common.base.Function<EObject, String> idFunction = new com.google.common.base.Function<EObject, String>() {
+            @Override
+            public @Nullable String apply(@Nullable EObject input) {
+                if (input instanceof RdbmsElement) {
+                    String s = input.getClass().getSimpleName() +
+                            ((RdbmsElement)input).getUuid();
+                    System.out.println(s);
+                    return s;
+                } else {
+                    return null;
+                }
+            }
+        };
 
-	 */
+//        IEObjectMatcher fallBackMatcher = DefaultMatchEngine.createDefaultEObjectMatcher(UseIdentifiers.WHEN_AVAILABLE);
+//        IEObjectMatcher customIDMatcher = new IdentifierEObjectMatcher(fallBackMatcher, idFunction);
+//
+//        IComparisonFactory comparisonFactory = new DefaultComparisonFactory(new DefaultEqualityHelperFactory());
+//
+//        IMatchEngine.Factory.Registry registry = MatchEngineFactoryRegistryImpl.createStandaloneInstance();
+//        final MatchEngineFactoryImpl matchEngineFactory = new MatchEngineFactoryImpl(customIDMatcher, comparisonFactory);
+//        matchEngineFactory.setRanking(20); // default engine ranking is 10, must be higher to override.
+//        registry.add(matchEngineFactory);
+//
+//
+//        DefaultComparisonScope scope = new DefaultComparisonScope(newModel.getResource(), originalModel.getResource(), null);
+//        Comparison comparison = EMFCompare.builder()
+//                .setMatchEngineFactoryRegistry(registry)
+//                    .build().compare(scope);
+//        for (Diff diff : comparison.getDifferences()) {
+//            System.out.println(diff);
+//        }
+
+
+     */
 }

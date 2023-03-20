@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -50,41 +50,41 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Asm2RdbmsWorkTest {
 
-	public static final String NORTHWIND = "northwind";
-	public static final List<String> DIALECT_LIST = new LinkedList<String>(Arrays.asList("hsqldb", "oracle"));
+    public static final String NORTHWIND = "northwind";
+    public static final List<String> DIALECT_LIST = new LinkedList<String>(Arrays.asList("hsqldb", "oracle"));
 
-	List<Asm2RdbmsWork> asm2RdbmsWorks = Lists.newArrayList();
-	TransformationContext transformationContext;
+    List<Asm2RdbmsWork> asm2RdbmsWorks = Lists.newArrayList();
+    TransformationContext transformationContext;
 
-	@BeforeEach
-	void setUp() throws Exception {
-		PsmModel psmModel = new Demo().fullDemo();
+    @BeforeEach
+    void setUp() throws Exception {
+        PsmModel psmModel = new Demo().fullDemo();
 
         // Create empty ASM model
         AsmModel asmModel = AsmModel.buildAsmModel()
                 .build();
 
-		executePsm2AsmTransformation(psm2AsmParameter()
-				.psmModel(psmModel)
-				.asmModel(asmModel));
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(asmModel));
 
-		transformationContext = new TransformationContext(NORTHWIND);
-		transformationContext.put(asmModel);
-		
-		DIALECT_LIST.forEach(dialect -> {
-				asm2RdbmsWorks.add(new Asm2RdbmsWork(transformationContext, dialect));
-		});
-	}
+        transformationContext = new TransformationContext(NORTHWIND);
+        transformationContext.put(asmModel);
 
-	@Test
-	void testSimpleWorkflow() {
-		WorkFlow workflow = aNewSequentialFlow().execute(asm2RdbmsWorks.toArray(new Work[asm2RdbmsWorks.size()])).build();
-		//WorkFlow workflow = aNewParallelFlow().execute(asm2RdbmsWorks.toArray(new Work[asm2RdbmsWorks.size()])).build();
+        DIALECT_LIST.forEach(dialect -> {
+                asm2RdbmsWorks.add(new Asm2RdbmsWork(transformationContext, dialect));
+        });
+    }
 
-		WorkFlowEngine workFlowEngine = aNewWorkFlowEngine().build();
-		WorkReport workReport = workFlowEngine.run(workflow);
+    @Test
+    void testSimpleWorkflow() {
+        WorkFlow workflow = aNewSequentialFlow().execute(asm2RdbmsWorks.toArray(new Work[asm2RdbmsWorks.size()])).build();
+        //WorkFlow workflow = aNewParallelFlow().execute(asm2RdbmsWorks.toArray(new Work[asm2RdbmsWorks.size()])).build();
 
-		log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
-		assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
-	}
+        WorkFlowEngine workFlowEngine = aNewWorkFlowEngine().build();
+        WorkReport workReport = workFlowEngine.run(workflow);
+
+        log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
+        assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+    }
 }

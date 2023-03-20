@@ -15,5 +15,5 @@ operation RDBMS!Rule toString() : String {
  " mandatory: " + self.mandatory +
  " rangeConstraint: " + self.rangeConstraint +
  " inverseRangeConstraint: " + self.inverseRangeConstraint +
- " joinTable: " + self.joinTable;	
+ " joinTable: " + self.joinTable;
 }

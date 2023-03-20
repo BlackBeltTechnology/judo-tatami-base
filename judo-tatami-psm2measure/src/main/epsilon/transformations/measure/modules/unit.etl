@@ -8,14 +8,14 @@ rule CreateUnit
         t.symbol = s.symbol;
         t.rateDividend = new Native("java.math.BigDecimal")(s.rateDividend.toString());
         t.rateDivisor = new Native("java.math.BigDecimal")(s.rateDivisor.toString());
-        
+
         var m = JUDOPSM!Measure.all.selectOne(m | m.units.contains(s)).equivalent();
         m.units.add(t);
     }
 
 rule CreateDurationUnit
     transform s : JUDOPSM!DurationUnit
-    to t : MEASURES!DurationUnit 
+    to t : MEASURES!DurationUnit
     extends CreateUnit {
         var idBase = "(psm/" + s.getId() + ")/DurationUnit";
         switch (s.unitType) {
