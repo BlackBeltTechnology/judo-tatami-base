@@ -13,7 +13,7 @@ rule CreateMeasure
 
 rule CreateBaseMeasure
     transform s : JUDOPSM!Measure
-    to t : MEASURES!BaseMeasure 
+    to t : MEASURES!BaseMeasure
     extends CreateMeasure {
         guard: not s.isKindOf(JUDOPSM!DerivedMeasure)
         t.setId("(psm/" + s.getId() + ")/BaseMeasure");
@@ -21,7 +21,7 @@ rule CreateBaseMeasure
 
 rule CreateDerivedMeasure
     transform s : JUDOPSM!DerivedMeasure
-    to t : MEASURES!DerivedMeasure 
+    to t : MEASURES!DerivedMeasure
     extends CreateMeasure {
         t.setId("(psm/" + s.getId() + ")/DerivedMeasure");
         var baseMeasures = s.getBaseMeasures();
@@ -30,7 +30,7 @@ rule CreateDerivedMeasure
             term.setId("(" + t.getId() + ")_((psm/" + m.getId() + ")/BaseMeasureTerm)");
             term.exponent = baseMeasures.get(m);
             term.baseMeasure = m.equivalent();
-            
+
             t.terms.add(term);
         }
     }

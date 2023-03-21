@@ -5,7 +5,7 @@ operation RDBMS!RdbmsField fillType(type : String) {
     }
 
     self.rdbmsTypeName = typeMapping.rdbmsType;
-    
+
     var rdbmsSize = typeMapping.rdbmsSize;
     if (rdbmsSize.isDefined() and rdbmsSize.startsWith("#")) {
         if (type == "java.lang.String") {
@@ -14,17 +14,17 @@ operation RDBMS!RdbmsField fillType(type : String) {
     } else if (rdbmsSize.isDefined()) {
         self.size = rdbmsSize.asFloat().asInteger();
     }
-    
+
     var rdbmsPrecision = typeMapping.rdbmsPrecision;
     if (rdbmsPrecision.isDefined()) {
         self.precision = rdbmsPrecision.asFloat().asInteger();
     }
-    
+
     var rdbmsScale = typeMapping.rdbmsScale;
     if (rdbmsScale.isDefined()) {
         self.scale = rdbmsScale.asFloat().asInteger();
     }
-    
+
     self.storageByte = -1;
 }
 
@@ -34,7 +34,7 @@ operation RDBMS!RdbmsField fillType(type : String, attribute : ASM!EAttribute) {
         throw "Cannot resolve typemapping: " + type;
     }
     self.rdbmsTypeName = typeMapping.rdbmsType;
-    
+
     var rdbmsSize = typeMapping.rdbmsSize;
     if (rdbmsSize.isDefined() and rdbmsSize.startsWith("#")) {
         var annotation : String = rdbmsSize.parseAnnotationName();
@@ -46,7 +46,7 @@ operation RDBMS!RdbmsField fillType(type : String, attribute : ASM!EAttribute) {
     } else if (rdbmsSize.isDefined()) {
         self.size = rdbmsSize.asFloat().asInteger();
     }
-    
+
     var rdbmsPrecision = typeMapping.rdbmsPrecision;
     if (rdbmsPrecision.isDefined() and rdbmsPrecision.startsWith("#")) {
         var annotation : String = rdbmsPrecision.parseAnnotationName();
@@ -58,7 +58,7 @@ operation RDBMS!RdbmsField fillType(type : String, attribute : ASM!EAttribute) {
     } else if (rdbmsPrecision.isDefined()) {
         self.precision = rdbmsPrecision.asFloat().asInteger();
     }
-    
+
     var rdbmsScale = typeMapping.rdbmsScale;
     if (rdbmsScale.isDefined() and rdbmsScale.startsWith("#")) {
         var annotation : String = rdbmsScale.parseAnnotationName();
@@ -70,7 +70,7 @@ operation RDBMS!RdbmsField fillType(type : String, attribute : ASM!EAttribute) {
     } else if (rdbmsScale.isDefined()) {
         self.scale = rdbmsScale.asFloat().asInteger();
     }
-    
+
     self.storageByte = -1;
 }
 

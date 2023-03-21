@@ -31,7 +31,7 @@ operation ASM!ETypedElement getGetterTypeDefinition() : String {
         postfix = ">";
     } else if (generateOptionalTypes and self.lowerBound == 0 and self.upperBound == 1) {
         prefix = "java.util.Optional<";
-        postfix = ">";    
+        postfix = ">";
     }
 
     return prefix + self.getSingleTypeDefinition() + postfix;
@@ -66,33 +66,33 @@ operation ASM!ETypedElement getSingleTypeDefinition() : String {
 }
 
 
-@cached 
-operation getIdTypeName() : String { 
-    return "java.util.UUID"; 
+@cached
+operation getIdTypeName() : String {
+    return "java.util.UUID";
 }
 
 @cached
-operation ASM!EClassifier getBareTypeDefinition() : String {    
+operation ASM!EClassifier getBareTypeDefinition() : String {
     return getSdkPrefix() + self.getClassifierPackageName() + "." + self.getClassName();
 }
 
 @cached
 operation ASM!EReference isCollection() : Boolean {
     return self.upperBound == -1 or self.upperBound > 1;
-} 
+}
 
 @cached
 operation ASM!EReference isMandatory() : Boolean {
-	return self.lowerBound == 1 and self.upperBound == 1;
+    return self.lowerBound == 1 and self.upperBound == 1;
 }
 
 @cached
 operation ASM!EAttribute isMandatory() : Boolean {
-	return self.lowerBound == 1 and self.upperBound == 1;
+    return self.lowerBound == 1 and self.upperBound == 1;
 }
 
 @cached
-operation ASM!EReference getTypeDefinition() : String {    
+operation ASM!EReference getTypeDefinition() : String {
     if (self.upperBound == -1 or self.upperBound > 1) {
         return "java.util.Collection<" + self.eReferenceType.getBareTypeDefinition() + ">";
     } else {
@@ -101,7 +101,7 @@ operation ASM!EReference getTypeDefinition() : String {
 }
 
 @cached
-operation ASM!EReference getGetterTypeDefinition() : String {    
+operation ASM!EReference getGetterTypeDefinition() : String {
     if (self.upperBound == -1 or self.upperBound > 1) {
         return "java.util.Collection<" + self.eReferenceType.getBareTypeDefinition() + ">";
     } else if (generateOptionalTypes and self.lowerBound == 0 and self.upperBound == 1) {
@@ -193,7 +193,7 @@ operation ASM!EReference isRemoveAllowed() : Boolean {
  */
 @cached
 operation getAllDTOs(): Collection {
-    return ASM!EClass.all.select(class | 
+    return ASM!EClass.all.select(class |
                 (asmUtils.isMappedTransferObjectType(class) or not asmUtils.isEntityType(class)) and
                 not asmUtils.annotatedAsTrue(class, "referenceHolder") and
                 not asmUtils.annotatedAsTrue(class, "optional") and
@@ -210,7 +210,7 @@ operation getAllStaticQueryDTOs(): Collection {
 }
 
 operation getAllEntities(): Collection {
-    return ASM!EClass.all.select(class | 
+    return ASM!EClass.all.select(class |
         (asmUtils.isEntityType(class)));
 }
 
@@ -219,14 +219,14 @@ operation getAllEnums(): Collection {
 }
 
 operation genUtil(templateName : String) : String {
-    var utilPackageName = getInternalPrefix() + getModelPackageName() + ".util";    
+    var utilPackageName = getInternalPrefix() + getModelPackageName() + ".util";
     var utilPackagePath = utilPackageName.replaceAll("\\.", "/");
 
     var template = TemplateFactory.load("util/" + templateName + ".java.egl");
     template.populate("package", utilPackageName);
     var fileName = utilPackagePath + "/" + templateName + ".java";
     template.generate(fileName);
-    
+
     return fileName;
 }
 
@@ -251,7 +251,7 @@ operation getDispatcherWrapperScrXmlFileName(dto : ASM!EClass) : String {
 operation getExchangeFunctionScrXmlFileName(dto : ASM!EClass, op : ASM!EOperation) : String {
     return "OSGI-INF/" + getInternalPrefix() + dto.getClassifierPackageName() + "." + dto.getClassName() + "." + asmUtils.safeName(op.name.firstToUpperCase()) + "ExchangeFunction.xml";
 }
-    
+
 operation genInternalDaoInterfaces(dto : ASM!EClass) : Set {
     var result = new Set();
     result.add(genDaoScrXml(dto));
@@ -268,7 +268,7 @@ operation genUnmappedInitializerFiles(dto : ASM!EClass) : Set {
         result.add(genUnmappedDaoImpl(dto));
     }
     return result;
-}        
+}
 
 operation genDaoImpl(dto: ASM!EClass) : String {
     var singleRelations = new Set();
@@ -284,7 +284,7 @@ operation genDaoImpl(dto: ASM!EClass) : String {
             }
         }
     }
-    
+
     var template = TemplateFactory.load("dao/DaoImpl.java.egl");
     var fileName = dto.getClassNameBase(getInternalPrefix())+ "DaoImpl.java";
     template.generate(fileName);
@@ -337,7 +337,7 @@ operation genDtoInterface(dto: ASM!EClass) : String {
             }
         }
     }
-    
+
     var template = TemplateFactory.load("DtoInterface.java.egl");
     var fileName = dto.getClassNameBase(getSdkPrefix()) + ".java";
     template.generate(fileName);
@@ -392,31 +392,31 @@ operation genSdkOperationInterfaces(dto : ASM!EClass) : Set {
 
 operation genInternalOperationInterfaces(dto : ASM!EClass) : Set {
     var generatedFiles = new Set();
-    // the operation I can implement - only instance for entities or static    
+    // the operation I can implement - only instance for entities or static
     if (not dto.getSdkOperations().isEmpty()) {
         // the operations I can call, one for each transfer entity
         if (not asmUtils.isEntityType(dto)) {
-            var t = TemplateFactory.load("operation/DispatcherWrapper.java.egl");        
+            var t = TemplateFactory.load("operation/DispatcherWrapper.java.egl");
             var fileName = dto.getClassNameBase(getInternalPrefix()) + "OperationsDispatcherWrapper.java";
             t.generate(fileName);
             generatedFiles.add(fileName);
-            
-            var xmlFileName = getDispatcherWrapperScrXmlFileName(dto);    
+
+            var xmlFileName = getDispatcherWrapperScrXmlFileName(dto);
             var xmlTemplate = TemplateFactory.load("operation/DispatcherWrapper.scr.xml.egl");
             xmlTemplate.generate(xmlFileName);
             generatedFiles.add(xmlFileName);
         }
-        
+
         if (not dto.getCustomizableOperations().isEmpty()) {
             // the custom operations called by the dispatcher
             var t = TemplateFactory.load("operation/ExchangeFunctions.java.egl");
             var fileName = dto.getClassNameBase(getInternalPrefix()) + "ExchangeFunctions.java";
             t.generate(fileName);
             generatedFiles.add(fileName);
-            
+
             for (op in dto.getCustomizableOperations()) {
                 var xmlTemplate = TemplateFactory.load("operation/ExchangeFunction.scr.xml.egl");
-                var xmlFileName = getExchangeFunctionScrXmlFileName(dto, op);    
+                var xmlFileName = getExchangeFunctionScrXmlFileName(dto, op);
                 xmlTemplate.generate(xmlFileName);
                 generatedFiles.add(xmlFileName);
             }
@@ -428,13 +428,13 @@ operation genInternalOperationInterfaces(dto : ASM!EClass) : Set {
 
 operation providedSdkOperationInterfaces(dto : ASM!EClass) : Set {
     var provided = new Set();
-	// the operation I can implement - only instance for entities or static
-	if (not dto.getSdkOperations().isEmpty()) {
-	    // the operations I can call, one for each transfer entity
-	    if (not asmUtils.isEntityType(dto)) {
- 	        provided.add(getSdkPrefix() + dto.getClassifierPackageName() + "." +  dto.getClassName() + "$" +  dto.getClassName() + "Operations");
-		}
-	}
+    // the operation I can implement - only instance for entities or static
+    if (not dto.getSdkOperations().isEmpty()) {
+        // the operations I can call, one for each transfer entity
+        if (not asmUtils.isEntityType(dto)) {
+             provided.add(getSdkPrefix() + dto.getClassifierPackageName() + "." +  dto.getClassName() + "$" +  dto.getClassName() + "Operations");
+        }
+    }
     return provided;
 }
 
@@ -448,13 +448,13 @@ operation ASM!EClass getSdkOperations() {
 operation ASM!EClass getCustomizableOperations() {
         return self.getSdkOperations()
             .select(op | ((asmUtils.isEntityType(self) and asmUtils.isBound(op))
-            or ((not asmUtils.isEntityType(self)) and asmUtils.isUnbound(op))));     
+            or ((not asmUtils.isEntityType(self)) and asmUtils.isUnbound(op))));
 }
 
 operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Map {
     var map = new Map();
     var opHasParam = not op.eParameters.empty;
-    var opHasParamMany = opHasParam and (op.eParameters.get(0).upperBound == -1 or op.eParameters.get(0).upperBound > 1);    
+    var opHasParamMany = opHasParam and (op.eParameters.get(0).upperBound == -1 or op.eParameters.get(0).upperBound > 1);
     var extendedInterface;
     var extendedMethod;
     var operationMethod;
@@ -467,11 +467,11 @@ operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Ma
         var inputType = getSdkPrefix() + op.eParameters.get(0).eType.getDtoTypeName();
         map.put("InputTypeSingle", inputType);
         if (opHasParamMany) {
-            inputType = "java.util.Collection<" + inputType + ">";        
+            inputType = "java.util.Collection<" + inputType + ">";
         }
         map.put("InputType", inputType);
         map.put("InputName", asmUtils.safeName(op.eParameters.get(0).name));
-    }    
+    }
     if (opHasReturn) {
         var returnTypeName = getSdkPrefix() + op.eType.getDtoTypeName();
         map.put("ReturnTypeSingle", returnTypeName);
@@ -491,18 +491,18 @@ operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Ma
         }
     }
     var opReturnTemplate;
-    if (opIsMany) { 
-        opReturnTemplate =  
+    if (opIsMany) {
+        opReturnTemplate =
             'java.util.Map<String, Object> result = {Call}\n'+
             '        java.util.Collection<java.util.Map<String, Object>> outputPayloads = (java.util.Collection<java.util.Map<String, Object>>) result.get("{ReturnName}");\n' +
             '        return outputPayloads.stream().map(payload -> fromPayload({ReturnTypeSingle}.class, payload)).collect(java.util.stream.Collectors.toList());';
-    } else { 
-        opReturnTemplate = 
+    } else {
+        opReturnTemplate =
             'java.util.Map<String, Object> result = {Call}\n'+
             '        java.util.Map<String, Object> outputPayload = (java.util.Map<String, Object>) result.get("{ReturnName}");\n' +
             '        return fromPayload({ReturnTypeSingle}.class, outputPayload);';
     }
-    var exchangeThis; 
+    var exchangeThis;
     if (opIsBound) {
         exchangeThis = 'java.util.Map<String, Object> thisPayload = (java.util.Map<String, Object>) exchange.get("__this");\n' +
                 '        {ThisType} _this = fromPayload({ThisType}.class, thisPayload);\n';
@@ -526,7 +526,7 @@ operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Ma
     } else {
         exchangeInput = "";
     }
-    if (opIsBound and opHasParam) {        
+    if (opIsBound and opHasParam) {
         var call = 'dispatcher.callOperation(fqName, asMap("__identifier", _this.get__identifier(), "__this", asMap(_this), "__entityType", _this.get__entityType(), "{InputName}", asMap({InputName})));';
         if (not opHasReturn) {
             extendedInterface = "java.util.function.BiConsumer<{ThisType}, {InputType}>";
@@ -534,42 +534,42 @@ operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Ma
             operationMethod = "void {OpName}({ThisType} _this, {InputType} {InputName})";
             wrapperImpl = call;
             exchangeFunctionImpl =
-                exchangeThis + 
+                exchangeThis +
                 '        operation.accept(_this,' + exchangeInput + ');\n' +
-                exchangeReturn;            
+                exchangeReturn;
         } else {
             extendedInterface = "java.util.function.BiFunction<{ThisType}, {InputType}, {ReturnType}>";
             extendedMethod = "{ReturnType} apply({ThisType} _this, {InputType} {InputName})";
             operationMethod = "{ReturnType} {OpName}({ThisType} _this, {InputType} {InputName})";
             wrapperImpl =  opReturnTemplate.replaceAll("\\{Call\\}", call);
             exchangeFunctionImpl =
-                exchangeThis + 
+                exchangeThis +
                 exchangeVariable + 'operation.apply(_this,' + exchangeInput + ');\n' +
-                exchangeReturn;                        
+                exchangeReturn;
         }
-                
+
     } else if (opIsBound and not opHasParam) {
         var call= 'dispatcher.callOperation(fqName, asMap("__identifier", _this.get__identifier(), "__this", asMap(_this), "__entityType", _this.get__entityType()));';
         if (not opHasReturn) {
             extendedInterface = "java.util.function.Consumer<{ThisType}>";
-            extendedMethod = "void accept({ThisType} _this)";        
+            extendedMethod = "void accept({ThisType} _this)";
             operationMethod = "void {OpName}({ThisType} _this)";
             wrapperImpl = call;
             exchangeFunctionImpl =
-                exchangeThis + 
+                exchangeThis +
                 '        operation.accept(_this);\n' +
-                exchangeReturn;                            
+                exchangeReturn;
         } else {
             extendedInterface = "java.util.function.Function<{ThisType}, {ReturnType}>";
             extendedMethod = "{ReturnType} apply({ThisType} _this)";
             operationMethod = "{ReturnType} {OpName}({ThisType} _this)";
             wrapperImpl =  opReturnTemplate.replaceAll("\\{Call\\}", call);
             exchangeFunctionImpl =
-                exchangeThis + 
+                exchangeThis +
                 exchangeVariable + 'operation.apply(_this);\n' +
-                exchangeReturn;                            
-        } 
-    
+                exchangeReturn;
+        }
+
     } else if (not opIsBound and opHasParam) {
         var call = 'dispatcher.callOperation(fqName, asMap("{InputName}", asMap({InputName})));';
         if (not opHasReturn) {
@@ -578,20 +578,20 @@ operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Ma
             operationMethod = "void {OpName}({InputType} {InputName})";
             wrapperImpl =  call;
             exchangeFunctionImpl =
-                exchangeThis + 
+                exchangeThis +
                 exchangeVariable + 'operation.accept(' + exchangeInput + ');\n' +
-                exchangeReturn;                            
+                exchangeReturn;
         } else {
             extendedInterface = "java.util.function.Function<{InputType}, {ReturnType}>";
             extendedMethod = "{ReturnType} apply({InputType} {InputName})";
             operationMethod = "{ReturnType} {OpName}({InputType} {InputName})";
             wrapperImpl =  opReturnTemplate.replaceAll("\\{Call\\}", call);
-            exchangeFunctionImpl =             
-                exchangeThis + 
+            exchangeFunctionImpl =
+                exchangeThis +
                 exchangeVariable + 'operation.apply(' + exchangeInput + ');\n' +
-                exchangeReturn;                                        
+                exchangeReturn;
         }
-    } else if (not opIsBound and not opHasParam) { 
+    } else if (not opIsBound and not opHasParam) {
         var call = 'dispatcher.callOperation(fqName, hu.blackbelt.judo.dao.api.Payload.empty());';
         if (not opHasReturn) {
             extendedInterface = "Runnable";
@@ -599,41 +599,41 @@ operation getOperationGenerationData(dto : ASM!EClass, op : ASM!EOperation) : Ma
             operationMethod = "void {OpName}()";
             wrapperImpl =  call;
             exchangeFunctionImpl = 'operation.run();' +
-                exchangeReturn;                            
+                exchangeReturn;
         } else {
             extendedInterface = "java.util.function.Supplier<{ReturnType}>";
             extendedMethod = "{ReturnType} get()";
             operationMethod = "{ReturnType} {OpName}()";
             wrapperImpl =  opReturnTemplate.replaceAll("\\{Call\\}", call);
-            exchangeFunctionImpl = 
+            exchangeFunctionImpl =
                 exchangeVariable + 'operation.get();\n' +
-                exchangeReturn;                            
+                exchangeReturn;
         }
     }
 
     map.put("operation", op);
     map.put("packageName", dto.getClassifierPackageName());
-     
+
     map.put("extendedInterface", extendedInterface.replacePlaceholders(map));
     map.put("extendedMethod", extendedMethod.replacePlaceholders(map));
     map.put("wrapperImpl", wrapperImpl.replacePlaceholders(map));
     map.put("exchangeFunctionImpl", exchangeFunctionImpl.replacePlaceholders(map));
     map.put("operationMethod", operationMethod.replacePlaceholders(map));
-    
+
 
      return map;
 }
 
 operation String replacePlaceholders(map) : String {
     var result = self;
-    result = result.replaceAll("\\{InputName\\}", map.get("InputName"));    
+    result = result.replaceAll("\\{InputName\\}", map.get("InputName"));
     result = result.replaceAll("\\{ReturnType\\}", map.get("ReturnType"));
     result = result.replaceAll("\\{ReturnTypeSingle\\}", map.get("ReturnTypeSingle"));
     result = result.replaceAll("\\{ReturnName\\}", map.get("ReturnName"));
     result = result.replaceAll("\\{ThisType\\}", map.get("ThisType"));
     result = result.replaceAll("\\{InputType\\}", map.get("InputType"));
     result = result.replaceAll("\\{InputTypeSingle\\}", map.get("InputTypeSingle"));
-    result = result.replaceAll("\\{OpName\\}", map.get("operation").name);    
+    result = result.replaceAll("\\{OpName\\}", map.get("operation").name);
     return result;
 }
 
