@@ -1,57 +1,57 @@
 import "../operations/util.eol";
 
 pre {
-	var targetModel : RDBMS!Rules = new RDBMS!Rules();
+    var targetModel : RDBMS!Rules = new RDBMS!Rules();
 }
 
 rule Excel2Rule
-	transform s : RULEMAPPING!TableMappingRule
-	to t : RDBMS!Rule {
-		guard: s.symbol.isDefined()
+    transform s : RULEMAPPING!TableMappingRule
+    to t : RDBMS!Rule {
+        guard: s.symbol.isDefined()
 
-		t.lower = 0;
-		t.upper = 0;
-		t.oppositeLower = 0;
-		t.oppositeUpper = 0;
+        t.lower = 0;
+        t.upper = 0;
+        t.oppositeLower = 0;
+        t.oppositeUpper = 0;
 
 
-		t.symbol = s.symbol;
-		t.opposite = s.opposite.asBoolean();
-		t.lower = s.lower.asFloat().asInteger();
-		t.upper = s.upper.asFloat().asInteger();
-		if (s.opposite.asBoolean()) {
-			t.oppositeLower = s.oppositeLower.asFloat().asInteger();
-			t.oppositeUpper = s.oppositeUpper.asFloat().asInteger();
-		} else {
-			t.oppositeLower = -2;
-			t.oppositeUpper = -2;
-		}
-		t.container = s.container.asBoolean();
-		t.containment = s.containment.asBoolean();
-		t.first = s.first.asBoolean();
-		t.foreignKey = s.foreignKey.asBoolean();
-		t.inverseForeignKey = s.inverseForeignKey.asBoolean();
+        t.symbol = s.symbol;
+        t.opposite = s.opposite.asBoolean();
+        t.lower = s.lower.asFloat().asInteger();
+        t.upper = s.upper.asFloat().asInteger();
+        if (s.opposite.asBoolean()) {
+            t.oppositeLower = s.oppositeLower.asFloat().asInteger();
+            t.oppositeUpper = s.oppositeUpper.asFloat().asInteger();
+        } else {
+            t.oppositeLower = -2;
+            t.oppositeUpper = -2;
+        }
+        t.container = s.container.asBoolean();
+        t.containment = s.containment.asBoolean();
+        t.first = s.first.asBoolean();
+        t.foreignKey = s.foreignKey.asBoolean();
+        t.inverseForeignKey = s.inverseForeignKey.asBoolean();
 
-		if (s.readOnly.isDefined()) {
-			t.readOnly = s.readOnly.asBoolean();
-		} else {
-			t.readOnly = false;
-		}
+        if (s.readOnly.isDefined()) {
+            t.readOnly = s.readOnly.asBoolean();
+        } else {
+            t.readOnly = false;
+        }
 
-		if (s.cascade.isDefined()) {
-			t.cascade = t.cascade.asBoolean();
-		} else {
-			t.cascade = false;
-		}
+        if (s.cascade.isDefined()) {
+            t.cascade = t.cascade.asBoolean();
+        } else {
+            t.cascade = false;
+        }
 
-		if (s.mandatory.isDefined()) {
-			t.mandatory = s.mandatory.asBoolean();
-		} else {
-			t.mandatory = false;
-		}
-		t.rangeConstraint = s.rangeConstraint.asBoolean();
-		t.inverseRangeConstraint = s.inverseRangeConstraint.asBoolean();
-		t.joinTable = s.joinTable.asBoolean();
+        if (s.mandatory.isDefined()) {
+            t.mandatory = s.mandatory.asBoolean();
+        } else {
+            t.mandatory = false;
+        }
+        t.rangeConstraint = s.rangeConstraint.asBoolean();
+        t.inverseRangeConstraint = s.inverseRangeConstraint.asBoolean();
+        t.joinTable = s.joinTable.asBoolean();
 
-		targetModel.rules.add(t);
+        targetModel.rules.add(t);
 }

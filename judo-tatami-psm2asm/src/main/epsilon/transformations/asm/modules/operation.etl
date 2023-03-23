@@ -140,7 +140,7 @@ rule CreateStatefulAnnotationOnOperationWithoutImplementationAndBehaviour
         stateful.key = "value";
         stateful.value = "true";
         t.details.add(stateful);
-        
+
         s.asmEquivalent().eAnnotations.add(t);
 }
 
@@ -346,10 +346,10 @@ rule CreateInitializerAnnotation
 rule AddBehaviourAnnotation
     transform s : JUDOPSM!TransferOperation
     to t : ASM!EAnnotation {
-        guard: s.behaviour.isDefined()    
+        guard: s.behaviour.isDefined()
         t.setId("(psm/" + s.getId() + ")/BehaviourAnnotation");
         t.source = asmUtils.getAnnotationUri("behaviour");
-        
+
         var typeEntry = new ASM!EStringToStringMapEntry;
         typeEntry.setId(t.getId() + "/Type");
         typeEntry.key = "type";
@@ -366,20 +366,20 @@ rule AddBehaviourAnnotation
             case JUDOPSM!TransferOperationBehaviourType#ADD_REFERENCE: typeEntry.value = "addReference";
             case JUDOPSM!TransferOperationBehaviourType#REMOVE_REFERENCE: typeEntry.value = "removeReference";
             case JUDOPSM!TransferOperationBehaviourType#GET_RANGE: {
-            		if (s.behaviour.owner.isKindOf(JUDOPSM!TransferObjectRelation)) {
-            			typeEntry.value = "getReferenceRange";
-            		}
-            		if ((s.behaviour.owner.isKindOf(JUDOPSM!TransferOperation))) {
-            			typeEntry.value = "getInputRange";
-            		}
-            	}
+                    if (s.behaviour.owner.isKindOf(JUDOPSM!TransferObjectRelation)) {
+                        typeEntry.value = "getReferenceRange";
+                    }
+                    if ((s.behaviour.owner.isKindOf(JUDOPSM!TransferOperation))) {
+                        typeEntry.value = "getInputRange";
+                    }
+                }
             case JUDOPSM!TransferOperationBehaviourType#GET_TEMPLATE: typeEntry.value = "getTemplate";
             case JUDOPSM!TransferOperationBehaviourType#GET_PRINCIPAL: typeEntry.value = "getPrincipal";
             case JUDOPSM!TransferOperationBehaviourType#GET_METADATA: typeEntry.value = "getMetadata";
             case JUDOPSM!TransferOperationBehaviourType#GET_UPLOAD_TOKEN: typeEntry.value = "getUploadToken";
         }
         t.details.add(typeEntry);
-        
+
         var ownerEntry = new ASM!EStringToStringMapEntry;
         ownerEntry.setId(t.getId() + "/Owner");
         ownerEntry.key = "owner";
@@ -401,19 +401,19 @@ rule AddBehaviourAnnotation
             case JUDOPSM!TransferOperationBehaviourType#GET_UPLOAD_TOKEN:
                 ownerEntry.value = asmUtils.getAttributeFQName(s.behaviour.owner.asmEquivalent());
             case JUDOPSM!TransferOperationBehaviourType#GET_RANGE: {
-            		if (s.behaviour.owner.isKindOf(JUDOPSM!TransferObjectRelation)) {
-            			ownerEntry.value = asmUtils.getReferenceFQName(s.behaviour.owner.asmEquivalent());
-            		}
-            		if ((s.behaviour.owner.isKindOf(JUDOPSM!TransferOperation))) {
-            			ownerEntry.value = asmUtils.getOperationFQName(s.behaviour.owner.asmEquivalent());
-            		}
-            	}
+                    if (s.behaviour.owner.isKindOf(JUDOPSM!TransferObjectRelation)) {
+                        ownerEntry.value = asmUtils.getReferenceFQName(s.behaviour.owner.asmEquivalent());
+                    }
+                    if ((s.behaviour.owner.isKindOf(JUDOPSM!TransferOperation))) {
+                        ownerEntry.value = asmUtils.getOperationFQName(s.behaviour.owner.asmEquivalent());
+                    }
+                }
             default:
                 ownerEntry.value = asmUtils.getReferenceFQName(s.behaviour.owner.asmEquivalent());
         }
         t.details.add(ownerEntry);
-        
-        s.asmEquivalent().eAnnotations.add(t); 
+
+        s.asmEquivalent().eAnnotations.add(t);
 
         if (s.isKindOf(JUDOPSM!BoundTransferOperation)) {
             var bindingAnnotation = new ASM!EAnnotation();
@@ -485,13 +485,13 @@ rule CreateImmutableFlagForTransferOperation
 
 @greedy
 rule CreateTransferOperationInputRangeAnnotation
-	transform s : JUDOPSM!TransferOperation
-	to t : ASM!EAnnotation {
-		guard: s.inputRange.isDefined()
+    transform s : JUDOPSM!TransferOperation
+    to t : ASM!EAnnotation {
+        guard: s.inputRange.isDefined()
         t.setId("(psm/" + s.getId() + ")/TransferOperationRangeAnnotation");
-		t.source = asmUtils.getAnnotationUri("inputRange");
+        t.source = asmUtils.getAnnotationUri("inputRange");
 
-		var range = new ASM!EStringToStringMapEntry;
+        var range = new ASM!EStringToStringMapEntry;
         range.setId(t.getId() + "/InputRange");
         range.key = "value";
         range.value = asmUtils.getReferenceFQName(s.inputRange.asmEquivalent());

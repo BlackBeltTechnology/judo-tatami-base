@@ -1,13 +1,13 @@
 import "../operations/util.eol";
 
 pre {
-	var targetModel : RDBMS!TypeMappings = new RDBMS!TypeMappings();
+    var targetModel : RDBMS!TypeMappings = new RDBMS!TypeMappings();
 }
 
 rule Excel2TypeMapping
-	transform s : TYPEMAPPING!Mapping
-	to t : RDBMS!TypeMapping {
-	    guard: s.Judo.isDefined()
+    transform s : TYPEMAPPING!Mapping
+    to t : RDBMS!TypeMapping {
+        guard: s.Judo.isDefined()
 
         // Resolve JUDO ASM DataType
         t.asmType = s.Judo;
@@ -37,5 +37,5 @@ rule Excel2TypeMapping
             t.rdbmsSqlType = s.SqlType.asFloat().asInteger();
         }
 
-		targetModel.typeMappings.add(t);
+        targetModel.typeMappings.add(t);
 }
