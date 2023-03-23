@@ -3,8 +3,8 @@
 operation ASM!ENamedElement sqlName() : String {
     var shortName = asmUtils.getExtensionAnnotationValue(self, "shortName", false);
     if (shortName.isPresent()) {
-	    return shortName.get().toUpperSnakeCase();
+        return shortName.get().toUpperSnakeCase();
     } else {
-    	return abbreviate(self.name, shortNameSize()).toUpperCase();
-	}
+        return abbreviate(self.name, shortNameSize()).toUpperCase();
+    }
 }

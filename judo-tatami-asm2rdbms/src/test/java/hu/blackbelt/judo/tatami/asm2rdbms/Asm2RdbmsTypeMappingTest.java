@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -113,23 +113,23 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
                 .build();
         bigDecimalAttrAnnotation.getDetails().put("precision", "64");
         bigDecimalAttrAnnotation.getDetails().put("scale", "20");
-        
+
         final EAnnotation bigIntegerAttrAnnotation = newEAnnotationBuilder()
                 .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
                 .build();
         bigIntegerAttrAnnotation.getDetails().put("precision", "18");
-        
+
         final EAnnotation javaMathBigIntegerAttrAnnotation = newEAnnotationBuilder()
                 .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
                 .build();
         javaMathBigIntegerAttrAnnotation.getDetails().put("precision", "18");
-        
+
         final EAnnotation javaMathBigDecimalAttrAnnotation = newEAnnotationBuilder()
                 .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
                 .build();
         javaMathBigDecimalAttrAnnotation.getDetails().put("precision", "64");
         javaMathBigDecimalAttrAnnotation.getDetails().put("scale", "20");
-        
+
         // create class with numeric type attributes
         final EClass eClass = newEClassBuilder()
                 .withName("TestNumericTypesClass")
@@ -349,17 +349,17 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
         // create custom string-like type
         final EDataType javalangString = customEDataTypeBuilder("java.lang.String");
         ePackage.getEClassifiers().add(javalangString);
-        
+
         EAnnotation annotationStringAttr = newEAnnotationBuilder()
             .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
             .build();
         annotationStringAttr.getDetails().put("maxLength", "255");
-        
+
         EAnnotation annotationJavalangStringAttr = newEAnnotationBuilder()
                 .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
                 .build();
         annotationJavalangStringAttr.getDetails().put("maxLength", "255");
-        
+
         // create class with string-like type attributes
         final EClass eClass = newEClassBuilder()
                 .withName("TestStringlikeTypesClass")
