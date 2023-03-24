@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.asm2expression;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -45,17 +45,17 @@ import hu.blackbelt.model.northwind.Demo;
 
 @Slf4j
 public class Asm2ExpressionWorkTest {
-	public static final String NORTHWIND = "northwind";
-	public static final String NORTHWIND_ASM_MODEL = "northwind-asm.model";
-	public static final String TARGET_TEST_CLASSES = "target/test-classes";
+    public static final String NORTHWIND = "northwind";
+    public static final String NORTHWIND_ASM_MODEL = "northwind-asm.model";
+    public static final String TARGET_TEST_CLASSES = "target/test-classes";
 
-	Asm2ExpressionWork asm2ExpressionWork;
-	TransformationContext transformationContext;
+    Asm2ExpressionWork asm2ExpressionWork;
+    TransformationContext transformationContext;
 
-	@BeforeEach
-	void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
 
-		PsmModel psmModel = new Demo().fullDemo();
+        PsmModel psmModel = new Demo().fullDemo();
 
         // Create empty ASM model
         AsmModel asmModel = AsmModel.buildAsmModel()
@@ -66,24 +66,24 @@ public class Asm2ExpressionWorkTest {
                 .name(psmModel.getName())
                 .build();
 
-		executePsm2AsmTransformation(psm2AsmParameter().psmModel(psmModel).asmModel(asmModel));
-		executePsm2MeasureTransformation(psm2MeasureParameter().psmModel(psmModel).measureModel(measureModel));
+        executePsm2AsmTransformation(psm2AsmParameter().psmModel(psmModel).asmModel(asmModel));
+        executePsm2MeasureTransformation(psm2MeasureParameter().psmModel(psmModel).measureModel(measureModel));
 
-		transformationContext = new TransformationContext(NORTHWIND);
-		transformationContext.put(asmModel);
-		transformationContext.put(measureModel);
+        transformationContext = new TransformationContext(NORTHWIND);
+        transformationContext.put(asmModel);
+        transformationContext.put(measureModel);
 
-		asm2ExpressionWork = new Asm2ExpressionWork(transformationContext);
-	}
+        asm2ExpressionWork = new Asm2ExpressionWork(transformationContext);
+    }
 
-	@Test
-	void testSimpleWorkflow() {
-		WorkFlow workflow = aNewSequentialFlow().execute(asm2ExpressionWork).build();
+    @Test
+    void testSimpleWorkflow() {
+        WorkFlow workflow = aNewSequentialFlow().execute(asm2ExpressionWork).build();
 
-		WorkFlowEngine workFlowEngine = aNewWorkFlowEngine().build();
-		WorkReport workReport = workFlowEngine.run(workflow);
+        WorkFlowEngine workFlowEngine = aNewWorkFlowEngine().build();
+        WorkReport workReport = workFlowEngine.run(workflow);
 
-		log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
-		assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
-	}
+        log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
+        assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+    }
 }

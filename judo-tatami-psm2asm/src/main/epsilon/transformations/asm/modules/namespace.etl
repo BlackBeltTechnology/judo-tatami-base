@@ -1,23 +1,23 @@
 @abstract
 rule NamespaceToPackage
-	transform s : JUDOPSM!Namespace
-	to t : ASM!EPackage {
-	    t.setId("(psm/" + s.getId() + ")/Package");
-		t.name = s.name;
-		t.nsPrefix = nsPrefix;
+    transform s : JUDOPSM!Namespace
+    to t : ASM!EPackage {
+        t.setId("(psm/" + s.getId() + ")/Package");
+        t.name = s.name;
+        t.nsPrefix = nsPrefix;
 }
 
 rule ModelToPackage
-	transform s : JUDOPSM!Model
-	to t : ASM!EPackage
-	extends NamespaceToPackage {
-	t.setId("(psm/" + s.getId() + ")/Package");
+    transform s : JUDOPSM!Model
+    to t : ASM!EPackage
+    extends NamespaceToPackage {
+    t.setId("(psm/" + s.getId() + ")/Package");
     t.nsURI = nsURI + "/" + s.name;
     t.nsPrefix = nsPrefix + s.name.firstToUpperCase();
 }
 
 rule ModelToPackageVersion
-	transform s : JUDOPSM!Model
+    transform s : JUDOPSM!Model
     to t : ASM!EAnnotation {
         t.setId("(psm/" + s.getId() + ")/ModelToPackageVersion");
         t.source = asmUtils.getAnnotationUri("ModelVersion");
@@ -32,9 +32,9 @@ rule ModelToPackageVersion
 
 
 rule PackageToPackage
-	transform s : JUDOPSM!Package
-	to t : ASM!EPackage
-	extends NamespaceToPackage {
+    transform s : JUDOPSM!Package
+    to t : ASM!EPackage
+    extends NamespaceToPackage {
     t.setId("(psm/" + s.getId() + ")/Package");
     t.nsURI = s.eContainer.asmEquivalent().nsURI + "/" + s.name;
     t.nsPrefix = s.eContainer.asmEquivalent().nsPrefix + s.name.firstToUpperCase();

@@ -2,20 +2,20 @@ import "../utils/_importUtils.eol";
 
 @greedy
 rule CreateEnumeration
-	transform s : JUDOPSM!EnumerationType
-	to t : ASM!EEnum {
-	    t.setId("(psm/" + s.getId() + ")/Enumeration");
-		t.name = s.name;
-		s.eContainer.asmEquivalent().eClassifiers.add(t);
-		for (m in s.members) {
-			var l = new ASM!EEnumLiteral;
-			l.setId(t.getId() + "/Literal" + loopCount);
-			l.value = m.ordinal;
-			l.literal = m.name;
-			l.name = m.name;
-			t.eLiterals.add(l);
-		}
-	}
+    transform s : JUDOPSM!EnumerationType
+    to t : ASM!EEnum {
+        t.setId("(psm/" + s.getId() + ")/Enumeration");
+        t.name = s.name;
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+        for (m in s.members) {
+            var l = new ASM!EEnumLiteral;
+            l.setId(t.getId() + "/Literal" + loopCount);
+            l.value = m.ordinal;
+            l.literal = m.name;
+            l.name = m.name;
+            t.eLiterals.add(l);
+        }
+    }
 
 @greedy
 rule CreateStringType
@@ -24,7 +24,7 @@ rule CreateStringType
         t.setId("(psm/" + s.getId() + ")/StringType");
         t.name = s.name;
         t.instanceClassName = "java.lang.String";
-        
+
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
@@ -35,7 +35,7 @@ rule CreateIntegerType
         guard: s.isInteger()
         t.setId("(psm/" + s.getId() + ")/IntegerType");
         t.name = s.name;
-        
+
         if (s.precision <= 9 and s.precision > 0) {
             t.instanceClassName = "java.lang.Integer";
         } else if (s.precision <= 19 and s.precision > 9) {
@@ -43,7 +43,7 @@ rule CreateIntegerType
         } else {
             t.instanceClassName = "java.math.BigDecimal";
         }
-        
+
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
@@ -61,7 +61,7 @@ rule CreateDecimalType
         } else {
             t.instanceClassName = "java.math.BigDecimal";
         }
-        
+
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
@@ -97,7 +97,7 @@ rule CreateBooleanType
         t.setId("(psm/" + s.getId() + ")/BooleanType");
         t.name = s.name;
         t.instanceClassName = "java.lang.Boolean";
-        
+
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
@@ -156,7 +156,7 @@ rule CreateDateType
         t.setId("(psm/" + s.getId() + ")/DateType");
         t.name = s.name;
         t.instanceClassName = "java.time.LocalDate";
-        
+
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 
@@ -190,6 +190,6 @@ rule CreateCustomType
         t.setId("(psm/" + s.getId() + ")/CustomType");
         t.name = s.name;
         t.instanceClassName = "java.lang.Object";
-        
+
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }

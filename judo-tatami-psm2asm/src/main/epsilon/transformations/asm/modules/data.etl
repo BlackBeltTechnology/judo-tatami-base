@@ -2,19 +2,19 @@ import "../utils/_importUtils.eol";
 import "namespace.etl";
 
 rule CreateEntityAnnotationClass
-	transform s : JUDOPSM!EntityType
-	to t : ASM!EAnnotation {
-	    t.setId("(psm/" + s.getId() + ")/EntityAnnotationClass");
+    transform s : JUDOPSM!EntityType
+    to t : ASM!EAnnotation {
+        t.setId("(psm/" + s.getId() + ")/EntityAnnotationClass");
         t.source = asmUtils.getAnnotationUri("entity");
-        
+
         var entity = new ASM!EStringToStringMapEntry;
         entity.setId(t.getId() + "/Entity");
         entity.key = "value";
         entity.value = "true";
         t.details.add(entity);
-        
+
         s.equivalent("CreateEntityClass").eAnnotations.add(t);
-	}
+    }
 
 rule CreateDocumentationAnnotationForEntityType
     transform s : JUDOPSM!EntityType
@@ -25,16 +25,16 @@ rule CreateDocumentationAnnotationForEntityType
     }
 
 rule CreateEntityClass
-	transform s : JUDOPSM!EntityType
-	to t : ASM!EClass {
-	    t.setId("(psm/" + s.getId() + ")/EntityClass");
-		t.name = s.name;
-		t.abstract = s.abstract;
-		for (super in s.superEntityTypes) {
-			t.eSuperTypes.add(super.equivalent("CreateEntityClass"));
-		}
-		s.eContainer.asmEquivalent().eClassifiers.add(t);
-	}
+    transform s : JUDOPSM!EntityType
+    to t : ASM!EClass {
+        t.setId("(psm/" + s.getId() + ")/EntityClass");
+        t.name = s.name;
+        t.abstract = s.abstract;
+        for (super in s.superEntityTypes) {
+            t.eSuperTypes.add(super.equivalent("CreateEntityClass"));
+        }
+        s.eContainer.asmEquivalent().eClassifiers.add(t);
+    }
 
 rule CreateEntityDefaultRepresentationAnnotation
     transform s : JUDOPSM!EntityType
@@ -54,11 +54,11 @@ rule CreateEntityDefaultRepresentationAnnotation
 
 @abstract
 rule AddAttributeConstraints
-	transform s : JUDOPSM!Attribute
+    transform s : JUDOPSM!Attribute
     to t : ASM!EAnnotation {
         t.setId("(psm/" + s.getId() + ")/AttributeConstraints");
         t.source = asmUtils.getAnnotationUri("constraints");
-        
+
         s.equivalent("CreateAttribute").eAnnotations.add(t);
     }
 
@@ -71,12 +71,12 @@ rule CreateDocumentationAnnotationForAtrributes
     }
 
 rule AddStringAttributeConstraints
-	transform s : JUDOPSM!Attribute
+    transform s : JUDOPSM!Attribute
     to t : ASM!EAnnotation
     extends AddAttributeConstraints {
         guard: s.dataType.isKindOf(JUDOPSM!StringType)
         t.setId("(psm/" + s.getId() + ")/StringAttributeConstraints");
-        
+
         var maxLength = new ASM!EStringToStringMapEntry;
         maxLength.setId(t.getId() + "/MaxLength");
         maxLength.key = "maxLength";
@@ -93,7 +93,7 @@ rule AddStringAttributeConstraints
     }
 
 rule AddCustomAttributeConstraints
-	transform s : JUDOPSM!Attribute
+    transform s : JUDOPSM!Attribute
     to t : ASM!EAnnotation
     extends AddAttributeConstraints {
         guard: s.dataType.isKindOf(JUDOPSM!CustomType)
@@ -108,7 +108,7 @@ rule AddCustomAttributeConstraints
 
 @abstract
 rule AddAbstractNumericAttributeConstraints
-	transform s : JUDOPSM!Attribute
+    transform s : JUDOPSM!Attribute
     to t : ASM!EAnnotation
     extends AddAttributeConstraints {
         t.setId("(psm/" + s.getId() + ")/AbstractNumericAttributeConstraints");
@@ -118,7 +118,7 @@ rule AddAbstractNumericAttributeConstraints
         precision.key = "precision";
         precision.value = s.dataType.precision.asString();
         t.details.add(precision);
-        
+
         var scale = new ASM!EStringToStringMapEntry;
         scale.setId(t.getId() + "/Scale");
         scale.key = "scale";
@@ -127,7 +127,7 @@ rule AddAbstractNumericAttributeConstraints
     }
 
 rule AddNumericAttributeConstraints
-	transform s : JUDOPSM!Attribute
+    transform s : JUDOPSM!Attribute
     to t : ASM!EAnnotation
     extends AddAbstractNumericAttributeConstraints {
         guard: s.dataType.isKindOf(JUDOPSM!NumericType) and not s.dataType.isKindOf(JUDOPSM!MeasuredType)
@@ -140,13 +140,13 @@ rule AddMeasuredAttributeConstraints
     extends AddAbstractNumericAttributeConstraints {
         guard: s.dataType.isKindOf(JUDOPSM!MeasuredType)
         t.setId("(psm/" + s.getId() + ")/MeasuredAttributeConstraints");
-        
+
         var measure = new ASM!EStringToStringMapEntry;
         measure.setId(t.getId() + "/Measure");
         measure.key = "measure";
         measure.value = psmUtils.namespaceElementToString(s.dataType.storeUnit.eContainer).replace("::", ".");
         t.details.add(measure);
-        
+
         var unit = new ASM!EStringToStringMapEntry;
         unit.setId(t.getId() + "/Unit");
         unit.key = "unit";
@@ -155,20 +155,20 @@ rule AddMeasuredAttributeConstraints
     }
 
 rule CreateAttribute
-	transform s : JUDOPSM!Attribute
-	to t : ASM!EAttribute {
-		guard: s.isPrimitive()
-		t.setId("(psm/" + s.getId() + ")/Attribute");
-		t.name = s.name;
-		if (s.required) {
-			t.lowerBound = 1;
-		} else {
-			t.lowerBound = 0;
-		}
+    transform s : JUDOPSM!Attribute
+    to t : ASM!EAttribute {
+        guard: s.isPrimitive()
+        t.setId("(psm/" + s.getId() + ")/Attribute");
+        t.name = s.name;
+        if (s.required) {
+            t.lowerBound = 1;
+        } else {
+            t.lowerBound = 0;
+        }
 
-		t.eType = s.dataType.asmEquivalent();
-		s.getEntityType().equivalent("CreateEntityClass").eStructuralFeatures.add(t);
-	}
+        t.eType = s.dataType.asmEquivalent();
+        s.getEntityType().equivalent("CreateEntityClass").eStructuralFeatures.add(t);
+    }
 
 rule CreateIdentifierAnnotationForAttribute
     transform s : JUDOPSM!Attribute
@@ -187,27 +187,27 @@ rule CreateIdentifierAnnotationForAttribute
 
 @abstract
 rule CreateRelation
-	transform s : JUDOPSM!Relation
-	to t : ASM!EReference {
-	    t.setId("(psm/" + s.getId() + ")/Relation");
-		t.name = s.name;
+    transform s : JUDOPSM!Relation
+    to t : ASM!EReference {
+        t.setId("(psm/" + s.getId() + ")/Relation");
+        t.name = s.name;
 
-		t.lowerBound = s.cardinality.lower;
-		t.upperBound = s.cardinality.upper;
-		t.eType = s.target.equivalent("CreateEntityClass");
+        t.lowerBound = s.cardinality.lower;
+        t.upperBound = s.cardinality.upper;
+        t.eType = s.target.equivalent("CreateEntityClass");
 
-		s.getEntityType().equivalent("CreateEntityClass").eStructuralFeatures.add(t);
-	}
+        s.getEntityType().equivalent("CreateEntityClass").eStructuralFeatures.add(t);
+    }
 
 rule CreateAssociationEndRelation
-	transform s : JUDOPSM!AssociationEnd
-	to t : ASM!EReference
-	extends CreateRelation {
-	    t.setId("(psm/" + s.getId() + ")/AssociationEndRelation");
+    transform s : JUDOPSM!AssociationEnd
+    to t : ASM!EReference
+    extends CreateRelation {
+        t.setId("(psm/" + s.getId() + ")/AssociationEndRelation");
 
-		if (s.partner.isDefined()) {
-			t.eOpposite = s.partner.equivalent("CreateAssociationEndRelation");
-		}
+        if (s.partner.isDefined()) {
+            t.eOpposite = s.partner.equivalent("CreateAssociationEndRelation");
+        }
 
         if (s.reverseCascadeDelete) {
             var reverseCascadeDeleteAnnotation = new ASM!EAnnotation();
@@ -225,15 +225,15 @@ rule CreateAssociationEndRelation
 }
 
 rule CreateContainmentRelation
-	transform s : JUDOPSM!Containment
-	to t : ASM!EReference
-	extends CreateRelation {
-	    t.setId("(psm/" + s.getId() + ")/ContainmentRelation");
-		t.containment = true;
+    transform s : JUDOPSM!Containment
+    to t : ASM!EReference
+    extends CreateRelation {
+        t.setId("(psm/" + s.getId() + ")/ContainmentRelation");
+        t.containment = true;
 }
 
 rule AddUnmappedDefaultOnlyAttributeAnnotation
-	transform s : JUDOPSM!Attribute
+    transform s : JUDOPSM!Attribute
     to t : ASM!EAnnotation {
         guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() and s.eContainer.defaultRepresentation.attributes.exists(a | a.binding == s and a.defaultValue.isDefined())
         t.setId("(psm/" + s.getId() + ")/UnmappedDefaultOnlyAttributeAnnotation");
@@ -249,7 +249,7 @@ rule AddUnmappedDefaultOnlyAttributeAnnotation
     }
 
 rule AddUnmappedDefaultOnlyReferenceAnnotation
-	transform s : JUDOPSM!AssociationEnd
+    transform s : JUDOPSM!AssociationEnd
     to t : ASM!EAnnotation {
         guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() and s.eContainer.defaultRepresentation.relations.exists(r | r.binding == s and r.defaultValue.isDefined())
         t.setId("(psm/" + s.getId() + ")/UnmappedDefaultOnlyReferenceAnnotation");

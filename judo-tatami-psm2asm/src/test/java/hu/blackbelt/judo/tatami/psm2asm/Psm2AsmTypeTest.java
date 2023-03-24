@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.psm2asm;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -56,13 +56,13 @@ public class Psm2AsmTypeTest {
 
     public static final String MODEL_NAME = "Test";
     public static final String TARGET_TEST_CLASSES = "target/test-classes";
-    
+
     public static final String TEST_MODEL_NAME = "Model";
     public static final String STRING = "java.lang.String";
     public static final String INTEGER = "java.lang.Integer";
     public static final String LONG = "java.lang.Long";
     public static final String BIG_DECIMAL = "java.math.BigDecimal";
-    
+
     public static final String FLOAT = "java.lang.Float";
     public static final String DOUBLE = "java.lang.Double";
     public static final String BOOLEAN = "java.lang.Boolean";
@@ -70,7 +70,7 @@ public class Psm2AsmTypeTest {
     public static final String DATE_TIME = "java.time.LocalDateTime";
     public static final String TIME = "java.time.LocalTime";
     public static final String OBJECT = "java.lang.Object";
-    
+
     PsmModel psmModel;
     AsmModel asmModel;
     AsmUtils asmUtils;
@@ -91,7 +91,7 @@ public class Psm2AsmTypeTest {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model"))
                 .build());
-        
+
         assertTrue(psmModel.isValid());
         try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
@@ -106,9 +106,10 @@ public class Psm2AsmTypeTest {
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model"))
                 .build());
     }
-    
+
     @Test
     void testType() throws Exception {
+
     	
     	EnumerationMember a = newEnumerationMemberBuilder().withName("a").withOrdinal(1).build();
     	EnumerationMember b = newEnumerationMemberBuilder().withName("b").withOrdinal(2).build();
@@ -153,59 +154,59 @@ public class Psm2AsmTypeTest {
         psmModel.addContent(model);
 
         transform("testType");
-        
+
         final EPackage asmTestModel = asmUtils.all(EPackage.class).filter(p -> p.getName().equals(TEST_MODEL_NAME)).findAny().get();
         final Optional<EEnum> asmEnum = asmUtils.all(EEnum.class).filter(e -> e.getName().equals(enumType.getName())).findAny();
         assertTrue(asmEnum.isPresent());
         assertTrue(asmEnum.get().getEPackage().equals(asmTestModel));
-        
+
         assertThat(asmEnum.get().getEEnumLiteral(1), IsNull.notNullValue());
         assertThat(asmEnum.get().getEEnumLiteral(2), IsNull.notNullValue());
         assertThat(asmEnum.get().getEEnumLiteral(3), IsNull.notNullValue());
         assertTrue(asmEnum.get().getEEnumLiteral(1).getLiteral().equals(a.getName()));
         assertTrue(asmEnum.get().getEEnumLiteral(2).getLiteral().equals(b.getName()));
         assertTrue(asmEnum.get().getEEnumLiteral(3).getLiteral().equals(c.getName()));
-        
+
         final Optional<EDataType> asmStr = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(strType.getName())).findAny();
         assertTrue(asmStr.isPresent());
         assertTrue(asmStr.get().getEPackage().equals(asmTestModel));
         assertTrue(asmStr.get().getInstanceClassName().equals(STRING));
-        
+
         final Optional<EDataType> asmInt = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(intType.getName())).findAny();
         assertTrue(asmInt.isPresent());
         assertTrue(asmInt.get().getEPackage().equals(asmTestModel));
         assertTrue(asmInt.get().getInstanceClassName().equals(INTEGER));
-        
+
         final Optional<EDataType> asmLongType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(longType.getName())).findAny();
         assertTrue(asmLongType.isPresent());
         assertTrue(asmLongType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmLongType.get().getInstanceClassName().equals(LONG));
-        
+
         final Optional<EDataType> asmBigDecimalIntType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(bigDecimalIntType.getName())).findAny();
         assertTrue(asmBigDecimalIntType.isPresent());
         assertTrue(asmBigDecimalIntType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmBigDecimalIntType.get().getInstanceClassName().equals(BIG_DECIMAL));
-        
+
         final Optional<EDataType> asmFloatType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(floatType.getName())).findAny();
         assertTrue(asmFloatType.isPresent());
         assertTrue(asmFloatType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmFloatType.get().getInstanceClassName().equals(FLOAT));
-        
+
         final Optional<EDataType> asmDoubleType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(doubleType.getName())).findAny();
         assertTrue(asmDoubleType.isPresent());
         assertTrue(asmDoubleType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmDoubleType.get().getInstanceClassName().equals(DOUBLE));
-        
+
         final Optional<EDataType> asmBigDecimalType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(bigDecimalType.getName())).findAny();
         assertTrue(asmBigDecimalType.isPresent());
         assertTrue(asmBigDecimalType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmBigDecimalType.get().getInstanceClassName().equals(BIG_DECIMAL));
-        
+
         final Optional<EDataType> asmBoolType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(boolType.getName())).findAny();
         assertTrue(asmBoolType.isPresent());
         assertTrue(asmBoolType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmBoolType.get().getInstanceClassName().equals(BOOLEAN));
-        
+
         final Optional<EDataType> asmDateType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(dateType.getName())).findAny();
         assertTrue(asmDateType.isPresent());
         assertTrue(asmDateType.get().getEPackage().equals(asmTestModel));
@@ -225,7 +226,7 @@ public class Psm2AsmTypeTest {
         assertTrue(asmCustom.isPresent());
         assertTrue(asmCustom.get().getEPackage().equals(asmTestModel));
         assertTrue(asmCustom.get().getInstanceClassName().equals(OBJECT));
-        
+
         final Optional<EDataType> asmMeasured = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(measuredType.getName())).findAny();
         assertTrue(asmMeasured.isPresent());
         assertTrue(asmMeasured.get().getEPackage().equals(asmTestModel));

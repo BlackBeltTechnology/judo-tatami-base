@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.asm2sdk;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -24,33 +24,33 @@ import java.io.InputStream;
 
 public class Asm2SDKBundleStreams {
 
-	private final InputStream sdkBundleStream;
-	private final InputStream internalBundleStream;
-	private final InputStream guiceBundleStream;
-	private final InputStream springBundleStream;
+    private final InputStream sdkBundleStream;
+    private final InputStream internalBundleStream;
+    private final InputStream guiceBundleStream;
+    private final InputStream springBundleStream;
 
-	public Asm2SDKBundleStreams(InputStream sdkBundleStream, InputStream internalBundleStream,
-								InputStream guiceBundleStream, InputStream springBundleStream) {
-		this.sdkBundleStream = sdkBundleStream;
-		this.internalBundleStream = internalBundleStream;
-		this.guiceBundleStream = guiceBundleStream;
-		this.springBundleStream = springBundleStream;
-	}
+    public Asm2SDKBundleStreams(InputStream sdkBundleStream, InputStream internalBundleStream,
+                                InputStream guiceBundleStream, InputStream springBundleStream) {
+        this.sdkBundleStream = sdkBundleStream;
+        this.internalBundleStream = internalBundleStream;
+        this.guiceBundleStream = guiceBundleStream;
+        this.springBundleStream = springBundleStream;
+    }
 
-	public InputStream getSdkBundleStream() {
-		return sdkBundleStream;
-	}
+    public InputStream getSdkBundleStream() {
+        return sdkBundleStream;
+    }
 
-	public InputStream getInternalBundleStream() {
-		return internalBundleStream;
-	}
+    public InputStream getInternalBundleStream() {
+        return internalBundleStream;
+    }
 
-	public InputStream getGuiceBundleStream() {
-		return guiceBundleStream;
-	}
+    public InputStream getGuiceBundleStream() {
+        return guiceBundleStream;
+    }
 
-	public InputStream getSpringBundleStream() {
-		return springBundleStream;
-	}
+    public InputStream getSpringBundleStream() {
+        return springBundleStream;
+    }
 
 }
