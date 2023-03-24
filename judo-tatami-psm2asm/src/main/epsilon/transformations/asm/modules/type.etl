@@ -166,8 +166,8 @@ rule CreateTimestampType
     to t : ASM!EDataType {
         t.setId("(psm/" + s.getId() + ")/TimestampType");
         t.name = s.name;
-        t.instanceClassName = "java.time.OffsetDateTime";
-
+        t.instanceClassName = "java.time.LocalDateTime";
+        
         s.eContainer.asmEquivalent().eClassifiers.add(t);
     }
 

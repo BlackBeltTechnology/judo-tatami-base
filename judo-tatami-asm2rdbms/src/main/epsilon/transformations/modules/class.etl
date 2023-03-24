@@ -84,10 +84,10 @@ rule EClassToTableCreateTimestampField
         t.uuid = asmUtils.getClassifierFQName(s) + "#_create_timestamp";
         log.debug("    Add create timestamp: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
-        table.fields.add(t);
-        t.sqlName = "CREATE_TIMESTAMP";
-        t.mandatory = false;
-        t.fillType("java.time.OffsetDateTime");
+	    table.fields.add(t);
+		t.sqlName = "CREATE_TIMESTAMP";
+		t.mandatory = false;
+		t.fillType("java.time.LocalDateTime");
 }
 
 rule EClassToTableUpdateUsernameField
@@ -129,10 +129,10 @@ rule EClassToTableUpdateTimestampField
         t.uuid = asmUtils.getClassifierFQName(s) + "#_update_timestamp";
         log.debug("    Add update timestamp: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
-        table.fields.add(t);
-        t.sqlName = "UPDATE_TIMESTAMP";
-        t.mandatory = false;
-        t.fillType("java.time.OffsetDateTime");
+	    table.fields.add(t);
+		t.sqlName = "UPDATE_TIMESTAMP";
+		t.mandatory = false;
+		t.fillType("java.time.LocalDateTime");
 }
 
 @primary

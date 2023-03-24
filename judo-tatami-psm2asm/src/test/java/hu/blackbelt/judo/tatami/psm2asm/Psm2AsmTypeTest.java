@@ -67,7 +67,7 @@ public class Psm2AsmTypeTest {
     public static final String DOUBLE = "java.lang.Double";
     public static final String BOOLEAN = "java.lang.Boolean";
     public static final String LOCALE_DATE = "java.time.LocalDate";
-    public static final String DATE_TIME = "java.time.OffsetDateTime";
+    public static final String DATE_TIME = "java.time.LocalDateTime";
     public static final String TIME = "java.time.LocalTime";
     public static final String OBJECT = "java.lang.Object";
 
@@ -110,45 +110,46 @@ public class Psm2AsmTypeTest {
     @Test
     void testType() throws Exception {
 
-        EnumerationMember a = newEnumerationMemberBuilder().withName("a").withOrdinal(1).build();
-        EnumerationMember b = newEnumerationMemberBuilder().withName("b").withOrdinal(2).build();
-        EnumerationMember c = newEnumerationMemberBuilder().withName("c").withOrdinal(3).build();
+    	
+    	EnumerationMember a = newEnumerationMemberBuilder().withName("a").withOrdinal(1).build();
+    	EnumerationMember b = newEnumerationMemberBuilder().withName("b").withOrdinal(2).build();
+    	EnumerationMember c = newEnumerationMemberBuilder().withName("c").withOrdinal(3).build();
+        
+    	EnumerationType enumType = newEnumerationTypeBuilder().withName("enum")
+    			.withMembers(ImmutableList.of(a,b,c)).build();
+    	StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).withRegExp(".*").build();
+    	
+    	NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
+    	NumericType longType = newNumericTypeBuilder().withName("long").withPrecision(16).withScale(0).build();
+    	NumericType bigDecimalIntType = newNumericTypeBuilder().withName("bigdecimalint").withPrecision(21).withScale(0).build();
+    	
+    	NumericType floatType = newNumericTypeBuilder().withName("float").withPrecision(6).withScale(3).build();
+    	NumericType doubleType = newNumericTypeBuilder().withName("bouble").withPrecision(10).withScale(3).build();
+    	NumericType bigDecimalType = newNumericTypeBuilder().withName("bigdecimal").withPrecision(17).withScale(8).build();
+    	
+    	BooleanType boolType = newBooleanTypeBuilder().withName("bool").build();
+    	
+    	//not supported yet
+    	PasswordType pwType = newPasswordTypeBuilder().withName("pw").build();
+    	//not supported yet
+    	XMLType xmlType = newXMLTypeBuilder().withName("xml").build();
 
-        EnumerationType enumType = newEnumerationTypeBuilder().withName("enum")
-                .withMembers(ImmutableList.of(a,b,c)).build();
-        StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).withRegExp(".*").build();
-
-        NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
-        NumericType longType = newNumericTypeBuilder().withName("long").withPrecision(16).withScale(0).build();
-        NumericType bigDecimalIntType = newNumericTypeBuilder().withName("bigdecimalint").withPrecision(21).withScale(0).build();
-
-        NumericType floatType = newNumericTypeBuilder().withName("float").withPrecision(6).withScale(3).build();
-        NumericType doubleType = newNumericTypeBuilder().withName("bouble").withPrecision(10).withScale(3).build();
-        NumericType bigDecimalType = newNumericTypeBuilder().withName("bigdecimal").withPrecision(17).withScale(8).build();
-
-        BooleanType boolType = newBooleanTypeBuilder().withName("bool").build();
-
-        //not supported yet
-        PasswordType pwType = newPasswordTypeBuilder().withName("pw").build();
-        //not supported yet
-        XMLType xmlType = newXMLTypeBuilder().withName("xml").build();
-
-        DateType dateType = newDateTypeBuilder().withName("date").build();
-        TimestampType timeStampType = newTimestampTypeBuilder().withName("timestamp").build();
+    	DateType dateType = newDateTypeBuilder().withName("date").build();
+    	TimestampType timestampType = newTimestampTypeBuilder().withName("timestamp").build();
         TimeType timeType = newTimeTypeBuilder().withName("time").build();
 
-        CustomType custom = newCustomTypeBuilder().withName("object").build();
-
-        Unit unit = newUnitBuilder().withName("u").build();
-        Measure m = newMeasureBuilder().withName("measure").withUnits(unit).build();
-        MeasuredType measuredType = newMeasuredTypeBuilder().withName("measuredType").withStoreUnit(unit)
-                .withPrecision(5).withScale(3).build();
-
-        Model model = newModelBuilder().withName(TEST_MODEL_NAME)
-                .withElements(ImmutableList.of(
-                        enumType,strType,intType,longType,bigDecimalIntType,
-                        floatType,doubleType,bigDecimalType,boolType,dateType,timeStampType,timeType,custom,
-                        m,measuredType)).build();
+    	CustomType custom = newCustomTypeBuilder().withName("object").build();
+    	
+		Unit unit = newUnitBuilder().withName("u").build();
+		Measure m = newMeasureBuilder().withName("measure").withUnits(unit).build();
+		MeasuredType measuredType = newMeasuredTypeBuilder().withName("measuredType").withStoreUnit(unit)
+				.withPrecision(5).withScale(3).build();
+    	
+		Model model = newModelBuilder().withName(TEST_MODEL_NAME)
+				.withElements(ImmutableList.of(
+						enumType,strType,intType,longType,bigDecimalIntType,
+						floatType,doubleType,bigDecimalType,boolType,dateType,timestampType,timeType,custom,
+						m,measuredType)).build();
 
         psmModel.addContent(model);
 
@@ -210,11 +211,11 @@ public class Psm2AsmTypeTest {
         assertTrue(asmDateType.isPresent());
         assertTrue(asmDateType.get().getEPackage().equals(asmTestModel));
         assertTrue(asmDateType.get().getInstanceClassName().equals(LOCALE_DATE));
-
-        final Optional<EDataType> asmTimeStampType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timeStampType.getName())).findAny();
-        assertTrue(asmTimeStampType.isPresent());
-        assertTrue(asmTimeStampType.get().getEPackage().equals(asmTestModel));
-        assertTrue(asmTimeStampType.get().getInstanceClassName().equals(DATE_TIME));
+        
+        final Optional<EDataType> asmTimestampType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timestampType.getName())).findAny();
+        assertTrue(asmTimestampType.isPresent());
+        assertTrue(asmTimestampType.get().getEPackage().equals(asmTestModel));
+        assertTrue(asmTimestampType.get().getInstanceClassName().equals(DATE_TIME));
 
         final Optional<EDataType> asmTimeType = asmUtils.all(EDataType.class).filter(e -> e.getName().equals(timeType.getName())).findAny();
         assertTrue(asmTimeType.isPresent());
