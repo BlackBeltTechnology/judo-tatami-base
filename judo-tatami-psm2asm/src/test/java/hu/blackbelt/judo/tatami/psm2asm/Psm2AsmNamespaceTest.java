@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.psm2asm;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -77,7 +77,7 @@ public class Psm2AsmNamespaceTest {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model"))
                 .build());
-        
+
         assertTrue(psmModel.isValid());
         try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
@@ -92,38 +92,38 @@ public class Psm2AsmNamespaceTest {
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model"))
                 .build());
     }
-    
+
     @Test
     void testNamespace() throws Exception {
-        
-    	Package packOfPack = newPackageBuilder().withName("packageB").build();
-    	
-		Package packOfModel = newPackageBuilder().withPackages(packOfPack).withName("packageA").build();
 
-		Model model = newModelBuilder().withName(MODEL_NAME).withPackages(packOfModel)
-				.withElements(ImmutableList.of()).build();
+        Package packOfPack = newPackageBuilder().withName("packageB").build();
+
+        Package packOfModel = newPackageBuilder().withPackages(packOfPack).withName("packageA").build();
+
+        Model model = newModelBuilder().withName(MODEL_NAME).withPackages(packOfModel)
+                .withElements(ImmutableList.of()).build();
 
         psmModel.addContent(model);
 
         transform("testNamespace");
-        
+
         final String packageANameFirstUpperCase = "PackageA";
         final String packageBNameFirstUpperCase = "PackageB";
-        
+
         final Optional<EPackage> asmPackOfPack = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(packOfPack.getName())).findAny();
         final Optional<EPackage> asmPackOfModel = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(packOfModel.getName())).findAny();
         final Optional<EPackage> asmModel = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(model.getName())).findAny();
         assertTrue(asmPackOfPack.isPresent());
         assertTrue(asmPackOfPack.get().getNsPrefix().equals(NS_PREFIX + MODEL_NAME + packageANameFirstUpperCase + packageBNameFirstUpperCase));
         assertTrue(asmPackOfPack.get().getNsURI().equals(NS_URI + "/" + MODEL_NAME + "/" + packOfModel.getName() + "/" + packOfPack.getName()));
-        
+
         assertTrue(asmPackOfModel.isPresent());
         assertTrue(asmPackOfModel.get().getNsPrefix().equals(NS_PREFIX + MODEL_NAME + packageANameFirstUpperCase));
         assertTrue(asmPackOfModel.get().getNsURI().equals(NS_URI + "/" + MODEL_NAME + "/" + packOfModel.getName()));
-        
+
         assertTrue(asmModel.isPresent());
         assertTrue(asmModel.get().getNsPrefix().equals(NS_PREFIX + MODEL_NAME));
         assertTrue(asmModel.get().getNsURI().equals(NS_URI + "/" + MODEL_NAME));
-      
+
     }
 }

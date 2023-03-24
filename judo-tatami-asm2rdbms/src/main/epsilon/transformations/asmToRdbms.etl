@@ -7,36 +7,36 @@ import "modules/package.etl";
 
 post {
 
-	/*
-	// All tables have to contain foreign key points to parent. - Structural semantics
-	for (t in RDBMS!RdbmsTable.all) {
-		for (p in t.parents) {
-			var fk : RDBMS!RdbmsForeignKey = new RDBMS!RdbmsForeignKey();
-			t.fields.add(fk);
-			fk.uuid =  t.uuid +"_" + p.uuid + "@foreignKey";
-			fk.name = "Super " + p.name;
-			fk.description = "Reference to super table: " + p.name + " With ID: " + p.primaryKey.name;
-			fk.sqlName = "SUP_" + p.sqlName + "_ID";
-			fk.inheritenceBased = true;
-    		fk.fromType(p.primaryKey);
-    		fk.referenceKey = p.primaryKey;
-    		fk.readOnly = true;
-    		fk.mandatory = true;
-			fk.foreignKeySqlName = "FK_" + md5(fk.uuid);
-		}
-	} */
+    /*
+    // All tables have to contain foreign key points to parent. - Structural semantics
+    for (t in RDBMS!RdbmsTable.all) {
+        for (p in t.parents) {
+            var fk : RDBMS!RdbmsForeignKey = new RDBMS!RdbmsForeignKey();
+            t.fields.add(fk);
+            fk.uuid =  t.uuid +"_" + p.uuid + "@foreignKey";
+            fk.name = "Super " + p.name;
+            fk.description = "Reference to super table: " + p.name + " With ID: " + p.primaryKey.name;
+            fk.sqlName = "SUP_" + p.sqlName + "_ID";
+            fk.inheritenceBased = true;
+            fk.fromType(p.primaryKey);
+            fk.referenceKey = p.primaryKey;
+            fk.readOnly = true;
+            fk.mandatory = true;
+            fk.foreignKeySqlName = "FK_" + md5(fk.uuid);
+        }
+    } */
 
-	// Replacing name
-	for (e in RDBMS!RdbmsElement.all) {
-		log.debug("UUID: " + e.uuid);
-		var sqlNameMapping = RDBMS!NameMapping.all.selectOne(m | m.fullyQualifiedName == e.uuid);
-		if (sqlNameMapping.isDefined()) {
-			log.debug("Replace sqlName in: " + e);
-			log.debug("   To: " + sqlNameMapping);
-			e.sqlName = sqlNameMapping.rdbmsName;
-		}
-	}
+    // Replacing name
+    for (e in RDBMS!RdbmsElement.all) {
+        log.debug("UUID: " + e.uuid);
+        var sqlNameMapping = RDBMS!NameMapping.all.selectOne(m | m.fullyQualifiedName == e.uuid);
+        if (sqlNameMapping.isDefined()) {
+            log.debug("Replace sqlName in: " + e);
+            log.debug("   To: " + sqlNameMapping);
+            e.sqlName = sqlNameMapping.rdbmsName;
+        }
+    }
 
-	rdbmsUtils.validateUniqueXmiids();
+    rdbmsUtils.validateUniqueXmiids();
 
 }
