@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.asm2sdk;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -39,63 +39,63 @@ import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformat
 @Slf4j
 public class Asm2SDKTest {
 
-	public static final String MODEL_NAME = "northwind";
-	public static final String TARGET_TEST_CLASSES = "target/test-classes";
-	public static final String NORTHWIND_ASM_MODEL = "asm2sdk_northwind-asm.model";
-	public static final String NORTHWIND_PSM_MODEL = "asm2sdk_northwind-psm.model";
-	public static final String GENERATED_JAVA = "generated/java";
+    public static final String MODEL_NAME = "northwind";
+    public static final String TARGET_TEST_CLASSES = "target/test-classes";
+    public static final String NORTHWIND_ASM_MODEL = "asm2sdk_northwind-asm.model";
+    public static final String NORTHWIND_PSM_MODEL = "asm2sdk_northwind-psm.model";
+    public static final String GENERATED_JAVA = "generated/java";
 
-	AsmModel asmModel;
+    AsmModel asmModel;
 
-	@BeforeEach
-	public void setUp() throws Exception {
-		final PsmModel psmModel = new Demo().fullDemo();
+    @BeforeEach
+    public void setUp() throws Exception {
+        final PsmModel psmModel = new Demo().fullDemo();
 
-		// Create empty ASM model
-		asmModel = AsmModel.buildAsmModel().build();
+        // Create empty ASM model
+        asmModel = AsmModel.buildAsmModel().build();
 
-		executePsm2AsmTransformation(psm2AsmParameter()
-				.psmModel(psmModel)
-				.asmModel(asmModel));
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(asmModel));
 
-		
-        
+
+
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_MODEL))
                 .build());
 
-		
-        
+
+
         psmModel.savePsmModel(psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_MODEL))
                 .build());
 
 
-	}
+    }
 
-	@Test
-	public void testExecuteAsm2SDKGeneration() throws Exception {
+    @Test
+    public void testExecuteAsm2SDKGeneration() throws Exception {
         Asm2SDKBundleStreams bundleStreams = executeAsm2SDKGeneration(
-				Asm2SDK.Asm2SDKParameter.asm2SDKParameter()
-						.asmModel(asmModel)
-						.sourceCodeOutputDir(new File(TARGET_TEST_CLASSES, GENERATED_JAVA)));
+                Asm2SDK.Asm2SDKParameter.asm2SDKParameter()
+                        .asmModel(asmModel)
+                        .sourceCodeOutputDir(new File(TARGET_TEST_CLASSES, GENERATED_JAVA)));
 
         OutputStream sdkOutputStream = new FileOutputStream(
-				new File(TARGET_TEST_CLASSES, String.format("%s-sdk.jar", MODEL_NAME)));
+                new File(TARGET_TEST_CLASSES, String.format("%s-sdk.jar", MODEL_NAME)));
         ByteStreams.copy(bundleStreams.getSdkBundleStream(), sdkOutputStream);
         bundleStreams.getSdkBundleStream();
 
         OutputStream internalOutputStream = new FileOutputStream(
-				new File(TARGET_TEST_CLASSES, String.format("%s-sdk-internal.jar", MODEL_NAME)));
+                new File(TARGET_TEST_CLASSES, String.format("%s-sdk-internal.jar", MODEL_NAME)));
         ByteStreams.copy(bundleStreams.getInternalBundleStream(), internalOutputStream);
 
-		OutputStream guiceOutputStreams = new FileOutputStream(
-				new File(TARGET_TEST_CLASSES, String.format("%s-sdk-guice.jar", MODEL_NAME)));
-		ByteStreams.copy(bundleStreams.getGuiceBundleStream(), guiceOutputStreams);
+        OutputStream guiceOutputStreams = new FileOutputStream(
+                new File(TARGET_TEST_CLASSES, String.format("%s-sdk-guice.jar", MODEL_NAME)));
+        ByteStreams.copy(bundleStreams.getGuiceBundleStream(), guiceOutputStreams);
 
-		OutputStream springOutputStreams = new FileOutputStream(
-				new File(TARGET_TEST_CLASSES, String.format("%s-sdk-spring.jar", MODEL_NAME)));
-		ByteStreams.copy(bundleStreams.getSpringBundleStream(), springOutputStreams);
+        OutputStream springOutputStreams = new FileOutputStream(
+                new File(TARGET_TEST_CLASSES, String.format("%s-sdk-spring.jar", MODEL_NAME)));
+        ByteStreams.copy(bundleStreams.getSpringBundleStream(), springOutputStreams);
 
-	}
+    }
 }

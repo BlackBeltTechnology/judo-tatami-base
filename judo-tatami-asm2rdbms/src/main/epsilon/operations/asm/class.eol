@@ -20,21 +20,21 @@ operation ASM!EClass primaryKeyAttribute() : ASM!EAttribute {
 
 @cached
 operation ASM!EClass allSupertypesAttributes() : Collection {
-	return self.eAllAttributes.excludingAll(self.eAttributes);
+    return self.eAllAttributes.excludingAll(self.eAttributes);
 }
 
 @cached
 operation ASM!EClass allDescandences() : Collection {
-	var ret : Sequence = new Sequence();
-	for (c : ASM!EClass in ASM!EClass.all.select( c | c.eSuperTypes.includes(self))) {
-		ret.add(c);
-		ret.addAll(c.allDescandences());
-	}
-	return ret;
+    var ret : Sequence = new Sequence();
+    for (c : ASM!EClass in ASM!EClass.all.select( c | c.eSuperTypes.includes(self))) {
+        ret.add(c);
+        ret.addAll(c.allDescandences());
+    }
+    return ret;
 }
 
 @cached
 operation ASM!EClass root() : ASM!EPackage {
-	return self.ePackage.root();
+    return self.ePackage.root();
 }
 

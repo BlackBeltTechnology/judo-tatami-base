@@ -9,13 +9,13 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -43,80 +43,80 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Asm2RdbmsWork extends AbstractTransformationWork {
 
-	@Builder(builderMethodName = "asm2RdbmsWorkParameter")
-	public static final class Asm2RdbmsWorkParameter {
-		@Builder.Default
-		Boolean createTrace = true;
-		@Builder.Default
-		Boolean parallel = true;
-	}
+    @Builder(builderMethodName = "asm2RdbmsWorkParameter")
+    public static final class Asm2RdbmsWorkParameter {
+        @Builder.Default
+        Boolean createTrace = true;
+        @Builder.Default
+        Boolean parallel = true;
+    }
 
-	final URI transformationScriptRoot;
-	final URI modelRoot;
-	
-	private String dialect;
+    final URI transformationScriptRoot;
+    final URI modelRoot;
 
-	public Asm2RdbmsWork(TransformationContext transformationContext, URI transformationScriptRoot, URI modelRoot, String dialect) {
-		super(transformationContext);
-		this.transformationScriptRoot = transformationScriptRoot;
-		this.modelRoot = modelRoot;
-		this.dialect = dialect;
-	}
+    private String dialect;
 
-	public Asm2RdbmsWork(TransformationContext transformationContex, String dialect) {
-		this(transformationContex, Asm2Rdbms.calculateAsm2RdbmsTransformationScriptURI(), Asm2Rdbms.calculateAsm2RdbmsModelURI(), dialect);
-	}
+    public Asm2RdbmsWork(TransformationContext transformationContext, URI transformationScriptRoot, URI modelRoot, String dialect) {
+        super(transformationContext);
+        this.transformationScriptRoot = transformationScriptRoot;
+        this.modelRoot = modelRoot;
+        this.dialect = dialect;
+    }
 
-	public static void putModel(TransformationContext transformationContext, RdbmsModel rdbmsModel, String dialect) {
-		transformationContext.put("rdbms:" + dialect, rdbmsModel);
-	}
+    public Asm2RdbmsWork(TransformationContext transformationContex, String dialect) {
+        this(transformationContex, Asm2Rdbms.calculateAsm2RdbmsTransformationScriptURI(), Asm2Rdbms.calculateAsm2RdbmsModelURI(), dialect);
+    }
 
-	public static Optional<RdbmsModel> getRdbmsModel(TransformationContext transformationContext, String dialect) {
-		return transformationContext.get(RdbmsModel.class, "rdbms:" + dialect);
-	}
+    public static void putModel(TransformationContext transformationContext, RdbmsModel rdbmsModel, String dialect) {
+        transformationContext.put("rdbms:" + dialect, rdbmsModel);
+    }
 
-	public static void putAsm2RdbmsTrace(TransformationContext transformationContext, Asm2RdbmsTransformationTrace trace, String dialect) {
-		transformationContext.put("asm2rdbmstrace:" + dialect, trace);
-	}
+    public static Optional<RdbmsModel> getRdbmsModel(TransformationContext transformationContext, String dialect) {
+        return transformationContext.get(RdbmsModel.class, "rdbms:" + dialect);
+    }
 
-	public static Optional<Asm2RdbmsTransformationTrace> getAsm2RdbmsTrace(TransformationContext transformationContext, String dialect) {
-		return transformationContext.get(Asm2RdbmsTransformationTrace.class, "asm2rdbmstrace:" + dialect);
-	}
+    public static void putAsm2RdbmsTrace(TransformationContext transformationContext, Asm2RdbmsTransformationTrace trace, String dialect) {
+        transformationContext.put("asm2rdbmstrace:" + dialect, trace);
+    }
 
-	@Override
-	public void execute() throws Exception {
-		Optional<AsmModel> asmModel = getTransformationContext().getByClass(AsmModel.class);
-		asmModel.orElseThrow(() -> new IllegalArgumentException("ASM Model does not found in transformation context"));
+    public static Optional<Asm2RdbmsTransformationTrace> getAsm2RdbmsTrace(TransformationContext transformationContext, String dialect) {
+        return transformationContext.get(Asm2RdbmsTransformationTrace.class, "asm2rdbmstrace:" + dialect);
+    }
 
-		Asm2RdbmsWorkParameter workParameter = getTransformationContext().getByClass(Asm2RdbmsWorkParameter.class)
-				.orElseGet(() -> Asm2RdbmsWork.Asm2RdbmsWorkParameter.asm2RdbmsWorkParameter().build());
+    @Override
+    public void execute() throws Exception {
+        Optional<AsmModel> asmModel = getTransformationContext().getByClass(AsmModel.class);
+        asmModel.orElseThrow(() -> new IllegalArgumentException("ASM Model does not found in transformation context"));
 
-		RdbmsModel rdbmsModel = getTransformationContext().getByClass(RdbmsModel.class)
-				.orElseGet(() -> buildRdbmsModel()
-						.build());
+        Asm2RdbmsWorkParameter workParameter = getTransformationContext().getByClass(Asm2RdbmsWorkParameter.class)
+                .orElseGet(() -> Asm2RdbmsWork.Asm2RdbmsWorkParameter.asm2RdbmsWorkParameter().build());
 
-		// The RDBMS model resources have to know the mapping models
-		registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
-		registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
-		registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
+        RdbmsModel rdbmsModel = getTransformationContext().getByClass(RdbmsModel.class)
+                .orElseGet(() -> buildRdbmsModel()
+                        .build());
 
-		// Load mapping model
+        // The RDBMS model resources have to know the mapping models
+        registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
+        registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
 
-		putModel(getTransformationContext(), rdbmsModel, dialect);
+        // Load mapping model
 
-		try (final Log logger = new StringBuilderLogger(log)) {
+        putModel(getTransformationContext(), rdbmsModel, dialect);
 
-			Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
-					.asmModel(asmModel.get())
-					.rdbmsModel(rdbmsModel)
-					.log(getTransformationContext().getByClass(Log.class).orElseGet(() -> logger))
-					.scriptUri(transformationScriptRoot)
-					.excelModelUri(modelRoot)
-					.dialect(dialect)
-					.parallel(workParameter.parallel)
-					.createTrace(workParameter.createTrace));
+        try (final Log logger = new StringBuilderLogger(log)) {
 
-			putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);
-		}
-	}
+            Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
+                    .asmModel(asmModel.get())
+                    .rdbmsModel(rdbmsModel)
+                    .log(getTransformationContext().getByClass(Log.class).orElseGet(() -> logger))
+                    .scriptUri(transformationScriptRoot)
+                    .excelModelUri(modelRoot)
+                    .dialect(dialect)
+                    .parallel(workParameter.parallel)
+                    .createTrace(workParameter.createTrace));
+
+            putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);
+        }
+    }
 }
