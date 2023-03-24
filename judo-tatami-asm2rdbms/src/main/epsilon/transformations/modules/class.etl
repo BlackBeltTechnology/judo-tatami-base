@@ -87,7 +87,7 @@ rule EClassToTableCreateTimestampField
 	    table.fields.add(t);
 		t.sqlName = "CREATE_TIMESTAMP";
 		t.mandatory = false;
-		t.fillType("java.time.OffsetDateTime");
+		t.fillType("java.time.LocalDateTime");
 }
 
 rule EClassToTableUpdateUsernameField
@@ -132,7 +132,7 @@ rule EClassToTableUpdateTimestampField
 	    table.fields.add(t);
 		t.sqlName = "UPDATE_TIMESTAMP";
 		t.mandatory = false;
-		t.fillType("java.time.OffsetDateTime");
+		t.fillType("java.time.LocalDateTime");
 }
 
 @primary
