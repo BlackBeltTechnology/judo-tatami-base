@@ -390,11 +390,11 @@ public class Asm2SDK {
         TinyBundle bundle = generateBundleFilteredWithPrefix(parameters, compiled, exportedPackages);
         bundle.set(Constants.BUNDLE_SYMBOLICNAME, parameters.name + "-asm2sdk-sdk");
         bundle.set(Constants.IMPORT_PACKAGE,
-                "org.osgi.framework;version=\"[1.8,2.0)\"," +
-                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,2.0)\""
+                "org.osgi.framework;version=\"[1.8,3.0)\"," +
+                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.sdk;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,3.0)\""
         );
         bundle.add("pom.xml", generatePomXml(parameters.name, parameters.version));
         return bundle;
@@ -405,17 +405,17 @@ public class Asm2SDK {
 
         bundle.set(Constants.BUNDLE_SYMBOLICNAME, parameters.name + "-asm2sdk-internal");
         bundle.set(Constants.IMPORT_PACKAGE,
-                "org.osgi.framework;version=\"[1.8,2.0)\"," +
-                        "hu.blackbelt.judo.dao.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.meta.asm.runtime;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,2.0)\"," +
+                "org.osgi.framework;version=\"[1.8,3.0)\"," +
+                        "hu.blackbelt.judo.dao.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.meta.asm.runtime;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.sdk;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,3.0)\"," +
                         "org.eclipse.emf.ecore," +
                         "org.eclipse.emf.common," +
                         "org.eclipse.emf.common.util," +
-                        "org.slf4j;version=\"1.7.2\", " +
+                        "org.slf4j;version=\"[1.7.2,2)\", " +
                         Joiner.on(",").join(exportedSdkPackages));
 
         addServiceComponentsDesciptors(bundle, parameters.sourceCodeOutputDir, parameters.internalXmlFileNames);
@@ -430,16 +430,16 @@ public class Asm2SDK {
         bundle.set(Constants.BUNDLE_SYMBOLICNAME, parameters.name + "-asm2sdk-guice");
         bundle.set(Constants.IMPORT_PACKAGE,
                 "com.google.inject," +
-                        "hu.blackbelt.judo.dao.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.meta.asm.runtime;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,2.0)\"," +
+                        "hu.blackbelt.judo.dao.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.meta.asm.runtime;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,3.0)\"," +
                         "hu.blackbelt.judo.sdk;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,2.0)\"," +
+                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,3.0)\"," +
                         "org.eclipse.emf.ecore," +
                         "org.eclipse.emf.common," +
                         "org.eclipse.emf.common.util," +
-                        "org.slf4j;version=\"1.7.2\", " +
+                        "org.slf4j;version=\"[1.7.2,2)\", " +
                         Joiner.on(",").join(exportedSdkPackages) + ", " +
                         Joiner.on(",").join(exportedInternalPackages)
         );
@@ -454,16 +454,16 @@ public class Asm2SDK {
         bundle.set(Constants.IMPORT_PACKAGE,
                 "org.springframework.beans.factory.annotation,"+
                         "org.springframework.context.annotation," +
-                        "hu.blackbelt.judo.dao.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.meta.asm.runtime;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk;version=\"[1.0,2.0)\"," +
-                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,2.0)\"," +
+                        "hu.blackbelt.judo.dao.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.dispatcher.api;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.meta.asm.runtime;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.structured.map.proxy;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.sdk;version=\"[1.0,3.0)\"," +
+                        "hu.blackbelt.judo.sdk.query;version=\"[1.0,3.0)\"," +
                         "org.eclipse.emf.ecore," +
                         "org.eclipse.emf.common," +
                         "org.eclipse.emf.common.util," +
-                        "org.slf4j;version=\"1.7.2\", " +
+                        "org.slf4j;version=\"[1.7.2,2)\", " +
                         Joiner.on(",").join(exportedSdkPackages) + ", " +
                         Joiner.on(",").join(exportedInternalPackages)
         );
