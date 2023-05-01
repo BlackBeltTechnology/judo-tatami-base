@@ -27,6 +27,7 @@ import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.contexts.EtlExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -35,6 +36,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.epsilon.common.util.UriUtil;
+import org.eclipse.epsilon.emc.emf.EmfModel;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -119,15 +121,17 @@ public class Asm2Rdbms {
                 nameSize = 28;
             }
 
+            WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
+                    .log(log)
+                    .name("ASM")
+                    .resource(parameter.asmModel.getResource())
+                    .build();
+
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
                     .modelContexts(ImmutableList.of(
-                            wrappedEmfModelContextBuilder()
-                                    .log(log)
-                                    .name("ASM")
-                                    .resource(parameter.asmModel.getResource())
-                                    .build(),
+                            asmModelContext,
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("RDBMS")
@@ -146,6 +150,10 @@ public class Asm2Rdbms {
 
             // run the model / metadata loading
             executionContext.load();
+
+            // Use cache
+            ((EmfModel) executionContext.getProjectModelRepository()
+                    .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
 
             EtlExecutionContext asm2rdbmsExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToRdbms.etl", parameter.scriptUri))
