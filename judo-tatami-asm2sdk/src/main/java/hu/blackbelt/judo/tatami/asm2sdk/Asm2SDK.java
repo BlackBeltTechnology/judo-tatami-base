@@ -28,6 +28,7 @@ import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.contexts.EglExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.contexts.ProgramParameter;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext;
 import hu.blackbelt.java.embedded.compiler.api.CompilerUtil;
 import hu.blackbelt.java.embedded.compiler.api.FullyQualifiedName;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
@@ -38,6 +39,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.epsilon.common.util.UriUtil;
+import org.eclipse.epsilon.emc.emf.EmfModel;
 import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
 
@@ -108,6 +110,9 @@ public class Asm2SDK {
         @Builder.Default
         Boolean generatePayloadValidator = true;
 
+        @Builder.Default
+        boolean useCache = false;
+
     }
 
     public static Asm2SDKBundleStreams executeAsm2SDKGeneration(Asm2SDKParameter.Asm2SDKParameterBuilder builder) throws Exception {
@@ -124,14 +129,16 @@ public class Asm2SDK {
                 });
 
         try {
+            WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
+                    .log(log)
+                    .name("ASM")
+                    .resource(parameter.asmModel.getResource())
+                    .build();
+
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
                     .modelContexts(ImmutableList.of(
-                                    wrappedEmfModelContextBuilder()
-                                            .log(log)
-                                            .name("ASM")
-                                            .resource(parameter.asmModel.getResourceSet().getResource(parameter.asmModel.getUri(), false))
-                                            .build()
+                                    asmModelContext
                             )
                     )
                     .injectContexts(ImmutableMap.<String, Object>builder()
@@ -149,6 +156,12 @@ public class Asm2SDK {
 
             // run the model / metadata loading
             executionContext.load();
+
+            // Use cache
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
+            }
 
             EglExecutionContext eglExecutionContext = eglExecutionContextBuilder()
                     .source(UriUtil.resolve("main.egl", parameter.scriptUri))
