@@ -25,11 +25,13 @@ import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.contexts.ProgramParameter;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.epsilon.common.util.UriUtil;
+import org.eclipse.epsilon.emc.emf.EmfModel;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -83,16 +85,18 @@ public class Rdbms2Liquibase {
                                                  });
 
         try {
+            WrappedEmfModelContext rdbmsModelContext = wrappedEmfModelContextBuilder()
+                    .log(log)
+                    .name("RDBMS")
+                    .resource(parameter.rdbmsModel.getResourceSet().getResource(parameter.rdbmsModel.getUri(), false))
+                    .build();
+
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
                     .resourceSet(parameter.liquibaseModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
-                            wrappedEmfModelContextBuilder()
-                                    .log(log)
-                                    .name("RDBMS")
-                                    .resource(parameter.rdbmsModel.getResourceSet().getResource(parameter.rdbmsModel.getUri(), false))
-                                    .build(),
+                            rdbmsModelContext,
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("LIQUIBASE")
@@ -102,6 +106,10 @@ public class Rdbms2Liquibase {
 
             // run the model / metadata loading
             executionContext.load();
+
+            // Use cache
+            ((EmfModel) executionContext.getProjectModelRepository()
+                    .getModelByName(rdbmsModelContext.getName())).setCachingEnabled(true);
 
             // Transformation script
             executionContext.executeProgram(
