@@ -48,6 +48,8 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
         Boolean createTrace = false;
         @Builder.Default
         Boolean parallel = true;
+        @Builder.Default
+        Boolean useCache = false;
     }
 
     final URI transformationScriptRoot;
@@ -93,9 +95,16 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
                         .build());
         putLiquibaseModel(getTransformationContext(), liquibaseModel, dialect);
 
+
+        Rdbms2LiquibaseWorkParameter workParam = getTransformationContext().getByClass(Rdbms2LiquibaseWorkParameter.class)
+                .orElseGet(() -> Rdbms2LiquibaseWorkParameter.rdbms2LiquibaseWorkParameter().build());
+
         try (final Log logger = new StringBuilderLogger(log)) {
             Rdbms2Liquibase.executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.rdbms2LiquibaseParameter()
                     .rdbmsModel(rdbmsModel)
+                    .useCache(workParam.useCache)
+                    .parallel(workParam.parallel)
+                    .createTrace(workParam.createTrace)
                     .liquibaseModel(liquibaseModel)
                     .log((Log) getTransformationContext().get(Log.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)

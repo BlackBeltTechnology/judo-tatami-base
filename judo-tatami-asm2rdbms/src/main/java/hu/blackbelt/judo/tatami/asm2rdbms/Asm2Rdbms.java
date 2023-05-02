@@ -87,6 +87,9 @@ public class Asm2Rdbms {
         @Builder.Default
         Boolean parallel = true;
 
+        @Builder.Default
+        boolean useCache = false;
+
     }
 
     private static MD5Utils MD5_UTILS = new MD5Utils();
@@ -152,8 +155,10 @@ public class Asm2Rdbms {
             executionContext.load();
 
             // Use cache
-            ((EmfModel) executionContext.getProjectModelRepository()
-                    .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
+            }
 
             EtlExecutionContext asm2rdbmsExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToRdbms.etl", parameter.scriptUri))

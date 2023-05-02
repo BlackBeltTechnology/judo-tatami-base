@@ -110,6 +110,9 @@ public class Asm2SDK {
         @Builder.Default
         Boolean generatePayloadValidator = true;
 
+        @Builder.Default
+        boolean useCache = false;
+
     }
 
     public static Asm2SDKBundleStreams executeAsm2SDKGeneration(Asm2SDKParameter.Asm2SDKParameterBuilder builder) throws Exception {
@@ -155,8 +158,10 @@ public class Asm2SDK {
             executionContext.load();
 
             // Use cache
-            ((EmfModel) executionContext.getProjectModelRepository()
-                    .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
+            }
 
             EglExecutionContext eglExecutionContext = eglExecutionContextBuilder()
                     .source(UriUtil.resolve("main.egl", parameter.scriptUri))

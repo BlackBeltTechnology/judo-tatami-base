@@ -74,6 +74,9 @@ public class Psm2Measure {
 
         @Builder.Default
         Boolean parallel = true;
+
+        @Builder.Default
+        boolean useCache = false;
     }
 
     public static Psm2MeasureTransformationTrace executePsm2MeasureTransformation(Psm2MeasureParameter.Psm2MeasureParameterBuilder builder) throws Exception {
@@ -114,8 +117,10 @@ public class Psm2Measure {
             executionContext.load();
 
             // Use cache
-            ((EmfModel) executionContext.getProjectModelRepository()
-                    .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
+            }
 
             EtlExecutionContext etlExecutionContext =
                     etlExecutionContextBuilder()

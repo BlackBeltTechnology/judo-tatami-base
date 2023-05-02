@@ -49,6 +49,8 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         Boolean createTrace = true;
         @Builder.Default
         Boolean parallel = true;
+        @Builder.Default
+        Boolean useCache = false;
     }
 
     final URI transformationScriptRoot;
@@ -114,6 +116,7 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
                     .excelModelUri(modelRoot)
                     .dialect(dialect)
                     .parallel(workParameter.parallel)
+                    .useCache(workParameter.useCache)
                     .createTrace(workParameter.createTrace));
 
             putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);

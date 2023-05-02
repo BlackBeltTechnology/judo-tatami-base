@@ -76,6 +76,9 @@ public class Psm2Asm {
 
         @Builder.Default
         Boolean parallel = true;
+
+        @Builder.Default
+        boolean useCache = false;
     }
 
     public static Psm2AsmTransformationTrace executePsm2AsmTransformation(Psm2AsmParameter.Psm2AsmParameterBuilder builder) throws Exception {
@@ -117,8 +120,10 @@ public class Psm2Asm {
             executionContext.load();
 
             // Use cache
-            ((EmfModel) executionContext.getProjectModelRepository()
-                    .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
+            }
 
             //psmModelContext.setUseCache(true);
 

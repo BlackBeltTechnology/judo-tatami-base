@@ -84,7 +84,8 @@ public class Asm2SDKWork extends AbstractTransformationWork {
         @Builder.Default
         Boolean generatePayloadValidator = true;
 
-
+        @Builder.Default
+        Boolean useCache = false;
     }
 
     public Asm2SDKWork(TransformationContext transformationContext, URI transformationScriptRoot) {
@@ -178,7 +179,9 @@ public class Asm2SDKWork extends AbstractTransformationWork {
                 .generateSpring(workParameter.generateSpring)
                 .metricsCollector(metricsCollector)
                 .generateOptionalTypes(workParameter.generateOptionalTypes)
-                .generatePayloadValidator(workParameter.generatePayloadValidator));
+                .generatePayloadValidator(workParameter.generatePayloadValidator)
+                .useCache(workParameter.useCache)
+                .useCache(workParameter.useCache));
 
 
         if (workParameter.createJar) {

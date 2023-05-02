@@ -70,6 +70,9 @@ public class Rdbms2Liquibase {
 
         @Builder.Default
         Boolean parallel = true;
+
+        @Builder.Default
+        boolean useCache = false;
     }
 
     public static void executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.Rdbms2LiquibaseParameterBuilder builder) throws Exception {
@@ -108,8 +111,10 @@ public class Rdbms2Liquibase {
             executionContext.load();
 
             // Use cache
-            ((EmfModel) executionContext.getProjectModelRepository()
-                    .getModelByName(rdbmsModelContext.getName())).setCachingEnabled(true);
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(rdbmsModelContext.getName())).setCachingEnabled(true);
+            }
 
             // Transformation script
             executionContext.executeProgram(
