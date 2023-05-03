@@ -125,8 +125,6 @@ public class Psm2Asm {
                         .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
             }
 
-            //psmModelContext.setUseCache(true);
-
             EtlExecutionContext etlExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("psmToAsm.etl", parameter.scriptUri))
                     .parameters(ImmutableList.of(

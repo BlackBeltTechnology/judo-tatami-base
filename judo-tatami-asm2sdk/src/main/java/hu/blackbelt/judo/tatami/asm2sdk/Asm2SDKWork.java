@@ -180,7 +180,6 @@ public class Asm2SDKWork extends AbstractTransformationWork {
                 .metricsCollector(metricsCollector)
                 .generateOptionalTypes(workParameter.generateOptionalTypes)
                 .generatePayloadValidator(workParameter.generatePayloadValidator)
-                .useCache(workParameter.useCache)
                 .useCache(workParameter.useCache));
 
 
