@@ -26,6 +26,7 @@ import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.api.Log;
 import hu.blackbelt.epsilon.runtime.execution.contexts.EtlExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.psm.PsmUtils;
@@ -34,6 +35,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.epsilon.common.util.UriUtil;
+import org.eclipse.epsilon.emc.emf.EmfModel;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -74,6 +76,9 @@ public class Psm2Asm {
 
         @Builder.Default
         Boolean parallel = true;
+
+        @Builder.Default
+        boolean useCache = false;
     }
 
     public static Psm2AsmTransformationTrace executePsm2AsmTransformation(Psm2AsmParameter.Psm2AsmParameterBuilder builder) throws Exception {
@@ -90,15 +95,17 @@ public class Psm2Asm {
                                                  });
 
         try {
+            WrappedEmfModelContext psmModelContext = wrappedEmfModelContextBuilder()
+                    .log(log)
+                    .name("JUDOPSM")
+                    .resource(parameter.psmModel.getResource())
+                    .build();
+
             // Executrion context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
                     .modelContexts(ImmutableList.of(
-                            wrappedEmfModelContextBuilder()
-                                    .log(log)
-                                    .name("JUDOPSM")
-                                    .resource(parameter.psmModel.getResource())
-                                    .build(),
+                            psmModelContext,
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("ASM")
@@ -111,6 +118,12 @@ public class Psm2Asm {
 
             // run the model / metadata loading
             executionContext.load();
+
+            // Use cache
+            if (parameter.useCache) {
+                ((EmfModel) executionContext.getProjectModelRepository()
+                        .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
+            }
 
             EtlExecutionContext etlExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("psmToAsm.etl", parameter.scriptUri))

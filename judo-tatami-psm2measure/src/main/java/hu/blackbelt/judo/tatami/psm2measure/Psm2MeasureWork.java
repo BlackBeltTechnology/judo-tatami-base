@@ -46,6 +46,8 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
         Boolean createTrace = false;
         @Builder.Default
         Boolean parallel = true;
+        @Builder.Default
+        Boolean useCache = false;
     }
 
     final URI transformationScriptRoot;
@@ -83,6 +85,7 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
                     .log(getTransformationContext().getByClass(Log.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
                     .createTrace(workParam.createTrace)
+                    .useCache(workParam.useCache)
                     .parallel(workParam.parallel));
 
             getTransformationContext().put(psm2measureTransformationTrace);
