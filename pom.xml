@@ -85,11 +85,11 @@
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20230310_041341_56224215_develop</judo-meta-rdbms-version>
-        <judo-meta-psm-version>1.3.0.20230516_100351_2fb48f5a_develop</judo-meta-psm-version>
+        <judo-meta-psm-version>1.3.0.20230516_011751_c962ac92_feature_JNG_4840_FixPayloadValidator</judo-meta-psm-version>
         <judo-meta-jql-version>1.0.4.20230324_114617_9ab032bf_develop</judo-meta-jql-version>
         <judo-meta-asm-version>1.1.4.20230310_041340_c5dd0888_develop</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.5.20230331_085629_d1784f31_develop</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.5.20230516_100701_bce3a5ce_develop</judo-meta-expression-psm-version>
+        <judo-meta-expression-psm-version>1.0.5.20230516_012030_3a378ba1_feature_JNG_4840_FixPayloadValidator</judo-meta-expression-psm-version>
         <judo-meta-expression-asm-version>1.0.5.20230401_041618_51eb2c4d_develop</judo-meta-expression-asm-version>
 
 
