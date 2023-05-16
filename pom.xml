@@ -454,12 +454,6 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-asm2sdk</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
                 <artifactId>judo-tatami-itest</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -971,7 +965,6 @@
                 <module>judo-tatami-asm2rdbms</module>
                 <module>judo-tatami-rdbms2liquibase</module>
                 <module>judo-tatami-asm2expression</module>
-                <module>judo-tatami-asm2sdk</module>
                 <module>judo-tatami-psm-validation</module>
                 <module>judo-tatami-asm-validation</module>
                 <module>judo-tatami-expression-asm-validation</module>
