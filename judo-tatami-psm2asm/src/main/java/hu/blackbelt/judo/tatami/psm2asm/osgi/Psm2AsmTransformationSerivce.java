@@ -21,8 +21,8 @@ package hu.blackbelt.judo.tatami.psm2asm.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
+import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
@@ -66,7 +66,7 @@ public class Psm2AsmTransformationSerivce {
                 .uri(URI.createURI("asm:" + psmModel.getName() + ".asm"))
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(Slf4jLog.determinateLogLevel(log));
+        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
         try {
             java.net.URI scriptUri =
                     bundleContext.getBundle()

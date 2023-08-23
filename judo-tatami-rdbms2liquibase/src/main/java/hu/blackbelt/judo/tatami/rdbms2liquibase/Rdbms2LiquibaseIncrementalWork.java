@@ -20,7 +20,7 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
@@ -84,7 +84,7 @@ public class Rdbms2LiquibaseIncrementalWork extends AbstractTransformationWork {
                 .updateDataAfterIncrementalLiquibaseModel(getLiquibaseModel("liquibase-updateDataAfterIncremental:" + dialect, "UpdateDataAfterIncremental"))
                 .afterIncrementalLiquibaseModel(getLiquibaseModel("liquibase-afterIncremental:" + dialect, "AfterIncremental"))
                 .dbDropBackupLiquibaseModel(getLiquibaseModel("liquibase-dbDropBackup:" + dialect, "DbDropBackup"))
-                .log(getTransformationContext().getByClass(Log.class).orElse(null))
+                .log(getTransformationContext().getByClass(Logger.class).orElse(null))
                 .scriptUri(transformationScriptRoot)
                 .dialect(dialect)
                 .sqlOutput(sqlOutputOptional.get())
