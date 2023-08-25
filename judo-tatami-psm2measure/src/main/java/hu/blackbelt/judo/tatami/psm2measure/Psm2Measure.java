@@ -23,7 +23,7 @@ package hu.blackbelt.judo.tatami.psm2measure;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.contexts.EtlExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext;
@@ -37,6 +37,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.epsilon.common.util.UriUtil;
 import org.eclipse.epsilon.emc.emf.EmfModel;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -67,7 +68,7 @@ public class Psm2Measure {
         @Builder.Default
         java.net.URI scriptUri = calculatePsm2MeasureTransformationScriptURI();
 
-        Log log;
+        Logger log;
 
         @Builder.Default
         Boolean createTrace = false;
@@ -85,7 +86,7 @@ public class Psm2Measure {
 
     public static Psm2MeasureTransformationTrace executePsm2MeasureTransformation(Psm2MeasureParameter parameter) throws Exception {
         final AtomicBoolean loggerToBeClosed = new AtomicBoolean(false);
-        Log log = Objects.requireNonNullElseGet(parameter.log,
+        Logger log = Objects.requireNonNullElseGet(parameter.log,
                                                  () -> {
                                                      loggerToBeClosed.set(true);
                                                      return new BufferedSlf4jLogger(Psm2Measure.log);
@@ -146,7 +147,14 @@ public class Psm2Measure {
                     .trace(traceMap).build();
         } finally {
             if (loggerToBeClosed.get()) {
-                log.close();
+                try {
+                    if (log instanceof Closeable) {
+                        ((Closeable) log).close();
+                    }
+                } catch (Exception e) {
+                    //noinspection ThrowFromFinallyBlock
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

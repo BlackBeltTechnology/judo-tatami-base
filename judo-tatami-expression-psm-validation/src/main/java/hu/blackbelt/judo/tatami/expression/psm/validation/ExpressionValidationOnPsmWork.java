@@ -20,9 +20,8 @@ package hu.blackbelt.judo.tatami.expression.psm.validation;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.expression.adapters.psm.ExpressionEpsilonValidatorOnPsm;
@@ -49,7 +48,7 @@ public class ExpressionValidationOnPsmWork extends AbstractTransformationWork {
         Optional<PsmModel> psmModel = getTransformationContext().getByClass(PsmModel.class);
         psmModel.orElseThrow(() -> new IllegalArgumentException("PSM Model does not found in transformation context"));
 
-        try (final Log logger = new StringBuilderLogger(log)) {
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
             ExpressionEpsilonValidatorOnPsm.validateExpressionOnPsm(logger,
                     psmModel.get(),
                     expressionModel.get(),

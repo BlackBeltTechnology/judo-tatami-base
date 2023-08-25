@@ -20,9 +20,8 @@ package hu.blackbelt.judo.tatami.psm2measure;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
@@ -77,12 +76,12 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
         Psm2MeasureWorkParameter workParam = getTransformationContext().getByClass(Psm2MeasureWorkParameter.class)
                 .orElseGet(() -> Psm2MeasureWorkParameter.psm2MeasureWorkParameter().build());
 
-        try (final Log logger = new StringBuilderLogger(log)) {
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
 
             Psm2MeasureTransformationTrace psm2measureTransformationTrace = executePsm2MeasureTransformation(Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter()
                     .psmModel(psmModel.get())
                     .measureModel(measureModel)
-                    .log(getTransformationContext().getByClass(Log.class).orElseGet(() -> logger))
+                    .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
                     .createTrace(workParam.createTrace)
                     .useCache(workParam.useCache)
