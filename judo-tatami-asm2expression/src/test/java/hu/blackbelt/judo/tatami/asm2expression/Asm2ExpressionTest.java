@@ -36,8 +36,7 @@ import hu.blackbelt.judo.tatami.psm2measure.Psm2Measure;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
+import org.slf4j.Logger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;

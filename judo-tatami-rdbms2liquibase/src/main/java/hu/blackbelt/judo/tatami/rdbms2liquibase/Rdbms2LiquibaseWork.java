@@ -20,9 +20,8 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -99,14 +98,14 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
         Rdbms2LiquibaseWorkParameter workParam = getTransformationContext().getByClass(Rdbms2LiquibaseWorkParameter.class)
                 .orElseGet(() -> Rdbms2LiquibaseWorkParameter.rdbms2LiquibaseWorkParameter().build());
 
-        try (final Log logger = new StringBuilderLogger(log)) {
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
             Rdbms2Liquibase.executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.rdbms2LiquibaseParameter()
                     .rdbmsModel(rdbmsModel)
                     .useCache(workParam.useCache)
                     .parallel(workParam.parallel)
                     .createTrace(workParam.createTrace)
                     .liquibaseModel(liquibaseModel)
-                    .log((Log) getTransformationContext().get(Log.class).orElseGet(() -> logger))
+                    .log((Logger)getTransformationContext().get(Logger.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
                     .dialect(dialect));
         }

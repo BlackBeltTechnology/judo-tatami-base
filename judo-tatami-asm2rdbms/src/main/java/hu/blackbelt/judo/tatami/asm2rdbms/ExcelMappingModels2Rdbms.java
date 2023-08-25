@@ -22,7 +22,7 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
 
 import com.google.common.collect.ImmutableList;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.contexts.EtlExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -49,7 +49,7 @@ public class ExcelMappingModels2Rdbms {
     public static final String SCRIPT_ROOT_TATAMI_EXCEL_TO_RDBMS = "tatami/asm2rdbms/transformations/";
     public static final String MODEL_ROOT_TATAMI_EXCEL_MAPPING = "tatami/asm2rdbms/model/";
 
-    public static void injectExcelMappings(RdbmsModel rdbmsModel, Log log,
+    public static void injectExcelMappings(RdbmsModel rdbmsModel, Logger log,
                                            URI scriptUri, URI excelModelUri, String dialect) throws Exception {
 
         // Execution context
@@ -140,7 +140,7 @@ public class ExcelMappingModels2Rdbms {
         registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
 
 
-        try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
+        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             ExcelMappingModels2Rdbms.injectExcelMappings(
                     rdbmsModel,
                     bufferedLog,

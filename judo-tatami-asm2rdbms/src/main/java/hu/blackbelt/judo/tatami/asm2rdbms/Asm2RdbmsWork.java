@@ -29,9 +29,8 @@ import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTrans
 import java.net.URI;
 import java.util.Optional;
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -106,12 +105,12 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
 
         putModel(getTransformationContext(), rdbmsModel, dialect);
 
-        try (final Log logger = new StringBuilderLogger(log)) {
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
 
             Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
                     .asmModel(asmModel.get())
                     .rdbmsModel(rdbmsModel)
-                    .log(getTransformationContext().getByClass(Log.class).orElseGet(() -> logger))
+                    .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
                     .excelModelUri(modelRoot)
                     .dialect(dialect)
