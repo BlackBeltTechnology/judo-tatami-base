@@ -21,7 +21,7 @@ package hu.blackbelt.judo.tatami.asm2rdbms.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
+import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -70,7 +70,7 @@ public class Asm2RdbmsTransformationSerivce {
         registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
         registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
 
-        StringBuilderLogger logger = new StringBuilderLogger(Slf4jLog.determinateLogLevel(log));
+        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
         try {
             java.net.URI scriptUri =
                     bundleContext.getBundle()

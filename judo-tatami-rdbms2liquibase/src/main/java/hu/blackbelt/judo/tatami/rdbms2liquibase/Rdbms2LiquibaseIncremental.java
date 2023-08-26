@@ -24,7 +24,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.contexts.ProgramParameter;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
@@ -34,6 +34,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.epsilon.common.util.UriUtil;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -86,7 +87,7 @@ public class Rdbms2LiquibaseIncremental {
         @NonNull
         LiquibaseModel dbDropBackupLiquibaseModel;
 
-        Log log;
+        Logger log;
 
         @Builder.Default
         URI scriptUri = calculateRdbms2LiquibaseTransformationScriptURI();
@@ -127,7 +128,7 @@ public class Rdbms2LiquibaseIncremental {
 
     public static Rdbms2LiquibaseIncrementalResult executeRdbms2LiquibaseIncrementalTransformation(Rdbms2LiquibaseIncremental.Rdbms2LiquibaseIncrementalParameter parameter) throws Exception {
         final AtomicBoolean loggerToBeClosed = new AtomicBoolean(false);
-        Log log = Objects.requireNonNullElseGet(parameter.log,
+        Logger log = Objects.requireNonNullElseGet(parameter.log,
                                                 () -> {
                                                     loggerToBeClosed.set(true);
                                                     return new BufferedSlf4jLogger(Rdbms2LiquibaseIncremental.log);
@@ -224,7 +225,14 @@ public class Rdbms2LiquibaseIncremental {
             executionContext.close();
         } finally {
             if (loggerToBeClosed.get()) {
-                log.close();
+                try {
+                    if (log instanceof Closeable) {
+                        ((Closeable) log).close();
+                    }
+                } catch (Exception e) {
+                    //noinspection ThrowFromFinallyBlock
+                    throw new RuntimeException(e);
+                }
             }
         }
 
