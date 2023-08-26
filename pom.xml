@@ -77,30 +77,30 @@
         <surefire-version>3.0.0-M7</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>1.5.1.20230825_113533_d0c91d68_feature_JNG_5144_ReplaceLogger</epsilon-runtime-version>
+        <epsilon-runtime-version>1.5.1.20230826_185131_a85b1c29_feature_JNG_5144_ReplaceLogger</epsilon-runtime-version>
 
-        <java-embedded-compiler-version>1.0.0</java-embedded-compiler-version>
+        <java-embedded-compiler-version>1.1.0.20230817_234405_3bddd111_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20230825_125051_f3e8e90c_feature_JNG_5144_ReplaceLogger</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4.20230826_191156_8e2ddfcb_feature_JNG_5144_ReplaceLogger</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.2.20230825_132111_d8568326_feature_JNG_5144_ReplaceLogger</judo-meta-rdbms-version>
-        <judo-meta-psm-version>1.3.0.20230825_163922_2763cb52_feature_JNG_5144_ReplaceLogger</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.4.20230824_183611_e8ccedad_feature_JNG_5144_ReplaceLogger</judo-meta-jql-version>
-        <judo-meta-asm-version>1.1.4.20230825_132003_a60831e8_feature_JNG_5144_ReplaceLogger</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20230825_183934_753e97d5_feature_JNG_5144_ReplaceLogger</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.5.20230825_184225_dab44c7c_feature_JNG_5144_ReplaceLogger</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.5.20230825_184212_812c0951_feature_JNG_5144_ReplaceLogger</judo-meta-expression-asm-version>
+        <judo-meta-rdbms-version>1.0.2.20230826_191510_35247be5_feature_JNG_5144_ReplaceLogger</judo-meta-rdbms-version>
+        <judo-meta-psm-version>1.3.0.20230826_191553_da806925_feature_JNG_5144_ReplaceLogger</judo-meta-psm-version>
+        <judo-meta-jql-version>1.0.4.20230826_184322_8fd39501_feature_JNG_5144_ReplaceLogger</judo-meta-jql-version>
+        <judo-meta-asm-version>1.1.4.20230826_191521_e951376f_feature_JNG_5144_ReplaceLogger</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20230826_191752_e2e22111_feature_JNG_5144_ReplaceLogger</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.5.20230826_192129_14ec33cd_feature_JNG_5144_ReplaceLogger</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.5.20230826_192013_40694bed_feature_JNG_5144_ReplaceLogger</judo-meta-expression-asm-version>
 
 
-        <judo-meta-measure-version>1.0.2.20230825_132045_ce8ff93b_feature_JNG_5144_ReplaceLogger</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20230825_132027_45cd1c93_feature_JNG_5144_ReplaceLogger</judo-meta-liquibase-version>
-        <judo-dao-api-version>1.0.4.20230824_181930_da36ffe3_feature_JNG_5144_ReplaceLogger</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20230825_183939_761e7d2f_feature_JNG_5144_ReplaceLogger</judo-sdk-common-version>
-        <judo-dispatcher-api-version>1.0.3.20230824_181942_1429f006_feature_JNG_5144_ReplaceLogger</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.3.20230825_183932_942e9a83_feature_JNG_5144_ReplaceLogger</judo-operation-utils-version>
+        <judo-meta-measure-version>1.0.2.20230826_191548_1a2584b1_feature_JNG_5144_ReplaceLogger</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20230826_191551_c6de3b76_feature_JNG_5144_ReplaceLogger</judo-meta-liquibase-version>
+        <judo-dao-api-version>1.0.4.20230826_184451_d7a0146d_feature_JNG_5144_ReplaceLogger</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20230826_191732_fcda4023_feature_JNG_5144_ReplaceLogger</judo-sdk-common-version>
+        <judo-dispatcher-api-version>1.0.3.20230826_184529_a399ebee_feature_JNG_5144_ReplaceLogger</judo-dispatcher-api-version>
+        <judo-operation-utils-version>1.1.3.20230826_191722_b7373db5_feature_JNG_5144_ReplaceLogger</judo-operation-utils-version>
 
-        <structured-map-proxy-version>2.0.0.20230824_183517_6e4776cd_feature_JNG_5144_ReplaceLogger</structured-map-proxy-version>
+        <structured-map-proxy-version>2.0.0.20230826_185100_0c8c889f_feature_JNG_5144_ReplaceLogger</structured-map-proxy-version>
 
         <xtext-version>2.28.0</xtext-version>
 
