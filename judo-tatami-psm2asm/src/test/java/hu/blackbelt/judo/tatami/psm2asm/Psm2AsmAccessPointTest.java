@@ -21,7 +21,7 @@ package hu.blackbelt.judo.tatami.psm2asm;
  */
 
 import com.google.common.collect.ImmutableList;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
@@ -95,7 +95,7 @@ public class Psm2AsmAccessPointTest {
                 .build());
 
         assertTrue(psmModel.isValid());
-        try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
+        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 

@@ -20,7 +20,7 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.osgi;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
+import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.epsilon.runtime.osgi.BundleURIHandler;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
@@ -64,7 +64,7 @@ public class Rdbms2LiquibaseTranformationSerivce {
                 .uriHandler(liquibaseNamespaceFixUriHandlerFromBundle)
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(Slf4jLog.determinateLogLevel(log));
+        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
         try {
             java.net.URI scriptUri =
                     bundleContext.getBundle()
