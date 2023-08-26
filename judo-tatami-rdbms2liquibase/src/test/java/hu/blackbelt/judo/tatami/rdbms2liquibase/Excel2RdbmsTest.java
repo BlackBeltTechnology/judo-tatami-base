@@ -22,7 +22,7 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
 
 import com.google.common.collect.ImmutableList;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.liquibase.ChangeSet;
 import hu.blackbelt.judo.meta.liquibase.runtime.*;
@@ -89,7 +89,7 @@ public class Excel2RdbmsTest {
         RdbmsModel originalModel = buildRdbmsModel().build();
         RdbmsModel newModel = buildRdbmsModel().build();
 
-        try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
+        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             // Execution context
             ExecutionContext excelToRdbmsEtlContext = executionContextBuilder()
                     .log(bufferedLog)

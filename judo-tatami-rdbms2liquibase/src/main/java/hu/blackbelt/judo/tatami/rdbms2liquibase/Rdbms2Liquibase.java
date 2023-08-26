@@ -22,7 +22,7 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
 
 import com.google.common.collect.ImmutableList;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.contexts.ProgramParameter;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext;
@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.epsilon.common.util.UriUtil;
 import org.eclipse.epsilon.emc.emf.EmfModel;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
@@ -60,7 +61,7 @@ public class Rdbms2Liquibase {
         @NonNull
         String dialect;
 
-        Log log;
+        Logger log;
 
         @Builder.Default
         java.net.URI scriptUri = calculateRdbms2LiquibaseTransformationScriptURI();
@@ -81,7 +82,7 @@ public class Rdbms2Liquibase {
 
     public static void executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter parameter) throws Exception {
         final AtomicBoolean loggerToBeClosed = new AtomicBoolean(false);
-        Log log = Objects.requireNonNullElseGet(parameter.log,
+        Logger log = Objects.requireNonNullElseGet(parameter.log,
                                                  () -> {
                                                      loggerToBeClosed.set(true);
                                                      return new BufferedSlf4jLogger(Rdbms2Liquibase.log);
@@ -130,7 +131,14 @@ public class Rdbms2Liquibase {
             executionContext.close();
         } finally {
             if (loggerToBeClosed.get()) {
-                log.close();
+                try {
+                    if (log instanceof Closeable) {
+                        ((Closeable) log).close();
+                    }
+                } catch (Exception e) {
+                    //noinspection ThrowFromFinallyBlock
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

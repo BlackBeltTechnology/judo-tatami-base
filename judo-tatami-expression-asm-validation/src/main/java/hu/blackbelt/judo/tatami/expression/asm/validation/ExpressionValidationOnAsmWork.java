@@ -20,9 +20,8 @@ package hu.blackbelt.judo.tatami.expression.asm.validation;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.adapters.asm.ExpressionEpsilonValidatorOnAsm;
@@ -53,7 +52,7 @@ public class ExpressionValidationOnAsmWork extends AbstractTransformationWork {
         Optional<AsmModel> asmModel = getTransformationContext().getByClass(AsmModel.class);
         asmModel.orElseThrow(() -> new IllegalArgumentException("ASM Model does not found in transformation context"));
 
-        try (final Log logger = new StringBuilderLogger(log)) {
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
             ExpressionEpsilonValidatorOnAsm.validateExpressionOnAsm(logger,
                     asmModel.get(),
                     measureModel.get(),
