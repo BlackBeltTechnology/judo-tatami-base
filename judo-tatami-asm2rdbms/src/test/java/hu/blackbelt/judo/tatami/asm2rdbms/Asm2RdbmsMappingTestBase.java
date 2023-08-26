@@ -20,7 +20,7 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel.AsmValidationException;
@@ -31,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
@@ -58,7 +59,7 @@ public class Asm2RdbmsMappingTestBase {
     protected static final String ENTITY_ANNOTATION = "entity";
     protected static final String VALUE_ANNOTATION = "true";
 
-    protected Log logger;
+    protected Logger logger;
 
     protected AsmModel asmModel;
     protected RdbmsModel rdbmsModel;
@@ -80,7 +81,9 @@ public class Asm2RdbmsMappingTestBase {
 
     @AfterEach
     protected void tearDown() throws Exception {
-        logger.close();
+        if (logger instanceof Closeable) {
+            ((Closeable) logger).close();
+        }
     }
 
     protected void executeTransformation(final String testName) {
