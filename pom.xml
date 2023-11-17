@@ -100,11 +100,7 @@
         <judo-meta-liquibase-version>1.0.2.20231107_041254_36f06e98_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
 
-<<<<<<< HEAD
         <structured-map-proxy-version>2.0.0.20231117_104110_76d8eebd_feature_JNG_4227_support_string_substitution</structured-map-proxy-version>
-=======
-        <structured-map-proxy-version>2.0.0.20231116_124444_3c719f49_develop</structured-map-proxy-version>
->>>>>>> develop
 
         <xtext-version>2.28.0</xtext-version>
 
