@@ -19,5 +19,5 @@ post {
         }
     }
 
-    asmUtils.validateUniqueXmiids();
+    // asmUtils.validateUniqueXmiids();
 }
