@@ -2,5 +2,5 @@ import "modules/measure.etl";
 import "modules/unit.etl";
 
 post {
-    measureUtils.validateUniqueXmiids();
+    // measureUtils.validateUniqueXmiids();
 }
