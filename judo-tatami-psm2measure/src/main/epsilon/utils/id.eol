@@ -1,39 +1,8 @@
-operation JUDOPSM!NamedElement getId() : String {
-     return self.eResource.getId(self);
-}
-
-// NamedElement
-/////////////////////////////////////////
-// Meausre
-
-operation MEASURES!Measure getId() : String {
-     return self.eResource.getId(self);
-}
-
-operation MEASURES!Measure setId(id: String) {
+operation Any setId(id: String) {
     self.eResource.setId(self, id);
 }
 
-// Measure
-/////////////////////////////////////////
-// Unit
-
-operation MEASURES!Unit getId() : String {
-     return self.eResource.getId(self);
+operation Any getId() : String {
+    return self.eResource.getId(self);
 }
 
-operation MEASURES!Unit setId(id: String) {
-    self.eResource.setId(self, id);
-}
-
-// Unit
-/////////////////////////////////////////
-// BaseMeasureTerm
-
-operation MEASURES!BaseMeasureTerm getId() : String {
-     return self.eResource.getId(self);
-}
-
-operation MEASURES!BaseMeasureTerm setId(id: String) {
-    self.eResource.setId(self, id);
-}
