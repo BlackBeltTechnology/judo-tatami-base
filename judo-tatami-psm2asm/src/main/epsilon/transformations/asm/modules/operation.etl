@@ -162,6 +162,8 @@ rule CreateStatefulAnnotationOnOperationWithBehaviour
                 stateful.value = "false";
             case JUDOPSM!TransferOperationBehaviourType#LIST:
                 stateful.value = "false";
+            case JUDOPSM!TransferOperationBehaviourType#EXPORT:
+                stateful.value = "false";
             case JUDOPSM!TransferOperationBehaviourType#GET_RANGE:
                 stateful.value = "false";
             case JUDOPSM!TransferOperationBehaviourType#GET_TEMPLATE:
@@ -377,6 +379,7 @@ rule AddBehaviourAnnotation
             case JUDOPSM!TransferOperationBehaviourType#GET_PRINCIPAL: typeEntry.value = "getPrincipal";
             case JUDOPSM!TransferOperationBehaviourType#GET_METADATA: typeEntry.value = "getMetadata";
             case JUDOPSM!TransferOperationBehaviourType#GET_UPLOAD_TOKEN: typeEntry.value = "getUploadToken";
+            case JUDOPSM!TransferOperationBehaviourType#EXPORT: typeEntry.value = "export";
         }
         t.details.add(typeEntry);
 
