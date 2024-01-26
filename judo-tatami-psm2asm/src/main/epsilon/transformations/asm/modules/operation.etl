@@ -172,6 +172,8 @@ rule CreateStatefulAnnotationOnOperationWithBehaviour
                 stateful.value = "false";
             case JUDOPSM!TransferOperationBehaviourType#GET_METADATA:
                 stateful.value = "false";
+            case JUDOPSM!TransferOperationBehaviourType#VALIDATE_OPERATION_INPUT:
+                stateful.value = "false";
             default:
                 stateful.value = "true";
         }
@@ -380,6 +382,8 @@ rule AddBehaviourAnnotation
             case JUDOPSM!TransferOperationBehaviourType#GET_METADATA: typeEntry.value = "getMetadata";
             case JUDOPSM!TransferOperationBehaviourType#GET_UPLOAD_TOKEN: typeEntry.value = "getUploadToken";
             case JUDOPSM!TransferOperationBehaviourType#EXPORT: typeEntry.value = "export";
+            case JUDOPSM!TransferOperationBehaviourType#VALIDATE_OPERATION_INPUT: typeEntry.value = "validateOperationInput";
+            
         }
         t.details.add(typeEntry);
 
@@ -411,6 +415,9 @@ rule AddBehaviourAnnotation
                         ownerEntry.value = asmUtils.getOperationFQName(s.behaviour.owner.asmEquivalent());
                     }
                 }
+            case JUDOPSM!TransferOperationBehaviourType#VALIDATE_OPERATION_INPUT:
+                ownerEntry.value = asmUtils.getOperationFQName(s.behaviour.owner.asmEquivalent());
+
             default:
                 ownerEntry.value = asmUtils.getReferenceFQName(s.behaviour.owner.asmEquivalent());
         }
