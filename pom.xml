@@ -84,16 +84,16 @@
         <judo-tatami-core-version>1.1.4.20231107_041032_332be90a_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-dao-api-version>1.0.4.20240116_081641_d19eb198_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20240126_094755_2d3031da_develop</judo-sdk-common-version>
-        <judo-operation-utils-version>1.1.3.20240126_094746_0ea66700_develop</judo-operation-utils-version>
+        <judo-dao-api-version>1.0.4.20240127_221416_31d13cac_feature_JNG_5435_AddOperationInputValidation</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20240127_230655_5994d432_feature_JNG_5435_AddOperationInputValidation</judo-sdk-common-version>
+        <judo-operation-utils-version>1.1.3.20240127_230658_7de21451_feature_JNG_5435_AddOperationInputValidation</judo-operation-utils-version>
         <judo-meta-rdbms-version>1.0.2.20231107_041230_4167c814_develop</judo-meta-rdbms-version>
 		<judo-meta-psm-version>1.3.0.20240127_122224_4f1de775_develop</judo-meta-psm-version>
         <judo-meta-jql-version>1.0.4.20231107_041307_10280029_develop</judo-meta-jql-version>
-        <judo-meta-asm-version>1.1.4.20240126_073259_2b2d42a1_develop</judo-meta-asm-version>
+        <judo-meta-asm-version>1.1.4.20240127_221047_d23547d0_feature_JNG_5435_AddOperationInputValidation</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.5.20231107_042129_0d5eab73_develop</judo-meta-expression-version>
         <judo-meta-expression-psm-version>1.0.5.20240127_122945_36381411_develop</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.5.20240126_094759_b384b9a1_develop</judo-meta-expression-asm-version>
+        <judo-meta-expression-asm-version>1.0.5.20240127_230704_5eec1f3f_feature_JNG_5435_AddOperationInputValidation</judo-meta-expression-asm-version>
 
 
         <judo-meta-measure-version>1.0.2.20231107_041238_36e3764d_develop</judo-meta-measure-version>
