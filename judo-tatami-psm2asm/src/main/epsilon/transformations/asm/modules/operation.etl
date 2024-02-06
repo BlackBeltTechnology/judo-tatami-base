@@ -320,6 +320,23 @@ rule CreateUnboundOperation
 }
 
 @greedy
+rule CreateCustomImplementationAnnotationOnUnboundOperation
+    transform s : JUDOPSM!UnboundOperation
+    to t : ASM!EAnnotation {
+        guard: s.implementation.isDefined()
+        t.setId("(psm/" + s.getId() + ")/CustomImplementationAnnotationOnUnboundOperation");
+        t.source = asmUtils.getAnnotationUri("customImplementation");
+
+        var customImplementation = new ASM!EStringToStringMapEntry;
+        customImplementation.setId(t.getId() + "/CustomImplementation");
+        customImplementation.key = "value";
+        customImplementation.value = s.implementation.customImplementation.asString();
+        t.details.add(customImplementation);
+
+        s.asmEquivalent().eAnnotations.add(t);
+}
+
+@greedy
 rule CreateScriptBodyAnnotationForUnboundOperation
     transform s : JUDOPSM!UnboundOperation
     to t : ASM!EAnnotation
