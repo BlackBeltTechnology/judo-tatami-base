@@ -91,6 +91,30 @@ public class Asm2Rdbms {
         @Builder.Default
         boolean useCache = false;
 
+        @Builder.Default
+        boolean createSimpleName = false;
+
+        @Builder.Default
+        Integer nameSize = -1;
+
+        @Builder.Default
+        Integer shortNameSize = -1;
+
+        @Builder.Default
+        String tablePrefix = "T_";
+
+        @Builder.Default
+        String columnPrefix = "C_";
+
+        @Builder.Default
+        String foreignKeyPrefix = "FK_";
+
+        @Builder.Default
+        String inverseForeignKeyPrefix = "FK_INV_";
+
+        @Builder.Default
+        String junctionTablePrefix = "J_";
+
     }
 
     private static MD5Utils MD5_UTILS = new MD5Utils();
@@ -125,6 +149,13 @@ public class Asm2Rdbms {
                 nameSize = 28;
             }
 
+            if (parameter.shortNameSize > 0) {
+                shortNameSize = parameter.shortNameSize;
+            }
+            if (parameter.nameSize > 0) {
+                nameSize = parameter.nameSize;
+            }
+
             WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("ASM")
@@ -149,6 +180,12 @@ public class Asm2Rdbms {
                                     .put("rdbmsUtils", new RdbmsUtils(parameter.rdbmsModel.getResourceSet()))
                                     .put("shortNameSize", shortNameSize)
                                     .put("nameSize", nameSize)
+                                    .put("createSimpleName", parameter.createSimpleName)
+                                    .put("tablePrefix", parameter.tablePrefix)
+                                    .put("columnPrefix", parameter.columnPrefix)
+                                    .put("foreignKeyPrefix", parameter.foreignKeyPrefix)
+                                    .put("inverseForeignKeyPrefix", parameter.inverseForeignKeyPrefix)
+                                    .put("junctionTablePrefix", parameter.junctionTablePrefix)
                                     .build())
                     .build();
 

@@ -20,28 +20,28 @@ operation ASM!EReference isMandatory() : Boolean {
 
 @cached
 operation ASM!EReference referenceIdentifierSqlName() : String {
-    return "C_" +  self.sqlName() + "_ID";
+    return columnPrefix +  self.sqlName() + "_ID";
 }
 
 @cached
 operation ASM!EReference referenceInverseIdentifierSqlName() : String {
-    return "C_" +  self.eContainingClass.classSqlName() + "_" + self.sqlName() + "_ID";
+    return columnPrefix +  self.eContainingClass.classSqlName() + "_" + self.sqlName() + "_ID";
 }
 
 @cached
 operation ASM!EReference referenceFkSqlName() : String {
-    return "FK_" + self.eContainingClass.classSqlName() + "_" + self.sqlName();
+    return foreignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlName(), sqlNameSize());
 }
 
 @cached
 operation ASM!EReference referenceUniFkSqlName() : String {
-    return "FK_" + self.eContainingClass.classSqlName() + "_" + self.sqlName();
+    return foreignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlName(), sqlNameSize());
 }
 
 
 @cached
 operation ASM!EReference referenceInvFkSqlName() : String {
-    return "FK_INV_" + self.eContainingClass.classSqlName() + "_" + self.sqlName();
+    return inverseForeignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlName(), sqlNameSize());
 }
 
 
@@ -51,9 +51,9 @@ operation ASM!EReference referenceManyToManyTableSqlName() : String {
 
     if (self.eOpposite.isDefined()) {
         var f2 = self.eOpposite;
-        return "T_" + abbreviate(f1.eReferenceType.classSqlName() + "_" + f1.sqlName() + "_" + f2.eReferenceType.classSqlName() + "_" + f2.sqlName(), sqlNameSize()).toUpperCase();
+        return junctionTablePrefix + abbreviate(f1.eReferenceType.classSqlName() + "_" + f1.sqlName() + "_" + f2.eReferenceType.classSqlName() + "_" + f2.sqlName(), sqlNameSize()).toUpperCase();
     } else {
-        return "T_" + abbreviate(f1.eContainingClass.classSqlName() + "_" + f1.sqlName(), sqlNameSize()).toUpperCase();
+        return junctionTablePrefix + abbreviate(f1.eContainingClass.classSqlName() + "_" + f1.sqlName(), sqlNameSize()).toUpperCase();
     }
 }
 
