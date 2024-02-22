@@ -27,6 +27,7 @@ post {
     } */
 
     // Replacing name
+    /*
     for (e in RDBMS!RdbmsElement.all) {
         log.debug("UUID: " + e.uuid);
         var sqlNameMapping = RDBMS!NameMapping.all.selectOne(m | m.fullyQualifiedName == e.uuid);
@@ -36,6 +37,7 @@ post {
             e.sqlName = sqlNameMapping.rdbmsName;
         }
     }
+    */
 
     // rdbmsUtils.validateUniqueXmiids();
 

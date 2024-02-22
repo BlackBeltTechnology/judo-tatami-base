@@ -50,6 +50,22 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         Boolean parallel = true;
         @Builder.Default
         Boolean useCache = false;
+        @Builder.Default
+        Boolean createSimpleName = false;
+        @Builder.Default
+        Integer nameSize = -1;
+        @Builder.Default
+        Integer shortNameSize = -1;
+        @Builder.Default
+        String tablePrefix = "T_";
+        @Builder.Default
+        String columnPrefix = "C_";
+        @Builder.Default
+        String foreignKeyPrefix = "FK_";
+        @Builder.Default
+        String inverseForeignKeyPrefix = "FK_INV_";
+        @Builder.Default
+        String junctionTablePrefix = "J_";
     }
 
     final URI transformationScriptRoot;
@@ -116,7 +132,17 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
                     .dialect(dialect)
                     .parallel(workParameter.parallel)
                     .useCache(workParameter.useCache)
-                    .createTrace(workParameter.createTrace));
+                    .createTrace(workParameter.createTrace)
+                    .createSimpleName(workParameter.createSimpleName)
+                    .nameSize(workParameter.nameSize)
+                    .shortNameSize(workParameter.shortNameSize)
+                    .tablePrefix(workParameter.tablePrefix)
+                    .columnPrefix(workParameter.columnPrefix)
+                    .foreignKeyPrefix(workParameter.foreignKeyPrefix)
+                    .inverseForeignKeyPrefix(workParameter.inverseForeignKeyPrefix)
+                    .junctionTablePrefix(workParameter.junctionTablePrefix)
+
+            );
 
             putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);
         }

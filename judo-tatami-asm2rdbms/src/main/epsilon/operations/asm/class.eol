@@ -1,11 +1,15 @@
 @cached
 operation ASM!EClass classSqlName() : String {
-    return self.ePackage.packageSqlName() + "_" + self.sqlName();
+    if (createSimpleName) {
+        return self.sqlName();
+    } else {
+        return self.ePackage.packageSqlName() + "_" + self.sqlName();
+    }
 }
 
 @cached
 operation ASM!EClass tableSqlName() : String {
-    return "T_" + self.classSqlName();
+    return tablePrefix + self.classSqlName();
 }
 
 @cached

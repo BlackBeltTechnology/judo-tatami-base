@@ -5,5 +5,8 @@ operation ASM!EAttribute isPrimaryKey() : Boolean {
 
 @cached
 operation ASM!EAttribute fieldSqlName() : String {
-    return "C_" + self.sqlName();
+    if (columnPrefix.trim() == "" and self.name.toLowerCase() == "id") {
+        return "DOMAIN_ID";
+    }
+    return columnPrefix + self.sqlLongName();
 }
