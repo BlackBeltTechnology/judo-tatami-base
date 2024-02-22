@@ -36,7 +36,6 @@ import static org.eclipse.emf.ecore.EcorePackage.eINSTANCE;
 import static org.eclipse.emf.ecore.util.builder.EcoreBuilders.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled
 public class Asm2RdbmsNameMappingTest extends Asm2RdbmsMappingTestBase {
 
     @Test
