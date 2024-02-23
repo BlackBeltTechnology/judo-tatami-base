@@ -25,7 +25,6 @@ import hu.blackbelt.judo.meta.rdbmsNameMapping.util.builder.NameMappingsBuilder;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
