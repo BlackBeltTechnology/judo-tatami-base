@@ -5,6 +5,21 @@ operation ASM!ENamedElement sqlName() : String {
     if (shortName.isPresent()) {
         return shortName.get().toUpperSnakeCase();
     } else {
-        return abbreviate(self.name, shortNameSize()).toUpperCase();
+        if (createSimpleName) {
+            return abbreviate(self.name, sqlNameSize()).toUpperCase();
+        } else {
+            return abbreviate(self.name, shortNameSize()).toUpperCase();
+        }
     }
 }
+
+@cached
+operation ASM!ENamedElement sqlLongName() : String {
+    var shortName = asmUtils.getExtensionAnnotationValue(self, "shortName", false);
+    if (shortName.isPresent()) {
+        return shortName.get().toUpperSnakeCase();
+    } else {
+        return abbreviate(self.name, sqlNameSize()).toUpperCase();
+    }
+}
+
