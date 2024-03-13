@@ -85,7 +85,7 @@
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20240129_105710_5ca64071_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20240312_104525_f76dc824_feature_JNG_5543_The_Optional_is_null_when_the_first_letter_of_an_attribute_is_uppercase</judo-sdk-common-version>
+        <judo-sdk-common-version>1.0.4.20240313_041226_1c53e514_develop</judo-sdk-common-version>
         <judo-operation-utils-version>1.1.3.20240209_041311_9fed3fdd_develop</judo-operation-utils-version>
         <judo-meta-rdbms-version>1.0.2.20231107_041230_4167c814_develop</judo-meta-rdbms-version>
 		<judo-meta-psm-version>1.3.0.20240127_122224_4f1de775_develop</judo-meta-psm-version>
@@ -100,7 +100,7 @@
         <judo-meta-liquibase-version>1.0.2.20231107_041254_36f06e98_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
 
-        <structured-map-proxy-version>2.0.0.20240312_104112_02d952af_feature_JNG_5543_The_Optional_is_null_when_the_first_letter_of_an_attribute_is_uppercase</structured-map-proxy-version>
+        <structured-map-proxy-version>2.0.0.20240304_134724_72ade506_develop</structured-map-proxy-version>
 
         <xtext-version>2.28.0</xtext-version>
 
