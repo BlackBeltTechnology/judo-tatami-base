@@ -80,12 +80,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>hu.blackbelt</groupId>
-			<artifactId>structured-map-proxy</artifactId>
-			<version>${structured-map-proxy-version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>hu.blackbelt.judo.tatami</groupId>
 			<artifactId>judo-tatami-psm2asm</artifactId>
 			<scope>test</scope>
