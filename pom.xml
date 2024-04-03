@@ -100,8 +100,6 @@
         <judo-meta-liquibase-version>1.0.2.20231107_041254_36f06e98_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
 
-        <structured-map-proxy-version>2.0.0.20240402_195916_ec5d0a48_feature_JNG_5627_Replace_the_structured_map_proxy</structured-map-proxy-version>
-
         <xtext-version>2.28.0</xtext-version>
 
         <!--suppress UnresolvedMavenProperty -->
