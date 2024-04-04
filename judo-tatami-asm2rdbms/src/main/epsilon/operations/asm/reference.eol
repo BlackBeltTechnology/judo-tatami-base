@@ -20,28 +20,28 @@ operation ASM!EReference isMandatory() : Boolean {
 
 @cached
 operation ASM!EReference referenceIdentifierSqlName() : String {
-    return columnPrefix +  self.sqlName() + "_ID";
+    return columnPrefix +  abbreviate(self.sqlLongName(), columnNameMaxSize() - (columnPrefix.length() + 3)).toUpperCase() + "_ID";
 }
 
 @cached
 operation ASM!EReference referenceInverseIdentifierSqlName() : String {
-    return columnPrefix +  self.eContainingClass.classSqlName() + "_" + self.sqlName() + "_ID";
+    return columnPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlLongName(), columnNameMaxSize() - (columnPrefix.length() + 3)).toUpperCase() + "_ID";
 }
 
 @cached
 operation ASM!EReference referenceFkSqlName() : String {
-    return foreignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlName(), sqlNameSize());
+    return foreignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlLongName(), columnNameMaxSize() - junctionTablePrefix.length()).toUpperCase();
 }
 
 @cached
 operation ASM!EReference referenceUniFkSqlName() : String {
-    return foreignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlName(), sqlNameSize());
+    return foreignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlLongName(), columnNameMaxSize() - foreignKeyPrefix.length()).toUpperCase();
 }
 
 
 @cached
 operation ASM!EReference referenceInvFkSqlName() : String {
-    return inverseForeignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlName(), sqlNameSize());
+    return inverseForeignKeyPrefix + abbreviate(self.eContainingClass.classSqlName() + "_" + self.sqlLongName(), columnNameMaxSize() - inverseForeignKeyPrefix.length()).toUpperCase();
 }
 
 
@@ -51,9 +51,9 @@ operation ASM!EReference referenceManyToManyTableSqlName() : String {
 
     if (self.eOpposite.isDefined()) {
         var f2 = self.eOpposite;
-        return junctionTablePrefix + abbreviate(f1.eReferenceType.classSqlName() + "_" + f1.sqlName() + "_" + f2.eReferenceType.classSqlName() + "_" + f2.sqlName(), sqlNameSize()).toUpperCase();
+        return junctionTablePrefix + abbreviate(f1.eReferenceType.classSqlName() + "_" + f1.sqlLongName() + "_" + f2.eReferenceType.classSqlName() + "_" + f2.sqlLongName(), tableNameMaxSize() - junctionTablePrefix.length()).toUpperCase();
     } else {
-        return junctionTablePrefix + abbreviate(f1.eContainingClass.classSqlName() + "_" + f1.sqlName(), sqlNameSize()).toUpperCase();
+        return junctionTablePrefix + abbreviate(f1.eContainingClass.classSqlName() + "_" + f1.sqlLongName(), tableNameMaxSize() - junctionTablePrefix.length()).toUpperCase();
     }
 }
 
