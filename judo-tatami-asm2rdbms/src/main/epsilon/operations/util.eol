@@ -20,9 +20,19 @@ operation sqlNameSize() : Integer {
     return nameSize;
 }
 
+@cached
+operation tableNameMaxSize() : Integer {
+    return tableNameMaxSize;
+}
+
+@cached
+operation columnNameMaxSize() : Integer {
+    return columnNameMaxSize;
+}
+
 
 operation abbreviate(text : String, maxLength : Integer) : String {
-    return AbbreviateUtils.abbreviate(text, maxLength);
+    return AbbreviateUtils.abbreviate(text, maxLength, "_");
 }
 
 /*

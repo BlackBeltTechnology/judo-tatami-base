@@ -149,7 +149,7 @@ rule EReferenceToRdbmsJunctionTableForeignKeyUnidirectional
         fk2.referenceKey = s.eContainingClass.equivalent("EClassToRdbmsTable").primaryKey;
         fk2.fromType(fk2.referenceKey);
         fk2.mandatory = false;
-        fk2.sqlName = s.sqlName() + "_" + s.eContainingClass.tableSqlName() + "_" + fk2.referenceKey.sqlName + "2";
+        fk2.sqlName = s.sqlLongName() + "_" + s.eContainingClass.tableSqlName() + "_" + fk2.referenceKey.sqlName + "2";
         fk2.foreignKeySqlName = s.referenceUniFkSqlName() + "2";
 
         fk2.readOnly = true;
