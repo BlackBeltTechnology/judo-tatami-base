@@ -101,6 +101,12 @@ public class Asm2Rdbms {
         Integer shortNameSize = -1;
 
         @Builder.Default
+        Integer tableNameMaxSize = -1;
+
+        @Builder.Default
+        Integer columnNameMaxSize = -1;
+
+        @Builder.Default
         String tablePrefix = "T_";
 
         @Builder.Default
@@ -143,10 +149,14 @@ public class Asm2Rdbms {
 
             int shortNameSize = 16;
             int nameSize = 60;
+            int tableNameMaxSize = 62;
+            int columnNameMaxSize = 58;
 
             if (parameter.dialect.equals("oracle")) {
                 shortNameSize = 6;
                 nameSize = 28;
+                tableNameMaxSize = 30;
+                columnNameMaxSize = 30;
             }
 
             if (parameter.shortNameSize > 0) {
@@ -154,6 +164,14 @@ public class Asm2Rdbms {
             }
             if (parameter.nameSize > 0) {
                 nameSize = parameter.nameSize;
+            }
+
+            if (parameter.tableNameMaxSize > 0) {
+                tableNameMaxSize = parameter.tableNameMaxSize;
+            }
+
+            if (parameter.columnNameMaxSize > 0) {
+                columnNameMaxSize = parameter.columnNameMaxSize;
             }
 
             WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
@@ -180,6 +198,8 @@ public class Asm2Rdbms {
                                     .put("rdbmsUtils", new RdbmsUtils(parameter.rdbmsModel.getResourceSet()))
                                     .put("shortNameSize", shortNameSize)
                                     .put("nameSize", nameSize)
+                                    .put("tableNameMaxSize", tableNameMaxSize)
+                                    .put("columnNameMaxSize", columnNameMaxSize)
                                     .put("createSimpleName", parameter.createSimpleName)
                                     .put("tablePrefix", parameter.tablePrefix)
                                     .put("columnPrefix", parameter.columnPrefix)

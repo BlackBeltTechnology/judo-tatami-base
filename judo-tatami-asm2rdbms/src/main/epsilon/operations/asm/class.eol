@@ -1,20 +1,20 @@
 @cached
 operation ASM!EClass classSqlName() : String {
     if (createSimpleName) {
-        return self.sqlName();
+        return self.sqlLongName();
     } else {
-        return self.ePackage.packageSqlName() + "_" + self.sqlName();
+        return self.ePackage.packageSqlName() + "_" + self.sqlLongName();
     }
 }
 
 @cached
 operation ASM!EClass tableSqlName() : String {
-    return tablePrefix + self.classSqlName();
+    return tablePrefix + abbreviate(self.classSqlName(), tableNameMaxSize() - tablePrefix.length()).toUpperCase();
 }
 
 @cached
 operation ASM!EClass viewSqlName() : String {
-    return "V_" + self.classSqlName();
+    return "V_" + abbreviate(self.classSqlName(), tableNameMaxSize() - 2).toUpperCase();
 }
 
 @cached

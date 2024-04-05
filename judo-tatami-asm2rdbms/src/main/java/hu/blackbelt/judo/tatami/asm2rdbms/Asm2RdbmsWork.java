@@ -30,7 +30,6 @@ import java.net.URI;
 import java.util.Optional;
 
 import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -56,6 +55,10 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         Integer nameSize = -1;
         @Builder.Default
         Integer shortNameSize = -1;
+        @Builder.Default
+        Integer tableNameMaxSize = -1;
+        @Builder.Default
+        Integer columnMaxNameSize = -1;
         @Builder.Default
         String tablePrefix = "T_";
         @Builder.Default
@@ -136,6 +139,8 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
                     .createSimpleName(workParameter.createSimpleName)
                     .nameSize(workParameter.nameSize)
                     .shortNameSize(workParameter.shortNameSize)
+                    .tableNameMaxSize(workParameter.tableNameMaxSize)
+                    .columnNameMaxSize(workParameter.columnMaxNameSize)
                     .tablePrefix(workParameter.tablePrefix)
                     .columnPrefix(workParameter.columnPrefix)
                     .foreignKeyPrefix(workParameter.foreignKeyPrefix)
