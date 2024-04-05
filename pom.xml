@@ -79,13 +79,13 @@
         <liquibase-version>4.4.3</liquibase-version>
         <epsilon-runtime-version>1.5.1.20230914_115155_8ab2f00c_develop</epsilon-runtime-version>
 
-        <java-embedded-compiler-version>1.1.0.20230914_114958_72d2baad_develop</java-embedded-compiler-version>
+        <java-embedded-compiler-version>1.1.0.20240405_120327_70758438_feature_JNG_5627_Replace_the_structured_map_proxy</java-embedded-compiler-version>
 
         <judo-tatami-core-version>1.1.4.20231107_041032_332be90a_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20240129_105710_5ca64071_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20240322_040545_738b1cfa_develop</judo-sdk-common-version>
+        <judo-sdk-common-version>1.0.4.20240405_102416_80aa3d95_feature_JNG_5627_Replace_the_structured_map_proxy</judo-sdk-common-version>
         <judo-operation-utils-version>1.1.3.20240322_040550_1b7e874e_develop</judo-operation-utils-version>
         <judo-meta-rdbms-version>1.0.2.20231107_041230_4167c814_develop</judo-meta-rdbms-version>
 		<judo-meta-psm-version>1.3.0.20240127_122224_4f1de775_develop</judo-meta-psm-version>
@@ -99,8 +99,6 @@
         <judo-meta-measure-version>1.0.2.20231107_041238_36e3764d_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20231107_041254_36f06e98_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
-
-        <structured-map-proxy-version>2.0.0.20240314_085447_62d6e6d2_develop</structured-map-proxy-version>
 
         <xtext-version>2.28.0</xtext-version>
 
@@ -291,12 +289,6 @@
                 <groupId>hu.blackbelt.judo</groupId>
                 <artifactId>judo-dispatcher-api</artifactId>
                 <version>${judo-dispatcher-api-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt</groupId>
-                <artifactId>structured-map-proxy</artifactId>
-                <version>${structured-map-proxy-version}</version>
             </dependency>
 
             <dependency>
