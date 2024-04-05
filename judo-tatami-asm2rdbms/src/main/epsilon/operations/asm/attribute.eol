@@ -14,5 +14,5 @@ operation ASM!EAttribute fieldSqlName() : String {
             return "DOMAIN_VERSION";
         }
     }
-    return columnPrefix + self.sqlLongName();
+    return columnPrefix + abbreviate(self.sqlLongName(), columnNameMaxSize() - columnPrefix.length()).toUpperCase() ;
 }
