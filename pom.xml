@@ -77,11 +77,11 @@
         <surefire-version>3.0.0-M7</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>1.5.1.20240410_091338_0f28571b_develop</epsilon-runtime-version>
+        <epsilon-runtime-version>1.5.1.20240414_001903_b8f91bf3_feature_JNG_5500_PerformanceImprovement</epsilon-runtime-version>
 
         <java-embedded-compiler-version>1.1.0.20240410_084923_98db74a1_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20240410_091550_047da654_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4.20240414_000618_2c9a1f7a_feature_JNG_5500_PerformanceImprove</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20240411_140837_58d4ecbd_develop</judo-dao-api-version>
