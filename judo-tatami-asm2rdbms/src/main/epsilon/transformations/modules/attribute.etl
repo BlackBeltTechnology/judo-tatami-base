@@ -4,7 +4,7 @@ rule EAttributeToRdbmsField
     to t : RDBMS!RdbmsField {
         guard : asmUtils.isEntityType(s.eContainingClass)
         t.setId("(asm/" + s.getId() + ")/RdbmsField");
-        t.uuid = asmUtils.getAttributeFQName(s);
+        t.uuid = "(asm/" + s.getId() + ")/RdbmsField";
         log.debug(" Class: " + asmUtils.getClassifierFQName(s.eContainingClass));
 
         if (s.eType.isKindOf(ASM!EEnum)) {
@@ -55,7 +55,7 @@ rule EAttributeToIndex
         log.debug("    Add index: " + asmUtils.getAttributeFQName(s));
 
         u.setId("(asm/" + s.getId() + ")/Index");
-        u.uuid = asmUtils.getAttributeFQName(s) + "@uniqueConstraint";
+        u.uuid = "(asm/" + s.getId() + ")/Index";
         s.eContainingClass.equivalent("EClassToRdbmsTable").indexes.add(u);
 
         u.sqlName = ("IDX_" + md5(u.uuid));
