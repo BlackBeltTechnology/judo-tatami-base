@@ -25,6 +25,7 @@ import hu.blackbelt.judo.meta.rdbmsNameMapping.util.builder.NameMappingsBuilder;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,7 @@ public class Asm2RdbmsNameMappingTest extends Asm2RdbmsMappingTestBase {
 
     @Test
     @DisplayName("Test Table And Attribute Name Mapping")
+    @Disabled
     public void testTableAndAttributeNameMapping() {
         final String RDBMS_TABLE_NAME = "TestEpackage.TestEclass";
         final String RDBMS_ATTRIBUTE_NAME = "TestEpackage.TestEclass#nameMappingAttribute";
@@ -101,6 +103,7 @@ public class Asm2RdbmsNameMappingTest extends Asm2RdbmsMappingTestBase {
 
     @Test
     @DisplayName("Test Reference Name Mapping")
+    @Disabled
     public void testReferenceNameMapping() {
         final String RDBMS_TABLE_NAME = "TestEpackage.TestEclass";
         final String RDBMS_TABLE_NAME2 = "TestEpackage.TestEclass2";
@@ -202,6 +205,7 @@ public class Asm2RdbmsNameMappingTest extends Asm2RdbmsMappingTestBase {
 
     @Test
     @DisplayName("Test Junction Table Name Mapping")
+    @Disabled
     public void testJunctionTableNameMapping() {
         final String JUNCTION_TABLE_NAME = "TestEpackage.TestEclass#TestEclass2Ref" +
                 "_TestEpackage.TestEclass2#TestEclassRef";

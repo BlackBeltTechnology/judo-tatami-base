@@ -8,7 +8,7 @@ rule EReferenceToRdbmsTableForeignKey
         s.eContainingClass.equivalent("EClassToRdbmsTable").fields.add(fk);
         fk.setId("(asm/" + s.getId() + ")/TableForeignKey");
         fk.name = s.name;
-        fk.uuid = asmUtils.getReferenceFQName(s);
+        fk.uuid = "(asm/" + s.getId() + ")/TableForeignKey";
         fk.referenceKey = s.eReferenceType.equivalent("EClassToRdbmsTable").primaryKey;
 
         fk.fromType(fk.referenceKey);
@@ -36,7 +36,7 @@ rule EReferenceToRdbmsTableInverseForeignKey
 
         fk.setId("(asm/" + s.getId() + ")/TableInverseForeignKey");
         fk.name = s.eContainingClass.name.firstToLowerCase() + s.name.firstToUpperCase();
-        fk.uuid = asmUtils.getReferenceFQName(s);
+        fk.uuid = "(asm/" + s.getId() + ")/TableInverseForeignKey";
 
         fk.referenceKey = s.eContainingClass.equivalent("EClassToRdbmsTable").primaryKey;
         fk.fromType(fk.referenceKey);
@@ -59,10 +59,10 @@ rule EReferenceToRdbmsJunctionTable
         t.sqlName = s.referenceManyToManyTableSqlName();
         if (s.eOpposite.isDefined()) {
             t.name = asmUtils.getReferenceFQName(s) + " to " + asmUtils.getReferenceFQName(s.eOpposite);
-            t.uuid = asmUtils.getReferenceFQName(s) + "_" + asmUtils.getReferenceFQName(s.eOpposite);
+            t.uuid = "(asm/" + s.getId() + ")/JunctionTable";
         } else {
             t.name = asmUtils.getReferenceFQName(s) + " to " + asmUtils.getClassifierFQName(s.eReferenceType);
-            t.uuid = asmUtils.getReferenceFQName(s) + "_" + asmUtils.getClassifierFQName(s.eReferenceType);
+            t.uuid = "(asm/" + s.getId() + ")/JunctionTable";
         }
 
         log.debug("Junct ref: " + t.name);
@@ -79,7 +79,7 @@ rule EReferenceToRdbmsJunctionTablePrimaryKey
         table.primaryKey = p;
         p.setId("(asm/" + s.getId() + ")/JunctionTablePrimaryKey");
         p.name = table.name + "#id";
-        p.uuid = table.uuid + "#id";
+        p.uuid = "(asm/" + s.getId() + ")/JunctionTablePrimaryKey";
         p.sqlName = "ID";
         p.fillType("java.util.UUID");
 }
@@ -104,7 +104,7 @@ rule EReferenceToRdbmsJunctionTableForeignKeyBidirectional
 
         fk.setId("(asm/" + s.getId() + ")/JunctionTableForeignKeyBidirectional");
         fk.name = s.name;
-        fk.uuid = asmUtils.getReferenceFQName(s);
+        fk.uuid = "(asm/" + s.getId() + ")/JunctionTableForeignKeyBidirectional";
         fk.referenceKey = s.eReferenceType.equivalent("EClassToRdbmsTable").primaryKey;
         fk.fromType(fk.referenceKey);
         fk.mandatory = s.isMandatory();
@@ -132,7 +132,7 @@ rule EReferenceToRdbmsJunctionTableForeignKeyUnidirectional
 
         fk1.setId("(asm/" + s.getId() + ")/JunctionTableForeignKeyUnidirectional1");
         fk1.name = s.name;
-        fk1.uuid = asmUtils.getReferenceFQName(s);
+        fk1.uuid = "(asm/" + s.getId() + ")/JunctionTableForeignKeyUnidirectional1";
         fk1.referenceKey = s.eReferenceType.equivalent("EClassToRdbmsTable").primaryKey;
         fk1.fromType(fk1.referenceKey);
         fk1.mandatory = s.isMandatory();
@@ -145,7 +145,7 @@ rule EReferenceToRdbmsJunctionTableForeignKeyUnidirectional
         // The other side - not navigable
         fk2.setId("(asm/" + s.getId() + ")/JunctionTableForeignKeyUnidirectional2");
         fk2.name = s.eContainingClass.name + "#" + s.name;
-        fk2.uuid = asmUtils.getClassifierFQName(s.eContainingClass) + "@" + asmUtils.getReferenceFQName(s);
+        fk2.uuid = "(asm/" + s.getId() + ")/JunctionTableForeignKeyUnidirectional2";
         fk2.referenceKey = s.eContainingClass.equivalent("EClassToRdbmsTable").primaryKey;
         fk2.fromType(fk2.referenceKey);
         fk2.mandatory = false;
