@@ -1,4 +1,17 @@
 /////////////////////////////////////////
+// DROP TABLES
+
+rule DropTables
+    transform s : RDBMS!RdbmsDeleteTableOperation
+    to t : LIQUIBASE!DropTable {
+        t.tableName = s.table.sqlName;
+
+        targetModel.getOrCreateChangeSet("drop-tables-" + context, "drop-tables", dialect, context).dropTable.add(t);
+        log.debug("DropTable added: " + t.tableName);
+}
+
+// DROP TABLES
+/////////////////////////////////////////
 // CREATE TABLES
 
 rule CreateTables
@@ -120,17 +133,4 @@ rule ModifyDataTypes
 }
 
 // MODIFY FIELD
-/////////////////////////////////////////
-// DROP TABLES
-
-rule DropTables
-    transform s : RDBMS!RdbmsDeleteTableOperation
-    to t : LIQUIBASE!DropTable {
-        t.tableName = s.table.sqlName;
-
-        targetModel.getOrCreateChangeSet("drop-tables-" + context, "drop-tables", dialect, context).dropTable.add(t);
-        log.debug("DropTable added: " + t.tableName);
-}
-
-// DROP TABLES
 /////////////////////////////////////////
