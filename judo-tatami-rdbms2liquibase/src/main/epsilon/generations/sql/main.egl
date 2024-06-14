@@ -1,13 +1,17 @@
 [%
 	for (op in RDBMS!RdbmsDeleteTableOperation) {
         var tempTemplateFactory = TemplateFactory.load("BackupTableData.egl");
+        var backupTableName = backupTableNamePrefix + "_" + AbbreviateUtils.abbreviate(op.table.sqlName, tableNameMaxSize - backupTableNamePrefix.length() - 1, "_").toUpperCase();
         tempTemplateFactory.populate("table", op.table);
+        tempTemplateFactory.populate("backupTableName", backupTableName);
         backupDataSqlFiles.put(backupChangeSetNamePrefix + "_" +
             op.table.sqlName.toLowerCase() + "_data_" + dialect + ".sql", tempTemplateFactory.process());
 	}
 	for (op in RDBMS!RdbmsModifyTableOperation) {
         var tempTemplateFactory = TemplateFactory.load("BackupTableData.egl");
+        var backupTableName = backupTableNamePrefix + "_" + AbbreviateUtils.abbreviate(op.table.sqlName, tableNameMaxSize - backupTableNamePrefix.length() - 1, "_").toUpperCase();
         tempTemplateFactory.populate("table", op.previousTable);
+        tempTemplateFactory.populate("backupTableName", backupTableName);
         backupDataSqlFiles.put(backupChangeSetNamePrefix + "_" +
             op.previousTable.sqlName.toLowerCase() + "_data_" + dialect + ".sql", tempTemplateFactory.process());
 	}
