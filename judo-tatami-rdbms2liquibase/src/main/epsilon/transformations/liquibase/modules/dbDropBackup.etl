@@ -9,7 +9,9 @@ rule PostCheckBackupTables
         if (s.isTypeOf(RDBMS!RdbmsModifyTableOperation)) useTable = s.previousTable;
         else useTable = s.table;
 
-        t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
+        t.tableName = backupTableNamePrefix + "_" + abbreviate(useTable.sqlName, tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+
+        //t.onFail = "WARN";
 
         dbDropBackupModel.preConditions.tableExists.add(t);
         log.debug("TableExists added: " + backupTableNamePrefix + "_" + useTable.sqlName);
@@ -35,7 +37,7 @@ rule DeleteBackupTables
         if (s.isTypeOf(RDBMS!RdbmsModifyTableOperation)) useTable = s.previousTable;
         else useTable = s.table;
 
-        t.tableName = backupTableNamePrefix + "_" + useTable.sqlName;
+        t.tableName = backupTableNamePrefix + "_" + abbreviate(useTable.sqlName, tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
         dbDropBackupModel.getOrCreateChangeSet("drop-backup-tables-" + context, "drop-backup-tables", dialect, context).dropTable.add(t);
         log.debug("DropTable added: " + backupTableNamePrefix + "_" + useTable.sqlName);
@@ -45,12 +47,16 @@ rule DeleteBackupDeletedTables
     transform s : RDBMS!RdbmsDeleteTableOperation
     to t : AFTER_INCREMENTAL!DropTable
     extends DeleteBackupTables {
+//        dbDropBackupModel.getOrCreateChangeSet("drop-backup-tables-" + context, "drop-backup-tables", dialect, context)
+//        .preConditions.tableExists.add(s.equivalent("PostCheckBackupDeletedTables"));
 }
 
 rule DeleteBackupModifiedTables
     transform s : RDBMS!RdbmsModifyTableOperation
     to t : AFTER_INCREMENTAL!DropTable
     extends DeleteBackupTables {
+//        dbDropBackupModel.getOrCreateChangeSet("drop-backup-tables-" + context, "drop-backup-tables", dialect, context)
+//        .preConditions.tableExists.add(s.equivalent("PostCheckBackupModifiedTables"));
 }
 
 // BACKUP TABLES

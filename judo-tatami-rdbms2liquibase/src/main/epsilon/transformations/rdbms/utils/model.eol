@@ -9,3 +9,7 @@ operation RDBMS!RdbmsModel tableOf(table : RDBMS!RdbmsTable) : RDBMS!RdbmsTable 
 operation RDBMS!RdbmsModel contains(table : RDBMS!RdbmsTable) : Boolean {
     return self.tableOf(table).isDefined() and self.tableOf(table) == table;
 }
+
+operation abbreviate(text : String, maxLength : Integer) : String {
+    return AbbreviateUtils.abbreviate(text, maxLength, "_");
+}
