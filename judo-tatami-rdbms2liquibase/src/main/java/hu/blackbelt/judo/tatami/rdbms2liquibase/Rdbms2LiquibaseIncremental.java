@@ -99,6 +99,9 @@ public class Rdbms2LiquibaseIncremental {
         String backupPrefix = BACKUP_PREFIX;
 
         @Builder.Default
+        Integer tableNameMaxSize = -1;
+
+        @Builder.Default
         Boolean createTrace = false;
 
         @Builder.Default
@@ -136,20 +139,33 @@ public class Rdbms2LiquibaseIncremental {
 
         Rdbms2LiquibaseIncrementalResult result;
         try {
+            int tableNameMaxSize = 62;
+
+            if (parameter.dialect.equals("oracle")) {
+                tableNameMaxSize = 30;
+            }
+
+            if (parameter.tableNameMaxSize > 0) {
+                tableNameMaxSize = parameter.tableNameMaxSize;
+            }
+
             result = Rdbms2LiquibaseIncrementalResult.rdbms2LiquibaseIncrementalResult().build();
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
                     .resourceSet(parameter.incrementalRdbmsModel.getResourceSet())
-                    .injectContexts(ImmutableMap.of(
-                            "rdbmsUtils", new RdbmsUtils(),
-                            "reviewResolver", ofNullable(parameter.reviewResolver)
+                    .injectContexts(new ImmutableMap.Builder<String, Object>()
+                            .put("rdbmsUtils", new RdbmsUtils())
+                            .put("reviewResolver", ofNullable(parameter.reviewResolver)
                                     .orElseGet(() -> new FileSystemReviewResolver(new File(
                                             ofNullable(parameter.sqlScriptPath)
                                                     .orElseThrow(() -> new IllegalArgumentException(
-                                                            "One of ReviewResolver or scriptPath have to be set"))))),
-                            "missingReviewScripts", result.missingReviewScripts,
-                            "backupDataSqlFiles", result.backupDataSqlFiles))
+                                                            "One of ReviewResolver or scriptPath have to be set"))))))
+                            .put("missingReviewScripts", result.missingReviewScripts)
+                            .put("backupDataSqlFiles", result.backupDataSqlFiles)
+                            .put("AbbreviateUtils", new AbbreviateUtils())
+                            .put("tableNameMaxSize", tableNameMaxSize)
+                            .build())
                     .modelContexts(ImmutableList.of(
                             wrappedEmfModelContextBuilder()
                                     .name("RDBMS")
