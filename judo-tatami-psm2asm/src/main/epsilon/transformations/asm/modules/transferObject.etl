@@ -419,8 +419,7 @@ rule CreateTransferObjectAttribute
         t.derived = s.binding.isDefined() and not s.binding.isKindOf(JUDOPSM!Attribute);
         t.changeable = not s.binding.isDefined() or
             (s.binding.isKindOf(JUDOPSM!Attribute) or
-                (s.binding.isKindOf(JUDOPSM!PrimitiveAccessor) and s.binding.setterExpression.isDefined()) or
-                (s.binding.isKindOf(JUDOPSM!PrimitiveAccessor) and s.eContainer.optional));
+                (s.binding.isKindOf(JUDOPSM!PrimitiveAccessor) and s.binding.setterExpression.isDefined()));
 
         s.eContainer.asmEquivalent().eStructuralFeatures.add(t);
     }
@@ -626,41 +625,6 @@ rule CreateDataReferenceBinding
 
         s.asmEquivalent().eAnnotations.add(t);
 
-    }
-
-@greedy
-rule CreateOverrideAnnotationClassForOptionalClass
-    transform s : JUDOPSM!TransferObjectType
-    to t : ASM!EAnnotation {
-        guard: s.optional and s.override.isDefined()
-        t.setId("(psm/" + s.getId() + ")/OverrideAnnotationClassForOptionalClass");
-        t.source = asmUtils.getAnnotationUri("override");
-
-        var override = new ASM!EStringToStringMapEntry;
-        override.setId(t.getId() + "/Override");
-        override.key = "value";
-        override.value = asmUtils.getClassifierFQName(s.override.asmEquivalent());
-        t.details.add(override);
-
-        s.asmEquivalent().eAnnotations.add(t);
-
-    }
-
-@greedy
-rule CreateOptionalAnnotationForOptionalClass
-    transform s : JUDOPSM!TransferObjectType
-    to t : ASM!EAnnotation {
-        guard: s.optional
-        t.setId("(psm/" + s.getId() + ")/OptionalAnnotationForOptionalClass");
-        t.source = asmUtils.getAnnotationUri("optional");
-
-        var optional = new ASM!EStringToStringMapEntry;
-        optional.setId(t.getId() + "/Optional");
-        optional.key = "value";
-        optional.value = "true";
-        t.details.add(optional);
-
-        s.asmEquivalent().eAnnotations.add(t);
     }
 
 @greedy
