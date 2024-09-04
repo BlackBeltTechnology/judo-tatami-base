@@ -94,8 +94,7 @@
         <judo-meta-expression-version>1.0.5.20240414_043040_426cab39_develop</judo-meta-expression-version>
         <judo-meta-expression-psm-version>1.0.5.20240817_040648_69e65ff6_develop</judo-meta-expression-psm-version>
         <judo-meta-expression-asm-version>1.0.5.20240414_043457_72da5d77_develop</judo-meta-expression-asm-version>
-
-
+        <judo-meta-keycloak-version>1.0.1.20240414_042613_6c6b8c44_develop</judo-meta-keycloak-version>
         <judo-meta-measure-version>1.0.2.20240414_042420_a2e6a9e7_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20240414_042408_3af8577f_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
@@ -358,7 +357,16 @@
                 <artifactId>hu.blackbelt.judo.meta.rdbms.osgi</artifactId>
                 <version>${judo-meta-rdbms-version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>hu.blackbelt.judo.meta</groupId>
+                <artifactId>hu.blackbelt.judo.meta.keycloak.model</artifactId>
+                <version>${judo-meta-keycloak-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.meta</groupId>
+                <artifactId>hu.blackbelt.judo.meta.keycloak.osgi</artifactId>
+                <version>${judo-meta-keycloak-version}</version>
+            </dependency>
             <!--
              <dependency>
              <groupId>hu.blackbelt.judo.meta</groupId>
@@ -961,6 +969,7 @@
                 <module>judo-tatami-asm-validation</module>
                 <module>judo-tatami-expression-asm-validation</module>
                 <module>judo-tatami-expression-psm-validation</module>
+                <module>judo-tatami-asm2keycloak</module>
             </modules>
         </profile>
 
