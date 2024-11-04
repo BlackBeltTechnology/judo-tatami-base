@@ -134,7 +134,9 @@ public class Psm2Asm {
                             programParameterBuilder().name("nsPrefix").value("runtime" + parameter.psmModel.getName()).build(),
                             programParameterBuilder().name("extendedMetadataURI").value(HTTP_BLACKBELT_HU_JUDO_META_EXTENDED_METADATA).build()
                     ))
-                    .parallel(parameter.parallel)
+                    // TODO: https://github.com/eclipse/epsilon/issues/133
+                    .parallel(false)
+                    //.parallel(parameter.parallel)
                     .build();
 
             // Transformation script
