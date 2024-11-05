@@ -177,6 +177,8 @@ public class Asm2Rdbms {
             WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("ASM")
+                    .useCache(parameter.useCache)
+                    .validateModel(false)
                     .resource(parameter.asmModel.getResource())
                     .build();
 
@@ -211,12 +213,6 @@ public class Asm2Rdbms {
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
-            }
 
             EtlExecutionContext asm2rdbmsExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToRdbms.etl", parameter.scriptUri))
