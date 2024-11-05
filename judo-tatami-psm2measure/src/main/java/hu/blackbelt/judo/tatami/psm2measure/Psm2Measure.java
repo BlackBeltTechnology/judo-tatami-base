@@ -97,6 +97,7 @@ public class Psm2Measure {
                     .log(log)
                     .name("JUDOPSM")
                     .resource(parameter.psmModel.getResource())
+                    .useCache(parameter.useCache)
                     .build();
 
             // Execution context
@@ -116,12 +117,6 @@ public class Psm2Measure {
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
-            }
 
             EtlExecutionContext etlExecutionContext =
                     etlExecutionContextBuilder()

@@ -92,6 +92,7 @@ public class Rdbms2Liquibase {
             WrappedEmfModelContext rdbmsModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("RDBMS")
+                    .useCache(parameter.useCache)
                     .resource(parameter.rdbmsModel.getResourceSet().getResource(parameter.rdbmsModel.getUri(), false))
                     .build();
 
@@ -110,12 +111,6 @@ public class Rdbms2Liquibase {
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(rdbmsModelContext.getName())).setCachingEnabled(true);
-            }
 
             // Transformation script
             executionContext.executeProgram(

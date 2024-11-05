@@ -101,6 +101,7 @@ public class Asm2Keycloak {
                     .log(log)
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
+                    .useCache(true)
                     .build();
 
             // Execution context
@@ -122,13 +123,6 @@ public class Asm2Keycloak {
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
-            }
-
 
             EtlExecutionContext asm2keycloakExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToKeycloak.etl", parameter.scriptUri))
