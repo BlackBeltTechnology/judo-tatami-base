@@ -42,3 +42,13 @@ operation ASM!EClass root() : ASM!EPackage {
     return self.ePackage.root();
 }
 
+@cached
+operation ASM!EClass getClassifierFQName() : String {
+    return asmUtils.getClassifierFQName(self);
+}
+
+@cached
+operation ASM!EClass isEntityType() : Boolean {
+    return asmUtils.isEntityType(self);
+}
+

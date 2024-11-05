@@ -16,3 +16,8 @@ operation ASM!EAttribute fieldSqlName() : String {
     }
     return columnPrefix + abbreviate(self.sqlLongName(), columnNameMaxSize() - columnPrefix.length()).toUpperCase() ;
 }
+
+@cached
+operation ASM!EAttribute getAttributeFQName() : String {
+    return asmUtils.getAttributeFQName(self);
+}

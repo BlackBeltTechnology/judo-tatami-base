@@ -1,8 +1,8 @@
 @cached
 operation ASM!EReference toString() : String {
-    var s = "Name: " + asmUtils.getReferenceFQName(self) + " Reference type: " + asmUtils.getClassifierFQName(self.eReferenceType) + " Containment: " + self.containment + " Container: " + self.container + " " + " Lower: " + self.lowerBound + " Upper: " + self.upperBound;
+    var s = "Name: " + self.getReferenceFQName() + " Reference type: " + self.eReferenceType.getClassifierFQName() + " Containment: " + self.containment + " Container: " + self.container + " " + " Lower: " + self.lowerBound + " Upper: " + self.upperBound;
     if (self.eOpposite.isDefined()) {
-        s = s + " Opposite: " + asmUtils.getReferenceFQName(self.eOpposite);
+        s = s + " Opposite: " + self.eOpposite.getReferenceFQName();
     }
     return s;
 }
@@ -77,5 +77,10 @@ operation ASM!EReference ruleMapping() : RDBMS!Rule {
     var rule : RDBMS!Rule = RDBMS!Rules.all.first.getRuleFromReference(self);
     log.debug("Reference: " + self.toString() + " RULE: " + rule.toString());
     return rule;
+}
+
+@cached
+operation ASM!EReference getReferenceFQName() : String {
+    return asmUtils.getReferenceFQName(self);
 }
 
