@@ -1,9 +1,9 @@
 rule EReferenceToRdbmsTableForeignKey
     transform s : ASM!EReference
     to fk : RDBMS!RdbmsForeignKey {
-        guard:  asmUtils.isEntityType(s.eReferenceType) and asmUtils.isEntityType(s.eContainingClass) and s.ruleMapping().foreignKey and not s.derived
+        guard:  s.eReferenceType.isEntityType() and s.eContainingClass.isEntityType() and s.ruleMapping().foreignKey and not s.derived
 
-        log.debug("    Add foreign key: " + asmUtils.getReferenceFQName(s));
+        log.debug("    Add foreign key: " + s.getReferenceFQName());
 
         s.eContainingClass.equivalent("EClassToRdbmsTable").fields.add(fk);
         fk.setId("(asm/" + s.getId() + ")/TableForeignKey");
@@ -28,9 +28,9 @@ rule EReferenceToRdbmsTableForeignKey
 rule EReferenceToRdbmsTableInverseForeignKey
     transform s : ASM!EReference
     to fk : RDBMS!RdbmsForeignKey {
-        guard:  asmUtils.isEntityType(s.eReferenceType) and asmUtils.isEntityType(s.eContainingClass) and s.ruleMapping().inverseForeignKey and not s.derived
+        guard:  s.eReferenceType.isEntityType() and s.eContainingClass.isEntityType() and s.ruleMapping().inverseForeignKey and not s.derived
 
-        log.debug("    Add inverse foreign key: " + asmUtils.getReferenceFQName(s));
+        log.debug("    Add inverse foreign key: " + s.getReferenceFQName());
 
         s.eReferenceType.equivalent("EClassToRdbmsTable").fields.add(fk);
 
@@ -52,16 +52,16 @@ rule EReferenceToRdbmsTableInverseForeignKey
 rule EReferenceToRdbmsJunctionTable
     transform s : ASM!EReference
     to t : RDBMS!RdbmsJunctionTable {
-        guard:  asmUtils.isEntityType(s.eReferenceType) and asmUtils.isEntityType(s.eContainingClass)
+        guard:  s.eReferenceType.isEntityType() and s.eContainingClass.isEntityType()
 
         s.eReferenceType.root().equivalent("rootPackegeToModel").rdbmsTables.add(t);
         t.setId("(asm/" + s.getId() + ")/JunctionTable");
         t.sqlName = s.referenceManyToManyTableSqlName();
         if (s.eOpposite.isDefined()) {
-            t.name = asmUtils.getReferenceFQName(s) + " to " + asmUtils.getReferenceFQName(s.eOpposite);
+            t.name = s.getReferenceFQName() + " to " + s.eOpposite.getReferenceFQName();
             t.uuid = "(asm/" + s.getId() + ")/JunctionTable";
         } else {
-            t.name = asmUtils.getReferenceFQName(s) + " to " + asmUtils.getClassifierFQName(s.eReferenceType);
+            t.name = s.getReferenceFQName() + " to " + s.eReferenceType.getClassifierFQName();
             t.uuid = "(asm/" + s.getId() + ")/JunctionTable";
         }
 
@@ -71,9 +71,9 @@ rule EReferenceToRdbmsJunctionTable
 rule EReferenceToRdbmsJunctionTablePrimaryKey
     transform s : ASM!EReference
     to p : RDBMS!RdbmsIdentifierField {
-    guard : asmUtils.isEntityType(s.eReferenceType) and asmUtils.isEntityType(s.eContainingClass) and s.ruleMapping().joinTable and s.ruleMapping().first and not s.derived
+    guard : s.eReferenceType.isEntityType() and s.eContainingClass.isEntityType() and s.ruleMapping().joinTable and s.ruleMapping().first and not s.derived
 
-        log.debug("    Add junction table: " + asmUtils.getReferenceFQName(s));
+        log.debug("    Add junction table: " + s.getReferenceFQName());
         var table = s.equivalent("EReferenceToRdbmsJunctionTable");
         table.fields.add(p);
         table.primaryKey = p;
@@ -88,9 +88,9 @@ rule EReferenceToRdbmsJunctionTablePrimaryKey
 rule EReferenceToRdbmsJunctionTableForeignKeyBidirectional
     transform s : ASM!EReference
     to fk : RDBMS!RdbmsForeignKey {
-    guard : asmUtils.isEntityType(s.eReferenceType) and asmUtils.isEntityType(s.eContainingClass) and s.ruleMapping().joinTable and s.eOpposite.isDefined() and not s.derived
+    guard : s.eReferenceType.isEntityType() and s.eContainingClass.isEntityType() and s.ruleMapping().joinTable and s.eOpposite.isDefined() and not s.derived
 
-        log.debug("    Add junction foreign bidirectional key: " + asmUtils.getReferenceFQName(s));
+        log.debug("    Add junction foreign bidirectional key: " + s.getReferenceFQName());
 
         var mainReference;
         if (s.name.compareTo(s.eOpposite.name) <= 0) {
@@ -119,9 +119,9 @@ rule EReferenceToRdbmsJunctionTableForeignKeyBidirectional
 rule EReferenceToRdbmsJunctionTableForeignKeyUnidirectional
     transform s : ASM!EReference
     to fk1 : RDBMS!RdbmsForeignKey, fk2 : RDBMS!RdbmsForeignKey {
-    guard : asmUtils.isEntityType(s.eReferenceType) and asmUtils.isEntityType(s.eContainingClass) and s.ruleMapping().joinTable and s.eOpposite.isUndefined() and not s.derived
+    guard : s.eReferenceType.isEntityType() and s.eContainingClass.isEntityType() and s.ruleMapping().joinTable and s.eOpposite.isUndefined() and not s.derived
 
-        log.debug("    Add junction foreign unidirectional key: " + asmUtils.getReferenceFQName(s));
+        log.debug("    Add junction foreign unidirectional key: " + s.getReferenceFQName());
 
         var junctionTable = s.equivalent("EReferenceToRdbmsJunctionTable");
 

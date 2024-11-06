@@ -2,9 +2,9 @@
 rule EClassToTableIdField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsIdentifierField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableIdField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_id";
+        t.name = s.getClassifierFQName() + "#_id";
         t.uuid = "(asm/" + s.getId() + ")/TableIdField";
         log.debug("    Add primary key: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -18,9 +18,9 @@ rule EClassToTableIdField
 rule EClassToTableTypeField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableTypeField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_type";
+        t.name = s.getClassifierFQName() + "#_type";
         t.uuid = "(asm/" + s.getId() + ")/TableTypeField";
         log.debug("    Add type: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -33,9 +33,9 @@ rule EClassToTableTypeField
 rule EClassToTableVersionField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableVersionField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_version";
+        t.name = s.getClassifierFQName() + "#_version";
         t.uuid = "(asm/" + s.getId() + ")/TableVersionField";
         log.debug("    Add version: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -48,9 +48,9 @@ rule EClassToTableVersionField
 rule EClassToTableCreateUsernameField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableCreateUsernameField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_create_username";
+        t.name = s.getClassifierFQName() + "#_create_username";
         t.uuid = "(asm/" + s.getId() + ")/TableCreateUsernameField";
         log.debug("    Add create username: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -63,9 +63,9 @@ rule EClassToTableCreateUsernameField
 rule EClassToTableCreateUserIdField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableCreateUserIdField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_create_user_id";
+        t.name = s.getClassifierFQName() + "#_create_user_id";
         t.uuid = "(asm/" + s.getId() + ")/TableCreateUserIdField";
         log.debug("    Add create user ID: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -78,9 +78,9 @@ rule EClassToTableCreateUserIdField
 rule EClassToTableCreateTimestampField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableCreateTimestampField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_create_timestamp";
+        t.name = s.getClassifierFQName() + "#_create_timestamp";
         t.uuid = "(asm/" + s.getId() + ")/TableCreateTimestampField";
         log.debug("    Add create timestamp: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -93,9 +93,9 @@ rule EClassToTableCreateTimestampField
 rule EClassToTableUpdateUsernameField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableUpdateUsernameField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_update_username";
+        t.name = s.getClassifierFQName() + "#_update_username";
         t.uuid = "(asm/" + s.getId() + ")/TableUpdateUsernameField";
         log.debug("    Add update username: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -108,9 +108,9 @@ rule EClassToTableUpdateUsernameField
 rule EClassToTableUpdateUserIdField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableUpdateUserIdField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_update_user_id";
+        t.name = s.getClassifierFQName() + "#_update_user_id";
         t.uuid = "(asm/" + s.getId() + ")/TableUpdateUserIdField";
         log.debug("    Add update user ID: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -123,9 +123,9 @@ rule EClassToTableUpdateUserIdField
 rule EClassToTableUpdateTimestampField
     transform s : ASM!EClass
     to t : RDBMS!RdbmsValueField {
-        guard : asmUtils.isEntityType(s)
+        guard : s.isEntityType()
         t.setId("(asm/" + s.getId() + ")/TableUpdateTimestampField");
-        t.name = asmUtils.getClassifierFQName(s) + "#_update_timestamp";
+        t.name = s.getClassifierFQName() + "#_update_timestamp";
         t.uuid = "(asm/" + s.getId() + ")/TableUpdateTimestampField";
         log.debug("    Add update timestamp: " + t.name);
         var table = s.equivalent("EClassToRdbmsTable");
@@ -139,14 +139,14 @@ rule EClassToTableUpdateTimestampField
 rule EClassToRdbmsTable
     transform s : ASM!EClass
     to t : RDBMS!RdbmsTable {
-        guard : asmUtils.isEntityType(s)
-        log.debug(" Add table: " + asmUtils.getClassifierFQName(s));
+        guard : s.isEntityType()
+        log.debug(" Add table: " + s.getClassifierFQName());
         s.root().equivalent("rootPackegeToModel").rdbmsTables.add(t);
         t.setId("(asm/" + s.getId() + ")/Table");
         t.sqlName = s.tableSqlName();
-        t.name = asmUtils.getClassifierFQName(s);
+        t.name = s.getClassifierFQName();
         t.uuid = "(asm/" + s.getId() + ")/Table";
-        for (sup in s.eSuperTypes.select(sup | asmUtils.isEntityType(sup))) {
+        for (sup in s.eSuperTypes.select(sup | sup.isEntityType())) {
             t.parents.add(sup.equivalent("EClassToRdbmsTable"));
         }
 }
