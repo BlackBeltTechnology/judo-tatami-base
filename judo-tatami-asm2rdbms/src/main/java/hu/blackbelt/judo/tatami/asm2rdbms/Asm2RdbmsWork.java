@@ -48,7 +48,7 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         @Builder.Default
         Boolean parallel = true;
         @Builder.Default
-        Boolean useCache = false;
+        Boolean useCache = true;
         @Builder.Default
         Boolean createSimpleName = false;
         @Builder.Default

@@ -112,6 +112,7 @@ public class Psm2Asm {
                                     .log(log)
                                     .name("ASM")
                                     .resource(parameter.asmModel.getResource())
+                                    .useCache(false)
                                     .build()))
                     .injectContexts(ImmutableMap.of(
                             "asmUtils", new AsmUtils(parameter.asmModel.getResourceSet()),
@@ -129,9 +130,7 @@ public class Psm2Asm {
                             programParameterBuilder().name("nsPrefix").value("runtime" + parameter.psmModel.getName()).build(),
                             programParameterBuilder().name("extendedMetadataURI").value(HTTP_BLACKBELT_HU_JUDO_META_EXTENDED_METADATA).build()
                     ))
-                    // TODO: https://github.com/eclipse/epsilon/issues/133
-                    .parallel(false)
-                    //.parallel(parameter.parallel)
+                    .parallel(parameter.parallel)
                     .build();
 
             // Transformation script

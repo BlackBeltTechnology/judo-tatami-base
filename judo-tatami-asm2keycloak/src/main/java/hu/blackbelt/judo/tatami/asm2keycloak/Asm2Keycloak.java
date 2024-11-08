@@ -101,7 +101,7 @@ public class Asm2Keycloak {
                     .log(log)
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
-                    .useCache(true)
+                    .useCache(parameter.useCache)
                     .build();
 
             // Execution context
@@ -112,6 +112,7 @@ public class Asm2Keycloak {
                                     wrappedEmfModelContextBuilder()
                                             .log(log)
                                             .name("KEYCLOAK")
+                                            .useCache(false)
                                             .resource(parameter.keycloakModel.getResource())
                                             .build()
                             )

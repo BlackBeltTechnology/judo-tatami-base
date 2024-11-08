@@ -106,6 +106,7 @@ public class Rdbms2Liquibase {
                                     .log(log)
                                     .name("LIQUIBASE")
                                     .resource(parameter.liquibaseModel.getResource())
+                                    .useCache(parameter.useCache)
                                     .build()))
                     .build();
 

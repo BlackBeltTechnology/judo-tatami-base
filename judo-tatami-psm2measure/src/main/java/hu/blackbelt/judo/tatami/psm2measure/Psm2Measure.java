@@ -110,6 +110,7 @@ public class Psm2Measure {
                                     .log(log)
                                     .name("MEASURES")
                                     .resource(parameter.measureModel.getResource())
+                                    .useCache(false)
                                     .build()))
                     .injectContexts(ImmutableMap.of("psmUtils", new PsmUtils(),
                             "measureUtils", new MeasureUtils(parameter.measureModel.getResourceSet())))
