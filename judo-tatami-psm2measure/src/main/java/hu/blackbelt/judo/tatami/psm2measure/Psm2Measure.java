@@ -103,14 +103,15 @@ public class Psm2Measure {
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-                    .resourceSet(parameter.measureModel.getResourceSet())
+//                    .resourceSet(parameter.measureModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
                             psmModelContext,
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("MEASURES")
                                     .resource(parameter.measureModel.getResource())
-                                    .useCache(false)
+                                    .useCache(parameter.useCache)
+                                    .newModel(true)
                                     .build()))
                     .injectContexts(ImmutableMap.of("psmUtils", new PsmUtils(),
                             "measureUtils", new MeasureUtils(parameter.measureModel.getResourceSet())))

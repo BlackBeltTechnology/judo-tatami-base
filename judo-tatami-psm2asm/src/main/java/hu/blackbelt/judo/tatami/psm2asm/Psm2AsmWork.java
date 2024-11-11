@@ -20,6 +20,7 @@ package hu.blackbelt.judo.tatami.psm2asm;
  * #L%
  */
 
+import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
 import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
@@ -71,6 +72,8 @@ public class Psm2AsmWork extends AbstractTransformationWork {
                 .orElseGet(() -> buildAsmModel()
                         .build());
         getTransformationContext().put(asmModel);
+
+        EmfUtils.addEmfPackagesToResourceSet(asmModel.getResourceSet());
 
         Psm2AsmWorkParameter workParam = getTransformationContext().getByClass(Psm2AsmWorkParameter.class)
                 .orElseGet(() -> Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter().build());

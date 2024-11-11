@@ -99,7 +99,7 @@ public class Rdbms2Liquibase {
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-                    .resourceSet(parameter.liquibaseModel.getResourceSet())
+                    //.resourceSet(parameter.liquibaseModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
                             rdbmsModelContext,
                             wrappedEmfModelContextBuilder()
@@ -107,6 +107,7 @@ public class Rdbms2Liquibase {
                                     .name("LIQUIBASE")
                                     .resource(parameter.liquibaseModel.getResource())
                                     .useCache(parameter.useCache)
+                                    .newModel(true)
                                     .build()))
                     .build();
 
