@@ -190,6 +190,8 @@ public class Asm2Rdbms {
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("RDBMS")
+                                    .useCache(parameter.useCache)
+                                    .newModel(true)
                                     .resource(parameter.rdbmsModel.getResource())
                                     .build()))
                     .injectContexts(
