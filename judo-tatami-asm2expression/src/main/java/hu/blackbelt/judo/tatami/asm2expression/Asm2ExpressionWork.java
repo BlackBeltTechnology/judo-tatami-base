@@ -20,6 +20,7 @@ package hu.blackbelt.judo.tatami.asm2expression;
  * #L%
  */
 
+import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
@@ -48,10 +49,13 @@ public class Asm2ExpressionWork extends AbstractTransformationWork {
 
         ExpressionModel
                 expressionModel = getTransformationContext().getByClass(ExpressionModel.class)
-                .orElseGet(() -> buildExpressionModel()
+                .orElseGet(() -> {
+                        EmfUtils.addEmfPackagesToResourceSet(asmModel.get().getResourceSet());
+                        return buildExpressionModel()
                         .name(asmModel.get().getName())
                         .version(asmModel.get().getVersion())
-                        .build());
+                        .build();
+                });
         getTransformationContext().put(expressionModel);
 
         Asm2ExpressionConfiguration config = getTransformationContext().getByClass(Asm2ExpressionConfiguration.class)
