@@ -77,7 +77,7 @@ public class Psm2Measure {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
     }
 
     public static Psm2MeasureTransformationTrace executePsm2MeasureTransformation(Psm2MeasureParameter.Psm2MeasureParameterBuilder builder) throws Exception {
@@ -98,12 +98,12 @@ public class Psm2Measure {
                     .name("JUDOPSM")
                     .resource(parameter.psmModel.getResource())
                     .useCache(parameter.useCache)
+                    .validateModel(false)
                     .build();
 
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-//                    .resourceSet(parameter.measureModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
                             psmModelContext,
                             wrappedEmfModelContextBuilder()
@@ -111,7 +111,6 @@ public class Psm2Measure {
                                     .name("MEASURES")
                                     .resource(parameter.measureModel.getResource())
                                     .useCache(parameter.useCache)
-                                    .newModel(true)
                                     .build()))
                     .injectContexts(ImmutableMap.of("psmUtils", new PsmUtils(),
                             "measureUtils", new MeasureUtils(parameter.measureModel.getResourceSet())))

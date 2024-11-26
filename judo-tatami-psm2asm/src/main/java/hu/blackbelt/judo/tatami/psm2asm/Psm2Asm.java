@@ -81,7 +81,7 @@ public class Psm2Asm {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
     }
 
     public static Psm2AsmTransformationTrace executePsm2AsmTransformation(Psm2AsmParameter.Psm2AsmParameterBuilder builder) throws Exception {
@@ -99,13 +99,12 @@ public class Psm2Asm {
 
         try {
 
-            ResourceSet executionResourceSet = parameter.useCache ? EmfUtils.initDefaultCachedResourceSet() : EmfUtils.initDefaultResourceSet();
-
             WrappedEmfModelContext psmModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("JUDOPSM")
                     .resource(parameter.psmModel.getResource())
                     .useCache(parameter.useCache)
+                    .validateModel(false)
                     .build();
 
             WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
@@ -113,20 +112,19 @@ public class Psm2Asm {
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
                     .parallel(parameter.parallel)
-                    .useCache(false)
-                    .newModel(true)
+                    .useCache(parameter.useCache)
                     .build();
 
             // Executrion context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-                    .resourceSet(executionResourceSet)
+                    //.resourceSet(executionResourceSet)
                     .modelContexts(ImmutableList.of(
                             psmModelContext,
                             asmModelContext))
                     .injectContexts(ImmutableMap.of(
-                            "asmUtils", new AsmUtils(executionResourceSet),
-                            "psmUtils", new PsmUtils(psmModelContext.getResourceSet())
+                            "asmUtils", new AsmUtils(parameter.asmModel.getResourceSet()),
+                            "psmUtils", new PsmUtils(parameter.psmModel.getResourceSet())
                     )).build();
 
             // run the model / metadata loading

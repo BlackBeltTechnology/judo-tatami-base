@@ -109,14 +109,14 @@ public class Excel2RdbmsTest {
                                     .name("ORIGINAL_MODEL")
                                     .aliases(singletonList("ORIGINAL"))
                                     .useCache(true)
-                                    .newModel(true)
+                                    .validateModel(false)
                                     .resource(originalModel.getResource())
                                     .build(),
                             wrappedEmfModelContextBuilder()
                                     .name("NEW_MODEL")
                                     .aliases(singletonList("NEW"))
                                     .useCache(true)
-                                    .newModel(true)
+                                    .validateModel(false)
                                     .resource(newModel.getResource())
                                     .build()))
                     .build();

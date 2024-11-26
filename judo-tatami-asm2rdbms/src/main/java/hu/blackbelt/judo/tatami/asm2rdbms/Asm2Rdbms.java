@@ -89,7 +89,7 @@ public class Asm2Rdbms {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
 
         @Builder.Default
         boolean createSimpleName = false;
@@ -191,7 +191,6 @@ public class Asm2Rdbms {
                                     .log(log)
                                     .name("RDBMS")
                                     .useCache(parameter.useCache)
-                                    .newModel(true)
                                     .resource(parameter.rdbmsModel.getResource())
                                     .build()))
                     .injectContexts(

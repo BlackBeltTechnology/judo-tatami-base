@@ -50,7 +50,7 @@ public class Psm2AsmWork extends AbstractTransformationWork {
         Boolean parallel = true;
 
         @Builder.Default
-        Boolean useCache = false;
+        Boolean useCache = true;
     }
 
     public Psm2AsmWork(TransformationContext transformationContext, URI transformationScriptRoot) {

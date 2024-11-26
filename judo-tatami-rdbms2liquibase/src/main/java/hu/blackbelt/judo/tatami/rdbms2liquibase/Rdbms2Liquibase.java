@@ -73,7 +73,7 @@ public class Rdbms2Liquibase {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
     }
 
     public static void executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.Rdbms2LiquibaseParameterBuilder builder) throws Exception {
@@ -93,13 +93,13 @@ public class Rdbms2Liquibase {
                     .log(log)
                     .name("RDBMS")
                     .useCache(parameter.useCache)
+                    .validateModel(false)
                     .resource(parameter.rdbmsModel.getResourceSet().getResource(parameter.rdbmsModel.getUri(), false))
                     .build();
 
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-                    //.resourceSet(parameter.liquibaseModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
                             rdbmsModelContext,
                             wrappedEmfModelContextBuilder()
@@ -107,7 +107,6 @@ public class Rdbms2Liquibase {
                                     .name("LIQUIBASE")
                                     .resource(parameter.liquibaseModel.getResource())
                                     .useCache(parameter.useCache)
-                                    .newModel(true)
                                     .build()))
                     .build();
 
