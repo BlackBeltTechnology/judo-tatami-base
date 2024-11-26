@@ -46,7 +46,7 @@ public class Asm2KeycloakWork extends AbstractTransformationWork {
         @Builder.Default
         Boolean parallel = true;
         @Builder.Default
-        Boolean useCache = false;
+        Boolean useCache = true;
     }
 
     final URI transformationScriptRoot;

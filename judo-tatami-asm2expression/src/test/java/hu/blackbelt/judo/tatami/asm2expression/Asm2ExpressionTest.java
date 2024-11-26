@@ -71,10 +71,14 @@ public class Asm2ExpressionTest {
                 .build();
 
         executePsm2AsmTransformation(psm2AsmParameter()
+                .parallel(true)
+                .useCache(true)
                 .psmModel(psmModel)
                 .asmModel(asmModel));
 
         executePsm2MeasureTransformation(psm2MeasureParameter()
+                .parallel(true)
+                .useCache(true)
                 .psmModel(psmModel)
                 .measureModel(measureModel));
 
