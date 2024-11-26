@@ -79,26 +79,26 @@
         <surefire-version>3.5.1</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>1.5.1.20241126_013841_e14011dd_feature_JNG_5995_UpdateEclipse</epsilon-runtime-version>
+        <epsilon-runtime-version>1.5.1.20241126_215218_2124427f_feature_JNG_5995_UpdateEclipse</epsilon-runtime-version>
 
-        <java-embedded-compiler-version>1.1.0.20241126_013610_3c2d1338_feature_JNG_5995_UpdateEclipse</java-embedded-compiler-version>
+        <java-embedded-compiler-version>1.1.0.20241126_214410_5c4978d4_feature_JNG_5995_UpdateEclipse</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20241126_014110_5cd8d114_feature_JNG_5995_UpdateEclipse</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4.20241126_215435_9b076a14_feature_JNG_5995_UpdateEclipse</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20240411_140837_58d4ecbd_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20241126_015345_6b135990_feature_JNG_5995_UpdateEclipse</judo-sdk-common-version>
-        <judo-operation-utils-version>1.1.3.20241126_015344_255dafa1_feature_JNG_5995_UpdateEclipse</judo-operation-utils-version>
-        <judo-meta-rdbms-version>1.0.2.20241126_014638_fdca1592_feature_JNG_5995_UpdateEclipse</judo-meta-rdbms-version>
-		<judo-meta-psm-version>1.3.0.20241126_014641_a0d1138b_feature_JNG_5995_UpdateEclipse</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.4.20241126_013900_c599a469_feature_JNG_5995_UpdateEclipse</judo-meta-jql-version>
-        <judo-meta-asm-version>1.1.4.20241126_014654_ff7f91a6_feature_JNG_5995_UpdateEclipse</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20241126_015206_3381a2ad_feature_JNG_5995_UpdateEclipse</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.5.20241126_015528_af29c372_feature_JNG_5995_UpdateEclipse</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.5.20241126_015528_ea79de5f_feature_JNG_5995_UpdateEclipse</judo-meta-expression-asm-version>
-        <judo-meta-keycloak-version>1.0.1.20241126_014644_2fa924e1_feature_JNG_5995_UpdateEclipse</judo-meta-keycloak-version>
-        <judo-meta-measure-version>1.0.2.20241126_014704_04debade_feature_JNG_5995_UpdateEclipse</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20241126_014720_368d30b4_feature_JNG_5995_UpdateEclipse</judo-meta-liquibase-version>
+        <judo-sdk-common-version>1.0.4.20241126_220530_7df395a2_feature_JNG_5995_UpdateEclipse</judo-sdk-common-version>
+        <judo-operation-utils-version>1.1.3.20241126_220538_defd1bad_feature_JNG_5995_UpdateEclipse</judo-operation-utils-version>
+        <judo-meta-rdbms-version>1.0.2.20241126_215959_0cfbe0c8_feature_JNG_5995_UpdateEclipse</judo-meta-rdbms-version>
+		<judo-meta-psm-version>1.3.0.20241126_220012_534c1d82_feature_JNG_5995_UpdateEclipse</judo-meta-psm-version>
+        <judo-meta-jql-version>1.0.4.20241126_215231_4a7cf136_feature_JNG_5995_UpdateEclipse</judo-meta-jql-version>
+        <judo-meta-asm-version>1.1.4.20241126_220023_bc4126f5_feature_JNG_5995_UpdateEclipse</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20241126_220238_13274e01_feature_JNG_5995_UpdateEclipse</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.5.20241126_220728_b579484c_feature_JNG_5995_UpdateEclipse</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.5.20241126_220547_a9d7a946_feature_JNG_5995_UpdateEclipse</judo-meta-expression-asm-version>
+        <judo-meta-keycloak-version>1.0.1.20241126_220009_bd29aea2_feature_JNG_5995_UpdateEclipse</judo-meta-keycloak-version>
+        <judo-meta-measure-version>1.0.2.20241126_215945_a8cc232f_feature_JNG_5995_UpdateEclipse</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20241126_220108_a8ae4cdc_feature_JNG_5995_UpdateEclipse</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20241023_175321_d8df730b_develop</judo-dispatcher-api-version>
 
         <xtext-version>2.28.0</xtext-version>
