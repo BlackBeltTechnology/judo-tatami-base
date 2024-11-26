@@ -48,7 +48,7 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
         @Builder.Default
         Boolean parallel = true;
         @Builder.Default
-        Boolean useCache = false;
+        Boolean useCache = true;
     }
 
     final URI transformationScriptRoot;

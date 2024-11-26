@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.SaveArguments.asmSaveArgumentsBuilder;
@@ -95,7 +96,7 @@ public class Psm2AsmDerivedTest {
         log.info(psmModel.getDiagnosticsAsString());
         assertTrue(psmModel.isValid());
         try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
-            validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
+            validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI(), List.of(), null);
         }
 
         executePsm2AsmTransformation(psm2AsmParameter()

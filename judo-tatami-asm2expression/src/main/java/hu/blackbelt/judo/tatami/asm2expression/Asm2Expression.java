@@ -20,6 +20,8 @@ package hu.blackbelt.judo.tatami.asm2expression;
  * #L%
  */
 
+import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
+import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilderConfig;
 import hu.blackbelt.judo.meta.expression.builder.jql.JqlExtractor;
@@ -56,8 +58,11 @@ public class Asm2Expression {
             measureResourceSet = parameter.measureModel.getResourceSet();
         }
 
-        JqlExtractor jqlExtractor = new AsmJqlExtractor(parameter.asmModel.getResourceSet(), measureResourceSet,
-                parameter.expressionModel.getResourceSet(), createExpressionBuilderConfig(parameter.config));
+        JqlExtractor jqlExtractor = new AsmJqlExtractor(
+                parameter.asmModel.getResourceSet(),
+                measureResourceSet,
+                parameter.expressionModel.getResourceSet(),
+                createExpressionBuilderConfig(parameter.config));
         jqlExtractor.extractExpressions();
     }
 

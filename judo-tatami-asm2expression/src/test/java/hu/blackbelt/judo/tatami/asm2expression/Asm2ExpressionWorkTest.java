@@ -29,6 +29,7 @@ import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2Measur
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,13 +62,27 @@ public class Asm2ExpressionWorkTest {
         AsmModel asmModel = AsmModel.buildAsmModel()
                 .build();
 
+        //EmfUtils.initDefaultCachedResourceSet();
+        //EmfUtils.addEmfPackagesToResourceSet(asmModel.getResourceSet());
+
         // Create empty Measure model
         MeasureModel measureModel = MeasureModel.buildMeasureModel()
                 .name(psmModel.getName())
                 .build();
 
-        executePsm2AsmTransformation(psm2AsmParameter().psmModel(psmModel).asmModel(asmModel));
-        executePsm2MeasureTransformation(psm2MeasureParameter().psmModel(psmModel).measureModel(measureModel));
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(asmModel)
+                .parallel(true)
+                .useCache(true)
+        );
+
+        executePsm2MeasureTransformation(psm2MeasureParameter()
+                .psmModel(psmModel)
+                .measureModel(measureModel)
+                .parallel(true)
+                .useCache(true)
+        );
 
         transformationContext = new TransformationContext(NORTHWIND);
         transformationContext.put(asmModel);

@@ -89,7 +89,7 @@ public class Asm2Rdbms {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
 
         @Builder.Default
         boolean createSimpleName = false;
@@ -132,10 +132,10 @@ public class Asm2Rdbms {
     public static Asm2RdbmsTransformationTrace executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter parameter) throws Exception {
         final AtomicBoolean loggerToBeClosed = new AtomicBoolean(false);
         Logger log = Objects.requireNonNullElseGet(parameter.log,
-                                                () -> {
-                                                    loggerToBeClosed.set(true);
-                                                    return new BufferedSlf4jLogger(Asm2Rdbms.log);
-                                                });
+                () -> {
+                    loggerToBeClosed.set(true);
+                    return new BufferedSlf4jLogger(Asm2Rdbms.log);
+                });
 
         try {
             RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
@@ -177,6 +177,8 @@ public class Asm2Rdbms {
             WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("ASM")
+                    .useCache(parameter.useCache)
+                    .validateModel(false)
                     .resource(parameter.asmModel.getResource())
                     .build();
 
@@ -188,6 +190,7 @@ public class Asm2Rdbms {
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("RDBMS")
+                                    .useCache(parameter.useCache)
                                     .resource(parameter.rdbmsModel.getResource())
                                     .build()))
                     .injectContexts(
@@ -211,12 +214,6 @@ public class Asm2Rdbms {
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
-            }
 
             EtlExecutionContext asm2rdbmsExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToRdbms.etl", parameter.scriptUri))
