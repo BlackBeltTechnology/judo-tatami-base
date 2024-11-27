@@ -22,6 +22,9 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
 
 import com.google.common.collect.ImmutableList;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.xmi.XMLResource;
+import org.eclipse.emf.ecore.xmi.impl.URIHandlerImpl;
 import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.liquibase.ChangeSet;
@@ -48,6 +51,8 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Connection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static hu.blackbelt.epsilon.runtime.execution.ExecutionContext.executionContextBuilder;
@@ -93,7 +98,6 @@ public class Excel2RdbmsTest {
             // Execution context
             ExecutionContext excelToRdbmsEtlContext = executionContextBuilder()
                     .log(bufferedLog)
-                    .resourceSet(originalModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
                             excelModelContextBuilder()
                                     .name("EXCEL")
@@ -104,11 +108,15 @@ public class Excel2RdbmsTest {
                             wrappedEmfModelContextBuilder()
                                     .name("ORIGINAL_MODEL")
                                     .aliases(singletonList("ORIGINAL"))
+                                    .useCache(true)
+                                    .validateModel(false)
                                     .resource(originalModel.getResource())
                                     .build(),
                             wrappedEmfModelContextBuilder()
                                     .name("NEW_MODEL")
                                     .aliases(singletonList("NEW"))
+                                    .useCache(true)
+                                    .validateModel(false)
                                     .resource(newModel.getResource())
                                     .build()))
                     .build();
@@ -121,6 +129,7 @@ public class Excel2RdbmsTest {
                     etlExecutionContextBuilder()
                             .source(UriUtil.resolve("createExcelModel.etl", testRoot))
                             .parameters(singletonList(programParameterBuilder().name("dialect").value(dialect).build()))
+                            .parallel(true)
                             .build());
 
             excelToRdbmsEtlContext.commit();
@@ -137,8 +146,16 @@ public class Excel2RdbmsTest {
                 .orElseThrow(() -> new RuntimeException("There are no fields in model: " + newModel.getName()))
                 .forEach(field -> replaceTypeNames(field, dialect));
 
-        saveRdbms(originalModel, dialect);
-        saveRdbms(newModel, dialect);
+        saveRdbms("original", originalModel, dialect);
+        saveRdbms("new", newModel, dialect);
+
+        /*
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        originalModel.getResource().save(baos, defaultSaveOptions());
+        baos.flush();
+        baos.close();
+        log.info(new String(baos.toByteArray(), "UTF-8"));
+        */
 
         // fill models
         /////////////////////////////////////////
@@ -147,6 +164,8 @@ public class Excel2RdbmsTest {
         executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
                 .rdbmsModel(originalModel)
                 .liquibaseModel(originalLiquibaseModel)
+                .parallel(true)
+                .useCache(true)
                 .dialect(dialect));
 
         saveLiquibase(originalLiquibaseModel, dialect);
@@ -158,7 +177,7 @@ public class Excel2RdbmsTest {
         RdbmsModel incrementalModel = buildRdbmsModel().build();
         transformRdbmsIncrementalModel(originalModel, newModel, incrementalModel, dialect, true);
 
-        saveRdbms(incrementalModel, dialect);
+        saveRdbms("incremental", incrementalModel, dialect);
 
         LiquibaseModel dbCheckupModel = buildLiquibaseModel().name("DbCheckup").build();
         LiquibaseModel dbBackupLiquibaseModel = buildLiquibaseModel().name("DbBackup").build();
@@ -232,6 +251,48 @@ public class Excel2RdbmsTest {
         liquibaseDb.close();
     }
 
+    /*
+    public void copyResource(Resource from, Resource to) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        from.save(baos, defaultSaveOptions());
+        baos.flush();
+        baos.close();
+        //log.info(new String(baos.toByteArray(), "UTF-8"));
+        to.load(new ByteArrayInputStream(baos.toByteArray()), defaultLoadOptions());
+    }
+
+    public Map<Object, Object> defaultSaveOptions() {
+        Map<Object, Object> saveOptions = new HashMap<>();
+        saveOptions.put(XMLResource.OPTION_DECLARE_XML, Boolean.TRUE);
+        saveOptions.put(XMLResource.OPTION_PROCESS_DANGLING_HREF, XMLResource.OPTION_PROCESS_DANGLING_HREF_DISCARD);
+        saveOptions.put(XMLResource.OPTION_URI_HANDLER, new URIHandlerImpl() {
+            public org.eclipse.emf.common.util.URI deresolve(org.eclipse.emf.common.util.URI uri) {
+                return uri.hasFragment()
+                        && uri.hasOpaquePart()
+                        && this.baseURI.hasOpaquePart()
+                        && uri.opaquePart().equals(this.baseURI.opaquePart())
+                        ? org.eclipse.emf.common.util.URI.createURI("#" + uri.fragment())
+                        : super.deresolve(uri);
+            }
+        });
+        saveOptions.put(XMLResource.OPTION_SCHEMA_LOCATION, Boolean.TRUE);
+        saveOptions.put(XMLResource.OPTION_DEFER_IDREF_RESOLUTION, Boolean.TRUE);
+        saveOptions.put(XMLResource.OPTION_SKIP_ESCAPE_URI, Boolean.FALSE);
+        saveOptions.put(XMLResource.OPTION_ENCODING, "UTF-8");
+        return saveOptions;
+    }
+
+    public Map<Object, Object> defaultLoadOptions() {
+        Map<Object, Object> loadOptions = new HashMap<>();
+        //loadOptions.put(XMLResource.OPTION_RECORD_UNKNOWN_FEATURE, Boolean.TRUE);
+        //loadOptions.put(XMLResource.OPTION_EXTENDED_META_DATA, Boolean.TRUE);
+        loadOptions.put(XMLResource.OPTION_DEFER_IDREF_RESOLUTION, Boolean.TRUE);
+        loadOptions.put(XMLResource.OPTION_LAX_FEATURE_PROCESSING, Boolean.TRUE);
+        loadOptions.put(XMLResource.OPTION_PROCESS_DANGLING_HREF, XMLResource.OPTION_PROCESS_DANGLING_HREF_DISCARD);
+        return loadOptions;
+    }
+    */
+
     private static void replaceTypeNames(final RdbmsField field, final String dialect) {
         final String typeName = field.getRdbmsTypeName();
         if (typeName.equals("Number")) {
@@ -260,8 +321,8 @@ public class Excel2RdbmsTest {
                 ), liquibaseDb).update("");
     }
 
-    private static void saveRdbms(RdbmsModel rdbmsModel, String dialect) {
-        File incrementalRdbmsFile = new File(TARGET_TEST_CLASSES, getRdbmsFileName(rdbmsModel, dialect));
+    private static void saveRdbms(String name, RdbmsModel rdbmsModel, String dialect) {
+        File incrementalRdbmsFile = new File(TARGET_TEST_CLASSES, getRdbmsFileName(name, rdbmsModel, dialect));
         try {
             rdbmsModel.saveRdbmsModel(rdbmsSaveArgumentsBuilder().file(incrementalRdbmsFile));
         } catch (RdbmsValidationException | IOException ex) {
@@ -270,8 +331,8 @@ public class Excel2RdbmsTest {
 
     }
 
-    private static String getRdbmsFileName(final RdbmsModel rdbmsModel, String dialect) {
-        return "test-" + dialect + "-" + rdbmsModel.getName() + "-rdbms.model";
+    private static String getRdbmsFileName(String name, final RdbmsModel rdbmsModel, String dialect) {
+        return name + "-" + dialect + "-" + rdbmsModel.getName() + "-rdbms.model";
     }
 
     private static void saveLiquibase(LiquibaseModel liquibaseModel, String dialect) throws IOException {

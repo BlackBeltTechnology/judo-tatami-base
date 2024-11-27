@@ -22,7 +22,9 @@ package hu.blackbelt.judo.tatami.psm2asm;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
 import hu.blackbelt.epsilon.runtime.execution.ExecutionContext;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.contexts.EtlExecutionContext;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
@@ -79,7 +81,7 @@ public class Psm2Asm {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
     }
 
     public static Psm2AsmTransformationTrace executePsm2AsmTransformation(Psm2AsmParameter.Psm2AsmParameterBuilder builder) throws Exception {
@@ -96,35 +98,37 @@ public class Psm2Asm {
                                                  });
 
         try {
+
             WrappedEmfModelContext psmModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("JUDOPSM")
                     .resource(parameter.psmModel.getResource())
+                    .useCache(parameter.useCache)
+                    .validateModel(false)
+                    .build();
+
+            WrappedEmfModelContext asmModelContext = wrappedEmfModelContextBuilder()
+                    .log(log)
+                    .name("ASM")
+                    .resource(parameter.asmModel.getResource())
+                    .parallel(parameter.parallel)
+                    .useCache(parameter.useCache)
                     .build();
 
             // Executrion context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
+                    //.resourceSet(executionResourceSet)
                     .modelContexts(ImmutableList.of(
                             psmModelContext,
-                            wrappedEmfModelContextBuilder()
-                                    .log(log)
-                                    .name("ASM")
-                                    .resource(parameter.asmModel.getResource())
-                                    .build()))
+                            asmModelContext))
                     .injectContexts(ImmutableMap.of(
                             "asmUtils", new AsmUtils(parameter.asmModel.getResourceSet()),
-                            "psmUtils", new PsmUtils()
+                            "psmUtils", new PsmUtils(parameter.psmModel.getResourceSet())
                     )).build();
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(psmModelContext.getName())).setCachingEnabled(true);
-            }
 
             EtlExecutionContext etlExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("psmToAsm.etl", parameter.scriptUri))
@@ -141,6 +145,8 @@ public class Psm2Asm {
             executionContext.executeProgram(etlExecutionContext);
             executionContext.commit();
             executionContext.close();
+
+            // AsmUtils asmUtils = new AsmUtils(parameter.asmModel.getResourceSet()).getModel().get().setName(parameter.psmModel.getName());
 
             Map<EObject, List<EObject>> traceMap = new ConcurrentHashMap<>();
             if (parameter.createTrace) {

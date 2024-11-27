@@ -80,7 +80,7 @@ public class Asm2Keycloak {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
     }
 
     public static Asm2KeycloakTransformationTrace executeAsm2KeycloakTransformation(Asm2KeycloakParameter.Asm2KeycloakParameterBuilder builder) throws Exception {
@@ -101,6 +101,8 @@ public class Asm2Keycloak {
                     .log(log)
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
+                    .useCache(parameter.useCache)
+                    .validateModel(false)
                     .build();
 
             // Execution context
@@ -111,6 +113,7 @@ public class Asm2Keycloak {
                                     wrappedEmfModelContextBuilder()
                                             .log(log)
                                             .name("KEYCLOAK")
+                                            .useCache(parameter.useCache)
                                             .resource(parameter.keycloakModel.getResource())
                                             .build()
                             )
@@ -122,13 +125,6 @@ public class Asm2Keycloak {
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(asmModelContext.getName())).setCachingEnabled(true);
-            }
-
 
             EtlExecutionContext asm2keycloakExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("asmToKeycloak.etl", parameter.scriptUri))

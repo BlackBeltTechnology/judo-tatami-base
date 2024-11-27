@@ -73,7 +73,7 @@ public class Rdbms2Liquibase {
         Boolean parallel = true;
 
         @Builder.Default
-        boolean useCache = false;
+        boolean useCache = true;
     }
 
     public static void executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.Rdbms2LiquibaseParameterBuilder builder) throws Exception {
@@ -92,30 +92,26 @@ public class Rdbms2Liquibase {
             WrappedEmfModelContext rdbmsModelContext = wrappedEmfModelContextBuilder()
                     .log(log)
                     .name("RDBMS")
+                    .useCache(parameter.useCache)
+                    .validateModel(false)
                     .resource(parameter.rdbmsModel.getResourceSet().getResource(parameter.rdbmsModel.getUri(), false))
                     .build();
 
             // Execution context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-                    .resourceSet(parameter.liquibaseModel.getResourceSet())
                     .modelContexts(ImmutableList.of(
                             rdbmsModelContext,
                             wrappedEmfModelContextBuilder()
                                     .log(log)
                                     .name("LIQUIBASE")
                                     .resource(parameter.liquibaseModel.getResource())
+                                    .useCache(parameter.useCache)
                                     .build()))
                     .build();
 
             // run the model / metadata loading
             executionContext.load();
-
-            // Use cache
-            if (parameter.useCache) {
-                ((EmfModel) executionContext.getProjectModelRepository()
-                        .getModelByName(rdbmsModelContext.getName())).setCachingEnabled(true);
-            }
 
             // Transformation script
             executionContext.executeProgram(
