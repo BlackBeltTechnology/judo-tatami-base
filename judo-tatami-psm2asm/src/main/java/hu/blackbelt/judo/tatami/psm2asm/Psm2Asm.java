@@ -111,7 +111,6 @@ public class Psm2Asm {
                     .log(log)
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
-                    .parallel(parameter.parallel)
                     .useCache(parameter.useCache)
                     .build();
 
@@ -132,6 +131,7 @@ public class Psm2Asm {
 
             EtlExecutionContext etlExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("psmToAsm.etl", parameter.scriptUri))
+                    .parallel(true)
                     .parameters(ImmutableList.of(
                             programParameterBuilder().name("modelName").value(parameter.psmModel.getName()).build(),
                             programParameterBuilder().name("nsURI").value("http://blackbelt.hu/judo/" + parameter.psmModel.getName()).build(),
