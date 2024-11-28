@@ -117,7 +117,6 @@ public class Psm2Asm {
             // Executrion context
             ExecutionContext executionContext = executionContextBuilder()
                     .log(log)
-                    //.resourceSet(executionResourceSet)
                     .modelContexts(ImmutableList.of(
                             psmModelContext,
                             asmModelContext))
@@ -131,7 +130,6 @@ public class Psm2Asm {
 
             EtlExecutionContext etlExecutionContext = etlExecutionContextBuilder()
                     .source(UriUtil.resolve("psmToAsm.etl", parameter.scriptUri))
-                    .parallel(true)
                     .parameters(ImmutableList.of(
                             programParameterBuilder().name("modelName").value(parameter.psmModel.getName()).build(),
                             programParameterBuilder().name("nsURI").value("http://blackbelt.hu/judo/" + parameter.psmModel.getName()).build(),
