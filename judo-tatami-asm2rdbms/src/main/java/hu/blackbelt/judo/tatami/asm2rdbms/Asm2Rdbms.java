@@ -178,6 +178,7 @@ public class Asm2Rdbms {
                     .log(log)
                     .name("ASM")
                     .useCache(parameter.useCache)
+                    .parallel(parameter.parallel)
                     .validateModel(false)
                     .resource(parameter.asmModel.getResource())
                     .build();
@@ -191,6 +192,8 @@ public class Asm2Rdbms {
                                     .log(log)
                                     .name("RDBMS")
                                     .useCache(parameter.useCache)
+                                    .parallel(parameter.parallel)
+                                    .validateModel(false)
                                     .resource(parameter.rdbmsModel.getResource())
                                     .build()))
                     .injectContexts(
