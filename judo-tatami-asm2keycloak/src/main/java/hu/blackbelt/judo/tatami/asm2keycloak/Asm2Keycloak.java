@@ -102,6 +102,7 @@ public class Asm2Keycloak {
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
                     .useCache(parameter.useCache)
+                    .parallel(parameter.parallel)
                     .validateModel(false)
                     .build();
 
@@ -114,6 +115,8 @@ public class Asm2Keycloak {
                                             .log(log)
                                             .name("KEYCLOAK")
                                             .useCache(parameter.useCache)
+                                            .parallel(parameter.parallel)
+                                            .validateModel(false)
                                             .resource(parameter.keycloakModel.getResource())
                                             .build()
                             )
