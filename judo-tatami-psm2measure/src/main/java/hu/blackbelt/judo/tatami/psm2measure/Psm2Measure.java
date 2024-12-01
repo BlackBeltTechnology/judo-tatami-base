@@ -98,6 +98,7 @@ public class Psm2Measure {
                     .name("JUDOPSM")
                     .resource(parameter.psmModel.getResource())
                     .useCache(parameter.useCache)
+                    .parallel(parameter.parallel)
                     .validateModel(false)
                     .build();
 
@@ -111,6 +112,8 @@ public class Psm2Measure {
                                     .name("MEASURES")
                                     .resource(parameter.measureModel.getResource())
                                     .useCache(parameter.useCache)
+                                    .parallel(parameter.parallel)
+                                    .validateModel(false)
                                     .build()))
                     .injectContexts(ImmutableMap.of("psmUtils", new PsmUtils(),
                             "measureUtils", new MeasureUtils(parameter.measureModel.getResourceSet())))
