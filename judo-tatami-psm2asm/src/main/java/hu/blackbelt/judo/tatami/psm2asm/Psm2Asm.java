@@ -104,6 +104,7 @@ public class Psm2Asm {
                     .name("JUDOPSM")
                     .resource(parameter.psmModel.getResource())
                     .useCache(parameter.useCache)
+                    .parallel(parameter.parallel)
                     .validateModel(false)
                     .build();
 
@@ -112,6 +113,8 @@ public class Psm2Asm {
                     .name("ASM")
                     .resource(parameter.asmModel.getResource())
                     .useCache(parameter.useCache)
+                    .parallel(parameter.parallel)
+                    .validateModel(false)
                     .build();
 
             // Executrion context
