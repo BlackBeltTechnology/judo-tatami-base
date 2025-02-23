@@ -94,7 +94,7 @@ rule CreateCustomImplementationAnnotationOnOperation
 }
 
 @greedy
-rule CreateCustomImplementationAnnotationOnOperation
+rule CreateCustomImplementationAnnotationOnBoundOperation
     transform s : JUDOPSM!BoundOperation
     to t : ASM!EAnnotation {
         guard: s.implementation.isDefined()
