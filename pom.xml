@@ -96,7 +96,7 @@
         <judo-meta-expression-version>1.0.5.20250222_041137_c751bf6e_develop</judo-meta-expression-version>
         <judo-meta-expression-psm-version>1.0.5.20250319_115945_ad3e6d9b_develop</judo-meta-expression-psm-version>
         <judo-meta-expression-asm-version>1.0.5.20250225_041316_163ba3b5_develop</judo-meta-expression-asm-version>
-        <judo-meta-keycloak-version>1.0.1.20250222_040653_801aca72_develop</judo-meta-keycloak-version>
+        <judo-meta-keycloak-version>1.0.1.20250602_042222_8bcc6f26_develop</judo-meta-keycloak-version>
         <judo-meta-measure-version>1.0.2.20250222_040644_be0843f8_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20250222_040917_9666758e_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20241127_150146_84f2988d_develop</judo-dispatcher-api-version>
