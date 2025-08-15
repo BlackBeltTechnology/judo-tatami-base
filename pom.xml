@@ -83,7 +83,8 @@
 
         <java-embedded-compiler-version>1.1.0.20250806_043200_64da1cea_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20250806_043844_584368a7_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4-SNAPSHOT</judo-tatami-core-version>
+        <judo-tatami-util-version>1.0.0-SNAPSHOT</judo-tatami-util-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20250605_192947_c2e81b28_develop</judo-dao-api-version>
@@ -425,6 +426,12 @@
                 <groupId>hu.blackbelt.judo.tatami</groupId>
                 <artifactId>judo-tatami-core</artifactId>
                 <version>${judo-tatami-core-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-util</artifactId>
+                <version>${judo-tatami-util-version}</version>
             </dependency>
 
             <dependency>

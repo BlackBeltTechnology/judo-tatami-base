@@ -50,7 +50,7 @@ import static hu.blackbelt.epsilon.runtime.execution.contexts.EtlExecutionContex
 import static hu.blackbelt.epsilon.runtime.execution.contexts.ProgramParameter.programParameterBuilder;
 import static hu.blackbelt.epsilon.runtime.execution.model.emf.WrappedEmfModelContext.wrappedEmfModelContextBuilder;
 import static hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakTransformationTrace.resolveAsm2KeycloakTrace;
-import static hu.blackbelt.judo.tatami.core.TransformationTraceUtil.getTransformationTraceFromEtlExecutionContext;
+import static hu.blackbelt.judo.tatami.util.TransformationTraceExtractor.getTransformationTraceFromEtlExecutionContext;
 
 @Slf4j
 public class Asm2Keycloak {
