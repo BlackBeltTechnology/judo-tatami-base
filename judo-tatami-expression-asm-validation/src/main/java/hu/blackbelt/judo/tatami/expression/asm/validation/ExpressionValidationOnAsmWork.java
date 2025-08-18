@@ -20,11 +20,9 @@ package hu.blackbelt.judo.tatami.expression.asm.validation;
  * #L%
  */
 
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.judo.meta.expression.adapters.asm.ExpressionValidatorOnAsm;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import hu.blackbelt.judo.meta.expression.adapters.asm.ExpressionEpsilonValidatorOnAsm;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
@@ -53,11 +51,10 @@ public class ExpressionValidationOnAsmWork extends AbstractTransformationWork {
         asmModel.orElseThrow(() -> new IllegalArgumentException("ASM Model does not found in transformation context"));
 
         try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            ExpressionEpsilonValidatorOnAsm.validateExpressionOnAsm(logger,
+            ExpressionValidatorOnAsm.validateExpressionOnAsm(logger,
                     asmModel.get(),
                     measureModel.get(),
-                    expressionModel.get(),
-                    ExpressionEpsilonValidatorOnAsm.calculateExpressionValidationScriptURI());
+                    expressionModel.get());
         }
     }
 }
