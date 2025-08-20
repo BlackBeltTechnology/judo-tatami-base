@@ -79,27 +79,27 @@
         <surefire-version>3.5.1</surefire-version>
 
         <liquibase-version>4.4.3</liquibase-version>
-        <epsilon-runtime-version>2.8.0.20250818_020714_e9350189_feature_JNG_6322_Minimiize_Karaf_Size</epsilon-runtime-version>
+        <epsilon-runtime-version>2.8.0.20250820_074004_d018a661_develop</epsilon-runtime-version>
 
-        <java-embedded-compiler-version>1.1.0.20250818_013736_a1c33bac_feature_JNG_6322_Minimiize_Karaf_Size</java-embedded-compiler-version>
+        <java-embedded-compiler-version>1.1.0.20250820_074011_94595efb_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20250818_010038_2c4e76da_feature_JNG_6322_Minimiize_Karaf_Size</judo-tatami-core-version>
-        <judo-tatami-util-version>1.0.0.20250818_020952_1d35adee_feature_JNG_6322_Minimiize_Karaf_Size</judo-tatami-util-version>
+        <judo-tatami-core-version>1.1.4.20250819_223206_e27883c8_develop</judo-tatami-core-version>
+        <judo-tatami-util-version>1.0.0.20250820_074349_a1fd10ea_develop</judo-tatami-util-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20250605_192947_c2e81b28_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20250818_022210_a7e5c4ef_feature_JNG_6322_Minimiize_Karaf_Size</judo-sdk-common-version>
-        <judo-operation-utils-version>1.1.3.20250818_022054_7afb111c_feature_JNG_6322_Minimiize_Karaf_Size</judo-operation-utils-version>
-        <judo-meta-rdbms-version>1.0.2.20250818_021532_c84bd6b6_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-rdbms-version>
-		<judo-meta-psm-version>1.3.0.20250818_022014_86b433d3_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.4.20250818_013958_8d9d8c51_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-jql-version>
-        <judo-meta-asm-version>1.1.4.20250818_021505_e5c6a473_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20250818_022353_405ea881_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.5.20250818_023716_e127c4d8_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.5.20250818_023709_f00f1694_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-expression-asm-version>
-        <judo-meta-keycloak-version>1.0.1.20250818_021512_5d57740f_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-keycloak-version>
-        <judo-meta-measure-version>1.0.2.20250818_021501_323ca3da_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20250818_022014_9f60637a_feature_JNG_6322_Minimiize_Karaf_Size</judo-meta-liquibase-version>
+        <judo-sdk-common-version>1.0.4.20250820_075117_76987b7b_develop</judo-sdk-common-version>
+        <judo-operation-utils-version>1.1.3.20250820_075123_e997b5fb_develop</judo-operation-utils-version>
+        <judo-meta-rdbms-version>1.0.2.20250820_074908_e92e146c_develop</judo-meta-rdbms-version>
+		<judo-meta-psm-version>1.3.0.20250820_074850_332f8d0f_develop</judo-meta-psm-version>
+        <judo-meta-jql-version>1.0.4.20250820_074230_9d12e127_develop</judo-meta-jql-version>
+        <judo-meta-asm-version>1.1.4.20250820_074844_0c801b69_develop</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20250820_075409_1458b4cd_develop</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.5.20250820_075813_d4c818a7_develop</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.5.20250820_075809_f246dcd2_develop</judo-meta-expression-asm-version>
+        <judo-meta-keycloak-version>1.0.1.20250820_074909_0a30d4ee_develop</judo-meta-keycloak-version>
+        <judo-meta-measure-version>1.0.2.20250820_074920_7f26d068_develop</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20250820_074950_9d7b02ff_develop</judo-meta-liquibase-version>
         <judo-dispatcher-api-version>1.0.3.20250605_191812_7164733f_develop</judo-dispatcher-api-version>
 
         <xtext-version>2.39.0</xtext-version>
