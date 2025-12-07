@@ -31,8 +31,7 @@ import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
 import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
-import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
-import hu.blackbelt.judo.tatami.psm2asm.Psm2AsmWork;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -156,16 +155,21 @@ public class Psm2AsmPerformanceTest {
     private void executeTransformation(PsmModel psmModel, TransformationMode mode) throws Exception {
         AsmModel asmModel = buildAsmModel().build();
         
-        TransformationContext ctx = new TransformationContext("perf-test");
-        ctx.put(psmModel);
-        ctx.put(asmModel);
-        ctx.put(Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter()
-                .transformationMode(mode)
-                .createTrace(false)
-                .build());
-        
-        Psm2AsmWork work = new Psm2AsmWork(ctx);
-        work.execute();
+        if (mode.isZeta()) {
+            // Execute Zeta transformation directly
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName("PerformanceTest")
+                    .build();
+            transformation.execute();
+        } else {
+            // Execute ETL transformation directly
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .createTrace(false));
+        }
     }
 
     private void printComparison(String testName, int entityCount, int totalElements, 
