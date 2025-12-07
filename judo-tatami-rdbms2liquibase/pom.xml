@@ -94,7 +94,6 @@
 			<groupId>hu.blackbelt.judo.tatami</groupId>
 			<artifactId>judo-tatami-core</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>

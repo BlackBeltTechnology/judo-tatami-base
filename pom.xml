@@ -83,8 +83,8 @@
 
         <java-embedded-compiler-version>1.1.0.20251022_091344_89e2d765_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20260202_143500_4fe70cce_develop</judo-tatami-core-version>
-        <judo-tatami-util-version>1.0.0.20260202_143554_ef77c3c7_develop</judo-tatami-util-version>
+        <judo-tatami-core-version>1.1.4.20251207_225415_d638a064_feature_JNG_6349_AddZetaValidatiob</judo-tatami-core-version>
+        <judo-tatami-util-version>1.0.0.20251205_154449_952712c1_develop</judo-tatami-util-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20250605_192947_c2e81b28_develop</judo-dao-api-version>
@@ -113,6 +113,9 @@
         <sonar.language>java</sonar.language>
         <sonar.java.source>${java.version}</sonar.java.source>
         <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- Zeta Framework -->
+        <judo-zeta-version>1.0.0.20251207_081454_0779b890_develop</judo-zeta-version>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>
@@ -541,6 +544,23 @@
                 <groupId>hu.blackbelt.bundles.throwing-function</groupId>
                 <artifactId>com.pivovarit.throwing-function</artifactId>
                 <version>1.5.1_1</version>
+            </dependency>
+
+            <!-- Zeta Framework -->
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>zeta-annotations</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>transformation-core</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>validation-core</artifactId>
+                <version>${judo-zeta-version}</version>
             </dependency>
 
         </dependencies>
