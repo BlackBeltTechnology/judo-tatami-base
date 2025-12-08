@@ -150,5 +150,5 @@ openspec apply <change-id>
 
 - `project.md` - Project conventions and structure
 - `README.md` - Project overview
-- `CONTRIBUTING.adoc` - Contribution guidelines
+- `CONTRIBUTING.md` - Contribution guidelines
 - `.claude/skills/zeta-validation.md` - Zeta validation framework guide

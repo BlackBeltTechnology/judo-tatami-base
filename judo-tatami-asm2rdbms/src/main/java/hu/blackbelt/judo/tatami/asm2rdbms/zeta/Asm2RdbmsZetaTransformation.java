@@ -796,11 +796,18 @@ public class Asm2RdbmsZetaTransformation {
             if (rdbmsSize != null && !rdbmsSize.isEmpty()) {
                 if (rdbmsSize.startsWith("#") && attr != null) {
                     // Annotation-based size (e.g., #constraints:maxLength)
-                    String annotation = rdbmsSize.substring(1).split(":")[0];
-                    String annotationKey = rdbmsSize.substring(1).split(":")[1];
-                    Optional<String> maxLength = asmUtils.getExtensionAnnotationCustomValue(attr, annotation, annotationKey, false);
-                    if (maxLength.isPresent()) {
-                        field.setSize(Integer.parseInt(maxLength.get()));
+                    String[] parts = rdbmsSize.substring(1).split(":", 2);
+                    if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
+                        String annotation = parts[0];
+                        String annotationKey = parts[1];
+                        Optional<String> maxLength = asmUtils.getExtensionAnnotationCustomValue(attr, annotation, annotationKey, false);
+                        if (maxLength.isPresent()) {
+                            try {
+                                field.setSize(Integer.parseInt(maxLength.get()));
+                            } catch (NumberFormatException e) {
+                                // Ignore invalid size from annotation
+                            }
+                        }
                     }
                 } else {
                     try {
@@ -814,11 +821,18 @@ public class Asm2RdbmsZetaTransformation {
             String rdbmsPrecision = typeMapping.getRdbmsPrecision();
             if (rdbmsPrecision != null && !rdbmsPrecision.isEmpty()) {
                 if (rdbmsPrecision.startsWith("#") && attr != null) {
-                    String annotation = rdbmsPrecision.substring(1).split(":")[0];
-                    String annotationKey = rdbmsPrecision.substring(1).split(":")[1];
-                    Optional<String> precision = asmUtils.getExtensionAnnotationCustomValue(attr, annotation, annotationKey, false);
-                    if (precision.isPresent()) {
-                        field.setPrecision(Integer.parseInt(precision.get()));
+                    String[] parts = rdbmsPrecision.substring(1).split(":", 2);
+                    if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
+                        String annotation = parts[0];
+                        String annotationKey = parts[1];
+                        Optional<String> precision = asmUtils.getExtensionAnnotationCustomValue(attr, annotation, annotationKey, false);
+                        if (precision.isPresent()) {
+                            try {
+                                field.setPrecision(Integer.parseInt(precision.get()));
+                            } catch (NumberFormatException e) {
+                                // Ignore invalid precision from annotation
+                            }
+                        }
                     }
                 } else {
                     try {
@@ -832,11 +846,18 @@ public class Asm2RdbmsZetaTransformation {
             String rdbmsScale = typeMapping.getRdbmsScale();
             if (rdbmsScale != null && !rdbmsScale.isEmpty()) {
                 if (rdbmsScale.startsWith("#") && attr != null) {
-                    String annotation = rdbmsScale.substring(1).split(":")[0];
-                    String annotationKey = rdbmsScale.substring(1).split(":")[1];
-                    Optional<String> scale = asmUtils.getExtensionAnnotationCustomValue(attr, annotation, annotationKey, false);
-                    if (scale.isPresent()) {
-                        field.setScale(Integer.parseInt(scale.get()));
+                    String[] parts = rdbmsScale.substring(1).split(":", 2);
+                    if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
+                        String annotation = parts[0];
+                        String annotationKey = parts[1];
+                        Optional<String> scale = asmUtils.getExtensionAnnotationCustomValue(attr, annotation, annotationKey, false);
+                        if (scale.isPresent()) {
+                            try {
+                                field.setScale(Integer.parseInt(scale.get()));
+                            } catch (NumberFormatException e) {
+                                // Ignore invalid scale from annotation
+                            }
+                        }
                     }
                 } else {
                     try {

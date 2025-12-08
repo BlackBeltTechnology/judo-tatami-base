@@ -375,6 +375,7 @@ public class Rdbms2LiquibaseZetaTransformation {
 
         log.debug("    Transform unique constraint: {}", constraint.getSqlName());
 
+        AddUniqueConstraint firstAddUnique = null;
         for (RdbmsField field : constraint.getFields()) {
             AddUniqueConstraint addUnique = liquibaseFactory.createAddUniqueConstraint();
             addUnique.setConstraintName(constraint.getSqlName());
@@ -387,10 +388,18 @@ public class Rdbms2LiquibaseZetaTransformation {
                     "add-unique-constraints");
             uniqueChangeSet.getAddUniqueConstraint().add(addUnique);
 
+            // Keep track of first created element for tracing
+            if (firstAddUnique == null) {
+                firstAddUnique = addUnique;
+            }
+
             log.debug("AddUniqueConstraint added: {} ({})", addUnique.getColumnNames(), addUnique.getTableName());
         }
 
-        addTrace(constraint, UNIQUE_CONSTRAINT_TO_ADD_UNIQUE, constraint);
+        // Trace from original constraint to the first created AddUniqueConstraint
+        if (firstAddUnique != null) {
+            addTrace(constraint, UNIQUE_CONSTRAINT_TO_ADD_UNIQUE, firstAddUnique);
+        }
     }
 
     // =========================================================================
