@@ -885,14 +885,29 @@ public class Psm2AsmZetaTransformation {
             }
         }
 
-        // Add to containing namespace
+        // Add to containing namespace via an OperationHolder class
         Namespace ns = (Namespace) unboundOp.eContainer();
         if (ns != null) {
             EPackage pkg = (EPackage) getEquivalent(ns, 
                     ns instanceof Model ? MODEL_TO_PACKAGE : PACKAGE_TO_PACKAGE);
             if (pkg != null) {
-                // Unbound operations go to a class in the package
-                // For now, add to package annotation or create operation holder
+                // Find or create OperationHolder class in the package
+                EClass operationHolder = null;
+                for (EClassifier classifier : pkg.getEClassifiers()) {
+                    if (classifier instanceof EClass && "OperationHolder".equals(classifier.getName())) {
+                        operationHolder = (EClass) classifier;
+                        break;
+                    }
+                }
+                if (operationHolder == null) {
+                    operationHolder = EcoreFactory.eINSTANCE.createEClass();
+                    operationHolder.setName("OperationHolder");
+                    operationHolder.setAbstract(true);
+                    operationHolder.setInterface(true);
+                    pkg.getEClassifiers().add(operationHolder);
+                }
+                // Add the operation to the holder class
+                operationHolder.getEOperations().add(eOp);
             }
         }
 

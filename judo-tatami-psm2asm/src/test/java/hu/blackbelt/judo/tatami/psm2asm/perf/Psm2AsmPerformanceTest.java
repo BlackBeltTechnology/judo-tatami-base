@@ -165,6 +165,9 @@ public class Psm2AsmPerformanceTest {
             transformation.execute();
         } else {
             // Execute ETL transformation directly
+            // Note: executePsm2AsmTransformation is the ETL-only static method,
+            // distinct from Psm2AsmWork which supports both modes via TransformationMode.
+            // This ensures ETL execution regardless of system property settings.
             executePsm2AsmTransformation(psm2AsmParameter()
                     .psmModel(psmModel)
                     .asmModel(asmModel)
@@ -181,39 +184,46 @@ public class Psm2AsmPerformanceTest {
         log.info("");
         log.info("                    ETL              ZETA           Difference");
         log.info("----------------------------------------------------------------");
-        log.info("Min:          {:>8}ms       {:>8}ms       {:>+8.1f}ms ({:>+.1f}%)", 
-                etlResult.min, zetaResult.min, 
-                (double)(zetaResult.min - etlResult.min),
-                percentDiff(etlResult.min, zetaResult.min));
-        log.info("Max:          {:>8}ms       {:>8}ms       {:>+8.1f}ms ({:>+.1f}%)", 
-                etlResult.max, zetaResult.max,
-                (double)(zetaResult.max - etlResult.max),
-                percentDiff(etlResult.max, zetaResult.max));
-        log.info("Avg:          {:>8.1f}ms       {:>8.1f}ms       {:>+8.1f}ms ({:>+.1f}%)", 
-                etlResult.avg, zetaResult.avg,
-                zetaResult.avg - etlResult.avg,
-                percentDiff(etlResult.avg, zetaResult.avg));
-        log.info("Median:       {:>8}ms       {:>8}ms       {:>+8.1f}ms ({:>+.1f}%)", 
-                etlResult.median, zetaResult.median,
-                (double)(zetaResult.median - etlResult.median),
-                percentDiff(etlResult.median, zetaResult.median));
-        log.info("StdDev:       {:>8.1f}ms       {:>8.1f}ms", etlResult.stdDev, zetaResult.stdDev);
+        log.info("Min:          {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8d", etlResult.min), 
+                String.format("%8d", zetaResult.min), 
+                String.format("%+8.1f", (double)(zetaResult.min - etlResult.min)),
+                String.format("%+.1f", percentDiff(etlResult.min, zetaResult.min)));
+        log.info("Max:          {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8d", etlResult.max), 
+                String.format("%8d", zetaResult.max),
+                String.format("%+8.1f", (double)(zetaResult.max - etlResult.max)),
+                String.format("%+.1f", percentDiff(etlResult.max, zetaResult.max)));
+        log.info("Avg:          {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8.1f", etlResult.avg), 
+                String.format("%8.1f", zetaResult.avg),
+                String.format("%+8.1f", zetaResult.avg - etlResult.avg),
+                String.format("%+.1f", percentDiff(etlResult.avg, zetaResult.avg)));
+        log.info("Median:       {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8d", etlResult.median), 
+                String.format("%8d", zetaResult.median),
+                String.format("%+8.1f", (double)(zetaResult.median - etlResult.median)),
+                String.format("%+.1f", percentDiff(etlResult.median, zetaResult.median)));
+        log.info("StdDev:       {}ms       {}ms", 
+                String.format("%8.1f", etlResult.stdDev), 
+                String.format("%8.1f", zetaResult.stdDev));
         log.info("");
         
         double etlThroughput = totalElements / (etlResult.avg / 1000.0);
         double zetaThroughput = totalElements / (zetaResult.avg / 1000.0);
-        log.info("Throughput:   {:>8.0f}/s       {:>8.0f}/s       {:>+8.0f}/s ({:>+.1f}%)", 
-                etlThroughput, zetaThroughput,
-                zetaThroughput - etlThroughput,
-                percentDiff(etlThroughput, zetaThroughput));
+        log.info("Throughput:   {}/s       {}/s       {}/s ({}%)", 
+                String.format("%8.0f", etlThroughput), 
+                String.format("%8.0f", zetaThroughput),
+                String.format("%+8.0f", zetaThroughput - etlThroughput),
+                String.format("%+.1f", percentDiff(etlThroughput, zetaThroughput)));
         log.info("");
         
         if (zetaResult.avg < etlResult.avg) {
             double speedup = etlResult.avg / zetaResult.avg;
-            log.info(">>> ZETA is {:.2f}x FASTER than ETL <<<", speedup);
+            log.info(">>> ZETA is {}x FASTER than ETL <<<", String.format("%.2f", speedup));
         } else if (zetaResult.avg > etlResult.avg) {
             double slowdown = zetaResult.avg / etlResult.avg;
-            log.info(">>> ZETA is {:.2f}x SLOWER than ETL <<<", slowdown);
+            log.info(">>> ZETA is {}x SLOWER than ETL <<<", String.format("%.2f", slowdown));
         } else {
             log.info(">>> ETL and ZETA have EQUAL performance <<<");
         }

@@ -103,12 +103,24 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
     private Psm2MeasureTransformationTrace executeZetaTransformation(
             PsmModel psmModel, MeasureModel measureModel, Psm2MeasureWorkParameter workParam) {
         
+        // Note: Zeta transformation currently does not support useCache or parallel flags
+        // These are ETL-specific optimizations. If trace creation is disabled, we still
+        // execute the transformation but return an empty trace.
+        if (workParam.useCache || workParam.parallel) {
+            log.debug("Zeta transformation ignores useCache and parallel flags (ETL-specific)");
+        }
+        
         Psm2MeasureZetaTransformation transformation = Psm2MeasureZetaTransformation.builder()
                 .psmModel(psmModel)
                 .measureModel(measureModel)
                 .build();
 
         Map<EObject, List<EObject>> trace = transformation.execute();
+        
+        // Respect createTrace flag - return empty trace if disabled
+        if (!workParam.createTrace) {
+            trace = java.util.Collections.emptyMap();
+        }
         
         return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
                 .trace(trace)

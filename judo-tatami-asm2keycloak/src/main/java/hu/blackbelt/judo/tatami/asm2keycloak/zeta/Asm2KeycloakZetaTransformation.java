@@ -56,8 +56,8 @@ public class Asm2KeycloakZetaTransformation {
     // Trace map for source to target element mapping
     private final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
 
-    // Cache for realms by name
-    private final Map<String, Realm> realmCache = new HashMap<>();
+    // Cache for realms by name (thread-safe for parallel execution)
+    private final Map<String, Realm> realmCache = new ConcurrentHashMap<>();
 
     @Builder
     public Asm2KeycloakZetaTransformation(
@@ -105,23 +105,25 @@ public class Asm2KeycloakZetaTransformation {
     private void createRealms() {
         log.debug("Creating realms");
 
-        // Collect unique realm names from actor types
-        Set<String> realmNames = new HashSet<>();
+        // Collect actor types grouped by realm name (first actor for each realm is the source for tracing)
+        Map<String, EClass> realmToFirstActor = new LinkedHashMap<>();
         asmUtils.getAllActorTypes().forEach(actor -> {
             Optional<String> realmOpt = asmUtils.getExtensionAnnotationValue(actor, "realm", false);
             if (realmOpt.isPresent() && !realmOpt.get().trim().isEmpty()) {
-                realmNames.add(realmOpt.get().trim());
+                String realmName = realmOpt.get().trim();
+                // Only store the first actor that references this realm (for tracing)
+                realmToFirstActor.putIfAbsent(realmName, actor);
             }
         });
 
-        // Create realm for each unique name
-        for (String realmName : realmNames) {
-            createRealm(realmName);
+        // Create realm for each unique name with proper tracing
+        for (Map.Entry<String, EClass> entry : realmToFirstActor.entrySet()) {
+            createRealm(entry.getKey(), entry.getValue());
         }
     }
 
-    private void createRealm(String realmName) {
-        log.debug("  Creating realm: {}", realmName);
+    private void createRealm(String realmName, EClass sourceActor) {
+        log.debug("  Creating realm: {} (from actor: {})", realmName, sourceActor.getName());
 
         Realm realm = keycloakFactory.createRealm();
         realm.setId(realmName);
@@ -131,6 +133,9 @@ public class Asm2KeycloakZetaTransformation {
 
         keycloakModel.getResource().getContents().add(realm);
         realmCache.put(realmName, realm);
+        
+        // Add trace entry using the source actor that triggered realm creation
+        addTrace(sourceActor, CREATE_REALM, realm);
 
         log.debug("Realm created: {}", realm.getRealm());
     }
