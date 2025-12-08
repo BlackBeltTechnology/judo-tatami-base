@@ -530,6 +530,267 @@ jobs:
           path: target/performance-report/
 ```
 
+## Performance Optimization Plan
+
+After initial implementation, the following optimizations can be applied to improve Zeta transformation performance. Optimizations are organized in phases by impact and implementation effort.
+
+### Phase 1: High Impact, Low Effort
+
+These optimizations can be implemented immediately and provide significant performance gains.
+
+#### 1.1 Cache Frequently Used Lookups
+
+**Problem**: Repeated calls to `findPackage()`, `findEntityClass()`, and similar lookup methods iterate through collections on each call.
+
+**Solution**: Use ConcurrentHashMap caches for frequently accessed elements.
+
+```java
+// In Asm2RdbmsZetaTransformation
+private final Map<String, EClass> entityClassCache = new ConcurrentHashMap<>();
+
+private EClass findEntityClass(String name) {
+    return entityClassCache.computeIfAbsent(name, n -> 
+        asmModel.getAsmUtils().all(EClass.class)
+            .filter(c -> c.getName().equals(n))
+            .findFirst()
+            .orElse(null));
+}
+```
+
+**Affected Files**:
+- `Asm2RdbmsZetaTransformation.java` - 4 lookup methods
+- `Psm2AsmZetaTransformation.java` - 3 lookup methods
+- `Rdbms2LiquibaseZetaTransformation.java` - 2 lookup methods
+
+#### 1.2 Consolidate Stream Operations
+
+**Problem**: Multiple separate stream operations on the same collection create unnecessary intermediate objects.
+
+**Solution**: Combine related stream operations into single passes.
+
+```java
+// Before (3 separate streams)
+List<RdbmsField> fields = table.getFields();
+boolean hasPrimaryKey = fields.stream().anyMatch(RdbmsField::isPrimaryKey);
+List<RdbmsField> foreignKeys = fields.stream().filter(RdbmsField::isForeignKey).toList();
+int fieldCount = fields.stream().mapToInt(f -> 1).sum();
+
+// After (single pass)
+record FieldAnalysis(boolean hasPrimaryKey, List<RdbmsField> foreignKeys, int count) {}
+
+FieldAnalysis analysis = fields.stream().collect(
+    () -> new Object() { boolean pk; List<RdbmsField> fks = new ArrayList<>(); int cnt; },
+    (acc, f) -> { if (f.isPrimaryKey()) acc.pk = true; if (f.isForeignKey()) acc.fks.add(f); acc.cnt++; },
+    (a, b) -> { a.pk |= b.pk; a.fks.addAll(b.fks); a.cnt += b.cnt; }
+);
+```
+
+**Affected Files**:
+- `Rdbms2LiquibaseZetaTransformation.java` - 6 consolidation opportunities
+- `Asm2RdbmsZetaTransformation.java` - 4 consolidation opportunities
+
+#### 1.3 Use Pre-sized Collections
+
+**Problem**: Collections grow dynamically, causing array copies.
+
+**Solution**: Pre-size ArrayList and HashMap where size is known.
+
+```java
+// Before
+List<RdbmsField> fields = new ArrayList<>();
+
+// After
+List<RdbmsField> fields = new ArrayList<>(entity.getAttributes().size() + 5);
+```
+
+**Affected Files**: All 4 Zeta transformations
+
+### Phase 2: Medium Impact, Medium Effort
+
+These optimizations require more careful implementation but provide substantial gains.
+
+#### 2.1 Type Lookup Optimization
+
+**Problem**: `resolveEDataType()` iterates through all EClassifiers for each type resolution.
+
+**Solution**: Build a type registry at transformation start.
+
+```java
+// In Psm2AsmZetaTransformation
+private Map<String, EDataType> typeRegistry;
+
+private void initializeTypeRegistry() {
+    typeRegistry = new HashMap<>();
+    // Pre-populate with Ecore types
+    EcorePackage.eINSTANCE.getEClassifiers().stream()
+        .filter(EDataType.class::isInstance)
+        .forEach(t -> typeRegistry.put(t.getName(), (EDataType) t));
+    // Add custom types
+    customTypes.forEach(t -> typeRegistry.put(t.getName(), t));
+}
+
+private EDataType resolveType(String name) {
+    return typeRegistry.get(name);  // O(1) instead of O(n)
+}
+```
+
+**Affected Files**:
+- `Psm2AsmZetaTransformation.java` - type resolution
+- `Asm2RdbmsZetaTransformation.java` - RDBMS type resolution
+
+#### 2.2 Memoize Expensive Computations
+
+**Problem**: Methods like `getFullyQualifiedName()`, `resolveInheritedAttributes()` are called multiple times for the same elements.
+
+**Solution**: Memoize results using element identity.
+
+```java
+private final Map<EObject, String> fqnCache = new IdentityHashMap<>();
+
+private String getFullyQualifiedName(EClass eClass) {
+    return fqnCache.computeIfAbsent(eClass, c -> {
+        StringBuilder sb = new StringBuilder();
+        EPackage pkg = c.getEPackage();
+        while (pkg != null) {
+            sb.insert(0, pkg.getName() + ".");
+            pkg = pkg.getESuperPackage();
+        }
+        sb.append(c.getName());
+        return sb.toString();
+    });
+}
+```
+
+**Affected Files**:
+- `Psm2AsmZetaTransformation.java` - inheritance resolution
+- `Asm2RdbmsZetaTransformation.java` - FQN computation
+
+#### 2.3 Container Package Cache
+
+**Problem**: Finding the container package requires traversing the containment hierarchy.
+
+**Solution**: Cache element-to-package mappings during initial model traversal.
+
+```java
+private Map<EObject, EPackage> containerPackageCache;
+
+private void buildContainerCache(EPackage rootPackage) {
+    containerPackageCache = new IdentityHashMap<>();
+    TreeIterator<EObject> iterator = rootPackage.eAllContents();
+    while (iterator.hasNext()) {
+        EObject obj = iterator.next();
+        EObject container = obj.eContainer();
+        while (container != null && !(container instanceof EPackage)) {
+            container = container.eContainer();
+        }
+        if (container != null) {
+            containerPackageCache.put(obj, (EPackage) container);
+        }
+    }
+}
+```
+
+**Affected Files**:
+- `Asm2RdbmsZetaTransformation.java`
+- `Rdbms2LiquibaseZetaTransformation.java`
+
+### Phase 3: Optional Optimizations
+
+These optimizations are optional and should be applied based on profiling results.
+
+#### 3.1 Parallel Stream Processing
+
+**Problem**: Large models can benefit from parallel processing.
+
+**Solution**: Use parallel streams for independent transformations with 1000+ elements.
+
+```java
+private static final int PARALLEL_THRESHOLD = 1000;
+
+private void transformEntities(List<EntityType> entities) {
+    Stream<EntityType> stream = entities.size() > PARALLEL_THRESHOLD 
+        ? entities.parallelStream() 
+        : entities.stream();
+    
+    stream.forEach(this::transformEntity);
+}
+```
+
+**Note**: Requires thread-safe trace and output collection handling.
+
+#### 3.2 Lazy Annotation Creation
+
+**Problem**: All annotations are created even if not used.
+
+**Solution**: Create annotations lazily on first access.
+
+```java
+private EAnnotation getOrCreateAnnotation(EModelElement element, String source) {
+    return element.getEAnnotations().stream()
+        .filter(a -> source.equals(a.getSource()))
+        .findFirst()
+        .orElseGet(() -> {
+            EAnnotation ann = EcoreFactory.eINSTANCE.createEAnnotation();
+            ann.setSource(source);
+            element.getEAnnotations().add(ann);
+            return ann;
+        });
+}
+```
+
+#### 3.3 Batch Trace Operations
+
+**Problem**: Individual `addTrace()` calls have overhead.
+
+**Solution**: Batch trace additions and commit at end.
+
+```java
+private final List<TraceEntry> pendingTraces = new ArrayList<>();
+
+private void addTraceBatched(EObject source, String ruleName, EObject target) {
+    pendingTraces.add(new TraceEntry(source, ruleName, target));
+}
+
+private void commitTraces() {
+    // Single batch operation to add all traces
+    pendingTraces.forEach(e -> trace.computeIfAbsent(e.source(), k -> new ArrayList<>()).add(e.target()));
+    pendingTraces.clear();
+}
+```
+
+### Expected Performance Improvements
+
+| Optimization | Estimated Improvement | Complexity |
+|--------------|----------------------|------------|
+| Cache lookups (1.1) | 15-25% | Low |
+| Consolidate streams (1.2) | 5-10% | Low |
+| Pre-sized collections (1.3) | 2-5% | Low |
+| Type registry (2.1) | 10-15% | Medium |
+| Memoization (2.2) | 8-12% | Medium |
+| Container cache (2.3) | 5-8% | Medium |
+| Parallel processing (3.1) | 20-40%* | High |
+| Lazy annotations (3.2) | 2-5% | Low |
+| Batch traces (3.3) | 3-5% | Medium |
+
+*For models with 5000+ elements
+
+### Implementation Priority
+
+1. **Immediate** (Phase 1): Apply during initial implementation
+   - Caching lookups
+   - Pre-sized collections
+   - Stream consolidation where obvious
+
+2. **Post-validation** (Phase 2): Apply after functional equivalence is verified
+   - Type registry
+   - Memoization
+   - Container cache
+
+3. **If needed** (Phase 3): Apply only if performance targets not met
+   - Parallel processing
+   - Lazy annotations
+   - Batch traces
+
 ## Impact
 
 ### Modules Affected
