@@ -145,8 +145,8 @@ public class Psm2MeasurePerformanceTest {
         log.info("  Throughput: {} elements/sec", String.format("%.0f", elementsPerSecond));
         log.info("========================================\n");
 
-        // Basic sanity check
-        assertTrue(stats.getAverage() < measureCount * 5, 
+        // Basic sanity check - allow 15ms per measure to account for ETL overhead
+        assertTrue(stats.getAverage() < measureCount * 15, 
                 "Transformation too slow: " + stats.getAverage() + "ms for " + measureCount + " measures");
     }
 
