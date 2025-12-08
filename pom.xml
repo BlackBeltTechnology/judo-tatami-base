@@ -628,6 +628,8 @@
                             --add-opens java.base/java.net=ALL-UNNAMED
                         </argLine>
                         <trimStackTrace>false</trimStackTrace>
+                        <!-- Exclude performance tests by default. Run with -Dgroups=performance to include them -->
+                        <excludedGroups>performance</excludedGroups>
                     </configuration>
                 </plugin>
 
