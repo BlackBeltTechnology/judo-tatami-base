@@ -83,7 +83,7 @@
 
         <java-embedded-compiler-version>1.1.0.20251022_091344_89e2d765_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20251205_154353_7a7b7697_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4.20251207_225415_d638a064_feature_JNG_6349_AddZetaValidatiob</judo-tatami-core-version>
         <judo-tatami-util-version>1.0.0.20251205_154449_952712c1_develop</judo-tatami-util-version>
 
         <!-- Model versions -->
@@ -113,6 +113,9 @@
         <sonar.language>java</sonar.language>
         <sonar.java.source>${java.version}</sonar.java.source>
         <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- Zeta Framework -->
+        <judo-zeta-version>1.0.0.20251207_081454_0779b890_develop</judo-zeta-version>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>
@@ -543,6 +546,23 @@
                 <version>1.5.1_1</version>
             </dependency>
 
+            <!-- Zeta Framework -->
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>zeta-annotations</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>transformation-core</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>validation-core</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
     <build>
@@ -608,6 +628,8 @@
                             --add-opens java.base/java.net=ALL-UNNAMED
                         </argLine>
                         <trimStackTrace>false</trimStackTrace>
+                        <!-- Exclude performance tests by default. Run with -Dgroups=performance to include them -->
+                        <excludedGroups>performance</excludedGroups>
                     </configuration>
                 </plugin>
 
