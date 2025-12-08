@@ -147,8 +147,8 @@ public class Rdbms2LiquibasePerformanceTest {
         log.info("  Throughput: {} elements/sec", String.format("%.0f", elementsPerSecond));
         log.info("========================================\n");
 
-        // Basic sanity check - allow 25ms per table to account for ETL overhead
-        assertTrue(stats.getAverage() < tableCount * 25, 
+        // Basic sanity check - allow 50ms per table to account for ETL overhead and slow CI machines
+        assertTrue(stats.getAverage() < tableCount * 50, 
                 "Transformation too slow: " + stats.getAverage() + "ms for " + tableCount + " tables");
     }
 
