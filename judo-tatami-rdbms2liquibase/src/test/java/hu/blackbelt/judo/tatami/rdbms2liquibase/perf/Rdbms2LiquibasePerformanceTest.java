@@ -101,6 +101,7 @@ public class Rdbms2LiquibasePerformanceTest {
         log.info("Warming up ({} iterations)...", WARMUP_ITERATIONS);
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
             LiquibaseModel liquibaseModel = buildLiquibaseModel()
+                    .name("PerformanceTest")
                     .build();
             executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
                     .rdbmsModel(rdbmsModel)
@@ -113,6 +114,7 @@ public class Rdbms2LiquibasePerformanceTest {
         List<Long> times = new ArrayList<>();
         for (int i = 0; i < MEASUREMENT_ITERATIONS; i++) {
             LiquibaseModel liquibaseModel = buildLiquibaseModel()
+                    .name("PerformanceTest")
                     .build();
             
             long startTime = System.nanoTime();
