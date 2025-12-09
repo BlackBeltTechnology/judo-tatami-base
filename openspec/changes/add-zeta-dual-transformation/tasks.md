@@ -210,18 +210,32 @@
 - [x] Run complete test suite with dual mode (comparison) - See notes below
 - [ ] Verify all tests pass
 
-#### Test Suite Results (2025-12-08)
+#### Test Suite Results (2025-12-09)
 
 | Module | ETL Tests | Zeta Tests | Notes |
 |--------|-----------|------------|-------|
+| judo-tatami-psm2asm | PASS | 13 FAIL | Multiple Zeta failures - incomplete transformation |
 | judo-tatami-psm2measure | PASS | PASS | All tests pass |
-| judo-tatami-asm2rdbms | PASS | 36 FAIL | RelationMappingTest Zeta failures - incomplete transformation |
-| judo-tatami-rdbms2liquibase | PASS | 1 FAIL | Rdbms2LiquibaseContentTest - FK column issue |
+| judo-tatami-asm2rdbms | PASS | PASS | All tests pass (after Zeta library update) |
+| judo-tatami-rdbms2liquibase | PASS | PASS | All tests pass (after local fix) |
 | judo-tatami-asm2keycloak | PASS | PASS | All tests pass |
 
 **Known Zeta Failures (Expected):**
-- `Asm2RdbmsRelationMappingTest` (36 failures): The Zeta transformation for ASM2RDBMS does not fully implement relation mapping features yet
-- `Rdbms2LiquibaseContentTest.testContents` (1 failure): FK column mapping incomplete in Zeta transformation
+
+**judo-tatami-psm2asm Zeta failures (13 tests):**
+- `Psm2AsmTest.testPsm2AsmTransformation` - ASM model validation errors (void operation upperBound, missing eAttributeType)
+- `Psm2AsmDataTest.testData`, `testSequences` - Model validation failures
+- `Psm2AsmTypeTest.testType` - Model validation failures
+- `Psm2AsmDerivedTest.testDerived`, `testDerivedInUnmappedTransferObjectTypes` - Missing derived property types
+- `Psm2AsmNamespaceTest.testNamespace` - Model validation failures
+- `Psm2AsmServiceTest.testTransferObject`, `testOperation` - Model validation failures
+- `Psm2AsmAccessPointTest.testAccessPoint` - Null result
+- `OperationTest.testInitializerAnnotation` - Model validation failures
+- `AccessPointTest.testGetPrincipalOperations`, `testExposedServicesAndGraphs` - Model validation failures
+
+**Fixes Applied:**
+- Fixed `Rdbms2LiquibaseZetaTransformation` to exclude `RdbmsForeignKey` from identifier field processing
+- Fixed `Psm2AsmZetaTransformation.transformUnboundOperation()` ClassCastException - container can be ActorType/TransferObjectType, not just Namespace
 
 ### 5.2 Performance Validation
 - [ ] Run performance benchmarks
