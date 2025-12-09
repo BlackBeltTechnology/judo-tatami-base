@@ -29,7 +29,9 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.RdbmsValidationException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,8 +131,9 @@ public class Rdbms2LiquibaseContentTest {
             fail(format("Missing AddNotNullConstraints from %s: %s", changeSetId, expected.toString()));
     }
 
-    @Test
-    public void testContents() {
+    @ParameterizedTest(name = "testContents with {0}")
+    @EnumSource(TransformationType.class)
+    public void testContents(TransformationType transformationType) {
         /////////////////////
         // setup rdbms model
 
@@ -205,10 +208,19 @@ public class Rdbms2LiquibaseContentTest {
                     rdbmsSaveArgumentsBuilder()
                             .file(new File(TARGET_TEST_CLASSES, format("testContents-%s-rdbms.model", rdbmsModel.getName())))
                             .build());
-            executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
-                    .rdbmsModel(rdbmsModel)
-                    .liquibaseModel(liquibaseModel)
-                    .dialect("hsqldb"));
+            if (transformationType == TransformationType.ZETA) {
+                Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
+                        .rdbmsModel(rdbmsModel)
+                        .liquibaseModel(liquibaseModel)
+                        .dialect("hsqldb")
+                        .build();
+                transformation.execute();
+            } else {
+                executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
+                        .rdbmsModel(rdbmsModel)
+                        .liquibaseModel(liquibaseModel)
+                        .dialect("hsqldb"));
+            }
 
             liquibaseModel.saveLiquibaseModel(
                     liquibaseSaveArgumentsBuilder()

@@ -32,7 +32,9 @@ import liquibase.database.jvm.HsqlConnection;
 import liquibase.resource.FileSystemResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -94,13 +96,25 @@ public class Rdbms2LiquibaseTest {
                 .build();
     }
 
-    @Test
-    public void testRdbms2LiquibaseTransformation() throws Exception {
+    @ParameterizedTest(name = "testRdbms2LiquibaseTransformation with {0}")
+    @EnumSource(TransformationType.class)
+    public void testRdbms2LiquibaseTransformation(TransformationType transformationType) throws Exception {
 
-        executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
-                .rdbmsModel(rdbmsModel)
-                .liquibaseModel(liquibaseModel)
-                .dialect("hsqldb"));
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation");
+            Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
+                    .rdbmsModel(rdbmsModel)
+                    .liquibaseModel(liquibaseModel)
+                    .dialect("hsqldb")
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation");
+            executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
+                    .rdbmsModel(rdbmsModel)
+                    .liquibaseModel(liquibaseModel)
+                    .dialect("hsqldb"));
+        }
 
         liquibaseModel.saveLiquibaseModel(liquibaseSaveArgumentsBuilder()
                                                   .outputStream(fixUriOutputStream(

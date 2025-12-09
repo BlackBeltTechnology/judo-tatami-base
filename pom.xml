@@ -115,7 +115,7 @@
         <jacoco.version>0.8.12</jacoco.version>
 
         <!-- Zeta Framework -->
-        <judo-zeta-version>1.0.0.20251207_081454_0779b890_develop</judo-zeta-version>
+        <judo-zeta-version>1.0.0.20251209_002510_c735c0a3_feature_JNG_6349_Epsiolon2Java</judo-zeta-version>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>

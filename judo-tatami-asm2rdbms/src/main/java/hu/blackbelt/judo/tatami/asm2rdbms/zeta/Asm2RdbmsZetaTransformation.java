@@ -28,6 +28,8 @@ import hu.blackbelt.judo.meta.rdbmsDataTypes.TypeMapping;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.TypeMappings;
 import hu.blackbelt.judo.meta.rdbmsNameMapping.NameMapping;
 import hu.blackbelt.judo.meta.rdbmsNameMapping.NameMappings;
+import hu.blackbelt.judo.meta.rdbmsRules.Rule;
+import hu.blackbelt.judo.meta.rdbmsRules.Rules;
 import hu.blackbelt.judo.tatami.asm2rdbms.AbbreviateUtils;
 import lombok.Builder;
 import lombok.NonNull;
@@ -78,6 +80,7 @@ public class Asm2RdbmsZetaTransformation {
 
     // Type mapping from Excel model (loaded separately)
     private final Map<String, TypeMapping> typeMappings = new HashMap<>();
+    private Rules rules;
 
     @Builder
     public Asm2RdbmsZetaTransformation(
@@ -118,6 +121,7 @@ public class Asm2RdbmsZetaTransformation {
 
         // Load type mappings from the RDBMS model (assumes they're already loaded)
         loadTypeMappings();
+        loadRules();
     }
 
     private void loadTypeMappings() {
@@ -127,6 +131,15 @@ public class Asm2RdbmsZetaTransformation {
                 .map(TypeMappings.class::cast)
                 .flatMap(mappings -> mappings.getTypeMappings().stream())
                 .forEach(mapping -> typeMappings.put(mapping.getAsmType(), mapping));
+    }
+
+    private void loadRules() {
+        rules = rdbmsModel.getResourceSet().getResources().stream()
+                .flatMap(r -> r.getContents().stream())
+                .filter(Rules.class::isInstance)
+                .map(Rules.class::cast)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Rules not found in RDBMS model. Make sure mapping model is loaded."));
     }
 
     /**
@@ -433,29 +446,39 @@ public class Asm2RdbmsZetaTransformation {
     // =========================================================================
 
     private void transformReferences() {
-        log.debug("Transforming references");
+        log.debug("Transforming references - pass 1: junction tables");
+        // First pass: create all junction tables
         all(EReference.class)
                 .filter(ref -> isEntityType(ref.getEReferenceType()))
                 .filter(ref -> isEntityType(ref.getEContainingClass()))
                 .filter(ref -> !ref.isDerived())
-                .forEach(this::transformReference);
+                .forEach(this::createJunctionTableIfNeeded);
+
+        log.debug("Transforming references - pass 2: foreign keys");
+        // Second pass: create foreign keys and junction table FKs
+        all(EReference.class)
+                .filter(ref -> isEntityType(ref.getEReferenceType()))
+                .filter(ref -> isEntityType(ref.getEContainingClass()))
+                .filter(ref -> !ref.isDerived())
+                .forEach(this::transformReferenceKeys);
     }
 
-    private void transformReference(EReference ref) {
+    private void createJunctionTableIfNeeded(EReference ref) {
         RuleMapping mapping = getRuleMapping(ref);
+        if (mapping.joinTable && mapping.first) {
+            createJunctionTable(ref);
+        }
+    }
 
+    private void transformReferenceKeys(EReference ref) {
+        RuleMapping mapping = getRuleMapping(ref);
         if (mapping.foreignKey) {
             createForeignKey(ref);
         }
-
         if (mapping.inverseForeignKey) {
             createInverseForeignKey(ref);
         }
-
         if (mapping.joinTable) {
-            if (mapping.first) {
-                createJunctionTable(ref);
-            }
             if (ref.getEOpposite() != null) {
                 createJunctionTableForeignKeyBidirectional(ref);
             } else {
@@ -550,6 +573,7 @@ public class Asm2RdbmsZetaTransformation {
         }
 
         addTrace(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE, junctionTable);
+        log.debug("Junction table created and traced for: {}", asmUtils.getReferenceFQName(ref));
 
         // Create primary key for junction table
         RdbmsIdentifierField pk = rdbmsFactory.createRdbmsIdentifierField();
@@ -567,13 +591,16 @@ public class Asm2RdbmsZetaTransformation {
     private void createJunctionTableForeignKeyBidirectional(EReference ref) {
         log.debug("    Add junction foreign bidirectional key: {}", asmUtils.getReferenceFQName(ref));
 
-        // Determine the main reference (alphabetically first)
-        EReference mainReference;
+        // Determine the main reference (alphabetically first) for field assignment
         boolean isFirst = ref.getName().compareTo(ref.getEOpposite().getName()) <= 0;
-        mainReference = isFirst ? ref : ref.getEOpposite();
 
-        RdbmsJunctionTable junctionTable = (RdbmsJunctionTable) getEquivalent(mainReference, EREFERENCE_TO_RDBMS_JUNCTION_TABLE);
-        if (junctionTable == null) return;
+        // Try to find junction table - it could be traced with either reference
+        // depending on which was processed first and had mapping.first=true
+        RdbmsJunctionTable junctionTable = (RdbmsJunctionTable) getEquivalent(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE);
+        if (junctionTable == null) {
+            junctionTable = (RdbmsJunctionTable) getEquivalent(ref.getEOpposite(), EREFERENCE_TO_RDBMS_JUNCTION_TABLE);
+        }
+        if (junctionTable == null) { return; }
 
         RdbmsForeignKey fk = rdbmsFactory.createRdbmsForeignKey();
         setId(fk, "(asm/" + getId(ref) + ")/JunctionTableForeignKeyBidirectional");
@@ -606,7 +633,7 @@ public class Asm2RdbmsZetaTransformation {
         log.debug("    Add junction foreign unidirectional key: {}", asmUtils.getReferenceFQName(ref));
 
         RdbmsJunctionTable junctionTable = (RdbmsJunctionTable) getEquivalent(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE);
-        if (junctionTable == null) return;
+        if (junctionTable == null) { return; }
 
         // FK1 - to target type
         RdbmsForeignKey fk1 = rdbmsFactory.createRdbmsForeignKey();
@@ -891,36 +918,12 @@ public class Asm2RdbmsZetaTransformation {
     }
 
     private RuleMapping getRuleMapping(EReference ref) {
+        Rule rule = rules.getRuleFromReference(ref);
         RuleMapping mapping = new RuleMapping();
-
-        boolean isMany = ref.isMany();
-        EReference opposite = ref.getEOpposite();
-        boolean hasOpposite = opposite != null;
-        boolean oppositeIsMany = hasOpposite && opposite.isMany();
-
-        if (!isMany && !oppositeIsMany) {
-            // One-to-one
-            if (hasOpposite) {
-                mapping.foreignKey = ref.getName().compareTo(opposite.getName()) <= 0;
-            } else {
-                mapping.foreignKey = true;
-            }
-        } else if (!isMany && oppositeIsMany) {
-            // Many-to-one (from this side)
-            mapping.foreignKey = true;
-        } else if (isMany && !hasOpposite) {
-            // One-to-many unidirectional
-            mapping.joinTable = true;
-            mapping.first = true;
-        } else if (isMany && hasOpposite && !oppositeIsMany) {
-            // One-to-many bidirectional
-            mapping.inverseForeignKey = true;
-        } else if (isMany && hasOpposite && oppositeIsMany) {
-            // Many-to-many
-            mapping.joinTable = true;
-            mapping.first = ref.getName().compareTo(opposite.getName()) <= 0;
-        }
-
+        mapping.foreignKey = rule.isForeignKey();
+        mapping.inverseForeignKey = rule.isInverseForeignKey();
+        mapping.joinTable = rule.isJoinTable();
+        mapping.first = rule.isFirst();
         return mapping;
     }
 

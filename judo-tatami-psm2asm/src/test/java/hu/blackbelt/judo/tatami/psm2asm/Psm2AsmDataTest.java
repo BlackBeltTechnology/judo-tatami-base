@@ -31,11 +31,13 @@ import hu.blackbelt.judo.meta.psm.measure.*;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.hamcrest.core.IsNull;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.File;
 import java.util.Optional;
@@ -83,26 +85,38 @@ public class Psm2AsmDataTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName) throws Exception {
+    private void transform(final String testName, final TransformationType transformationType) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model")).build());
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-psm.model")).build());
 
         assertTrue(psmModel.isValid());
         try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 
-        executePsm2AsmTransformation(psm2AsmParameter()
-                .psmModel(psmModel)
-                .asmModel(asmModel));
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation for test: {}", testName);
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName(MODEL_NAME)
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation for test: {}", testName);
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
 
         assertTrue(asmModel.isValid());
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model")).build());
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-asm.model")).build());
     }
 
-    @Test
-    void testData() throws Exception {
+    @ParameterizedTest(name = "testData with {0}")
+    @EnumSource(TransformationType.class)
+    void testData(TransformationType transformationType) throws Exception {
 
         StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).withRegExp("^[a-zA-Z\\s]*$").build();
         NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
@@ -155,7 +169,7 @@ public class Psm2AsmDataTest {
 
         psmModel.addContent(model);
 
-        transform("testData");
+        transform("testData", transformationType);
 
         final Optional<EClass> asmAbstractEntity1 = asmUtils.all(EClass.class)
                 .filter(c -> c.getName().equals(abstractEntity1.getName())).findAny();
@@ -338,8 +352,9 @@ public class Psm2AsmDataTest {
         assertTrue(asmContainment.get().isContainment());
     }
 
-    @Test
-    public void testSequences() throws Exception {
+    @ParameterizedTest(name = "testSequences with {0}")
+    @EnumSource(TransformationType.class)
+    public void testSequences(TransformationType transformationType) throws Exception {
         EntityType entity = newEntityTypeBuilder()
                 .withName("Entity")
                 .withSequences(newEntitySequenceBuilder()
@@ -373,7 +388,7 @@ public class Psm2AsmDataTest {
 
         psmModel.addContent(model);
 
-        transform("testSequences");
+        transform("testSequences", transformationType);
 
         EPackage modelPackage = asmUtils.getModel().get();
         EPackage pkgPackage = asmUtils.getModel().get().getESubpackages().stream().filter(p -> "pkg".equals(p.getName())).findAny().get();

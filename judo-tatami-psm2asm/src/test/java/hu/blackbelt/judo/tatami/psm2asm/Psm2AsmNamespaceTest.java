@@ -28,10 +28,12 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EPackage;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.File;
 import java.util.Optional;
@@ -73,9 +75,9 @@ public class Psm2AsmNamespaceTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName) throws Exception {
+    private void transform(final String testName, final TransformationType transformationType) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model"))
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-psm.model"))
                 .build());
 
         assertTrue(psmModel.isValid());
@@ -83,18 +85,30 @@ public class Psm2AsmNamespaceTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 
-        executePsm2AsmTransformation(psm2AsmParameter()
-                .psmModel(psmModel)
-                .asmModel(asmModel));
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation for test: {}", testName);
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName(MODEL_NAME)
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation for test: {}", testName);
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
 
         assertTrue(asmModel.isValid());
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model"))
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-asm.model"))
                 .build());
     }
 
-    @Test
-    void testNamespace() throws Exception {
+    @ParameterizedTest(name = "testNamespace with {0}")
+    @EnumSource(TransformationType.class)
+    void testNamespace(TransformationType transformationType) throws Exception {
 
         Package packOfPack = newPackageBuilder().withName("packageB").build();
 
@@ -105,7 +119,7 @@ public class Psm2AsmNamespaceTest {
 
         psmModel.addContent(model);
 
-        transform("testNamespace");
+        transform("testNamespace", transformationType);
 
         final String packageANameFirstUpperCase = "PackageA";
         final String packageBNameFirstUpperCase = "PackageB";

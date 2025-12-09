@@ -203,8 +203,10 @@ public class Rdbms2LiquibaseZetaTransformation {
     private void transformFields() {
         log.debug("Transforming fields");
 
-        // Transform identifier fields (primary keys)
-        all(RdbmsIdentifierField.class).forEach(this::transformIdentifierField);
+        // Transform identifier fields (primary keys) - exclude foreign keys since they extend RdbmsIdentifierField
+        all(RdbmsIdentifierField.class)
+                .filter(f -> !(f instanceof RdbmsForeignKey))
+                .forEach(this::transformIdentifierField);
 
         // Transform value fields
         all(RdbmsValueField.class).forEach(this::transformValueField);

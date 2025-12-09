@@ -28,7 +28,8 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -97,8 +98,8 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param lowerCardinality
      * @param upperCardinality
      */
-    private void testOneWayRelation(int lowerCardinality, int upperCardinality) {
-        testOneWayRelation(lowerCardinality, upperCardinality, false, false);
+    private void testOneWayRelation(int lowerCardinality, int upperCardinality, TransformationType transformationType) {
+        testOneWayRelation(lowerCardinality, upperCardinality, false, false, transformationType);
     }
 
     /**
@@ -108,8 +109,8 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param upperCardinality
      * @param isContainment
      */
-    private void testOneWayRelation(int lowerCardinality, int upperCardinality, boolean isContainment) {
-        testOneWayRelation(lowerCardinality, upperCardinality, isContainment, false);
+    private void testOneWayRelation(int lowerCardinality, int upperCardinality, boolean isContainment, TransformationType transformationType) {
+        testOneWayRelation(lowerCardinality, upperCardinality, isContainment, false, transformationType);
     }
 
     /**
@@ -121,7 +122,7 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param isContainment
      * @param isSelf
      */
-    private void testOneWayRelation(int lowerCardinality, int upperCardinality, boolean isContainment, boolean isSelf) {
+    private void testOneWayRelation(int lowerCardinality, int upperCardinality, boolean isContainment, boolean isSelf, TransformationType transformationType) {
         //////////////////////
         // parameter checking
         if (!((lowerCardinality == 0 && upperCardinality == 1) ||
@@ -181,7 +182,7 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
             transformationName = "testOneWaySelfContainmentWith" + parseCardinalities(lowerCardinality, upperCardinality) + "Cardinality";
         }
 
-        executeTransformation(transformationName);
+        executeTransformation(transformationName, transformationType);
 
         // setup transformation
         ///////////////////////////////
@@ -301,8 +302,8 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param lowerCardinality
      * @param upperCardinality
      */
-    private void testTwoWayRelation(int lowerCardinality, int upperCardinality) {
-        testTwoWayRelation(lowerCardinality, upperCardinality, lowerCardinality, upperCardinality, false);
+    private void testTwoWayRelation(int lowerCardinality, int upperCardinality, TransformationType transformationType) {
+        testTwoWayRelation(lowerCardinality, upperCardinality, lowerCardinality, upperCardinality, false, transformationType);
     }
 
     /**
@@ -312,8 +313,8 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param upperCardinality
      * @param isSelf
      */
-    private void testTwoWayRelation(int lowerCardinality, int upperCardinality, boolean isSelf) {
-        testTwoWayRelation(lowerCardinality, upperCardinality, lowerCardinality, upperCardinality, isSelf);
+    private void testTwoWayRelation(int lowerCardinality, int upperCardinality, boolean isSelf, TransformationType transformationType) {
+        testTwoWayRelation(lowerCardinality, upperCardinality, lowerCardinality, upperCardinality, isSelf, transformationType);
     }
 
     /**
@@ -324,8 +325,8 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param lowerCardinality2
      * @param upperCardinality2
      */
-    private void testTwoWayRelation(int lowerCardinality1, int upperCardinality1, int lowerCardinality2, int upperCardinality2) {
-        testTwoWayRelation(lowerCardinality1, upperCardinality1, lowerCardinality2, upperCardinality2, false);
+    private void testTwoWayRelation(int lowerCardinality1, int upperCardinality1, int lowerCardinality2, int upperCardinality2, TransformationType transformationType) {
+        testTwoWayRelation(lowerCardinality1, upperCardinality1, lowerCardinality2, upperCardinality2, false, transformationType);
     }
 
     /**
@@ -338,7 +339,7 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
      * @param upperCardinality2
      * @param isSelf
      */
-    private void testTwoWayRelation(int lowerCardinality1, int upperCardinality1, int lowerCardinality2, int upperCardinality2, boolean isSelf) {
+    private void testTwoWayRelation(int lowerCardinality1, int upperCardinality1, int lowerCardinality2, int upperCardinality2, boolean isSelf, TransformationType transformationType) {
         //////////////////////
         // parameter checking
         if (!((lowerCardinality1 == 0 && upperCardinality1 == 1) ||
@@ -408,7 +409,7 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
         final String transformationName = !isSelf
                 ? "testTwoWayRelationWith" + parseCardinalities(lowerCardinality1, upperCardinality1, lowerCardinality2, upperCardinality2) + "Cardinalities"
                 : "testTwoWaySelfRelationWith" + parseCardinalities(lowerCardinality1, upperCardinality1, lowerCardinality2, upperCardinality2) + "Cardinalities";
-        executeTransformation(transformationName);
+        executeTransformation(transformationName, transformationType);
 
         // setup transformation
         ///////////////////////////////
@@ -547,294 +548,342 @@ public class Asm2RdbmsRelationMappingTest extends Asm2RdbmsMappingTestBase {
     //////////////////////////////// TESTS ///////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    @Test
+    @ParameterizedTest(name = "testOneWayRelationWithNullToInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayRelation With Null To Infinite Cardinality")
-    public void testOneWayRelationWithNullToInfiniteCardinality() {
-        testOneWayRelation(0, -1);
+    public void testOneWayRelationWithNullToInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayRelationWithOneToInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayRelation With One To Infinite Cardinality")
-    public void testOneWayRelationWithOneToInfiniteCardinality() {
-        testOneWayRelation(1, -1);
+    public void testOneWayRelationWithOneToInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayRelationWithNullToOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayRelation With Null To One Cardinality")
-    public void testOneWayRelationWithNullToOneCardinality() {
-        testOneWayRelation(0, 1);
+    public void testOneWayRelationWithNullToOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayRelationWithOneToOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayRelation With One To One Cardinality")
-    public void testOneWayRelationWithOneToOneCardinality() {
-        testOneWayRelation(1, 1);
+    public void testOneWayRelationWithOneToOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayContainmentWithNullToInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayContainment With Null To Infinite Cardinality")
-    public void testOneWayContainmentWithNullToInfiniteCardinality() {
-        testOneWayRelation(0, -1, true);
+    public void testOneWayContainmentWithNullToInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayContainmentWithOneToInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayContainment With One To Infinite Cardinality")
-    public void testOneWayContainmentWithOneToInfiniteCardinality() {
-        testOneWayRelation(1, -1, true);
+    public void testOneWayContainmentWithOneToInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayContainmentWithNullToOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayContainment With Null To One Cardinality")
-    public void testOneWayContainmentWithNullToOneCardinality() {
-        testOneWayRelation(0, 1, true);
+    public void testOneWayContainmentWithNullToOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testOneWayContainmentWithOneToOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test OneWayContainment With One To One Cardinality")
-    public void testOneWayContainmentWithOneToOneCardinality() {
-        testOneWayRelation(1, 1, true);
+    public void testOneWayContainmentWithOneToOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To Infinite Cardinalities")
-    public void testTwoWayRelationWithNullToInfiniteCardinalities() {
-        testTwoWayRelation(0, -1);
+    public void testTwoWayRelationWithNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToInfiniteAndNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To Infinite And Null To Infinite Cardinalities")
-    public void testTwoWayRelationWithOneToInfiniteAndNullToInfiniteCardinalities() {
-        testTwoWayRelation(1, -1, 0, -1);
+    public void testTwoWayRelationWithOneToInfiniteAndNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, 0, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToInfiniteAndOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To Infinite And One To Infinite Cardinalities")
-    public void testTwoWayRelationWithNullToInfiniteAndOneToInfiniteCardinalities() {
-        testTwoWayRelation(0, -1, 1, -1);
+    public void testTwoWayRelationWithNullToInfiniteAndOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, 1, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To Infinite Cardinalities")
-    public void testTwoWayRelationWithOneToInfiniteCardinalities() {
-        testTwoWayRelation(1, -1);
+    public void testTwoWayRelationWithOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToInfiniteAndNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To Infinite And Null To One Cardinalities")
-    public void testTwoWayRelationWithNullToInfiniteAndNullToOneCardinalities() {
-        testTwoWayRelation(0, -1, 0, 1);
+    public void testTwoWayRelationWithNullToInfiniteAndNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, 0, 1, transformationType);
 
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToInfiniteAndOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To Infinite And One To One Cardinalities")
-    public void testTwoWayRelationWithNullToInfiniteAndOneToOneCardinalities() {
-        testTwoWayRelation(0, -1, 1, 1);
+    public void testTwoWayRelationWithNullToInfiniteAndOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, 1, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToInfiniteAndNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To Infinite And Null To One Cardinalities")
-    public void testTwoWayRelationWithOneToInfiniteAndNullToOneCardinalities() {
-        testTwoWayRelation(1, -1, 0, 1);
+    public void testTwoWayRelationWithOneToInfiniteAndNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, 0, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToInfiniteAndOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To Infinite And One To One Cardinalities")
-    public void testTwoWayRelationWithOneToInfiniteAndOneToOneCardinalities() {
-        testTwoWayRelation(1, -1, 1, 1);
+    public void testTwoWayRelationWithOneToInfiniteAndOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, 1, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToOneAndNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To One And Null To Infinite Cardinalities")
-    public void testTwoWayRelationWithNullToOneAndNullToInfiniteCardinalities() {
-        testTwoWayRelation(0, 1, 0, -1);
+    public void testTwoWayRelationWithNullToOneAndNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, 0, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToOneAndOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To One And One To Infinite Cardinalities")
-    public void testTwoWayRelationWithNullToOneAndOneToInfiniteCardinalities() {
-        testTwoWayRelation(1, 1, 1, -1);
+    public void testTwoWayRelationWithNullToOneAndOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 1, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To One Cardinalities")
-    public void testTwoWayRelationWithNullToOneCardinalities() {
-        testTwoWayRelation(0, 1);
+    public void testTwoWayRelationWithNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, transformationType);
     }
 
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithNullToOneAndOnetoOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With Null To One And One To One Cardinalities")
-    public void testTwoWayRelationWithNullToOneAndOnetoOneCardinalities() {
-        testTwoWayRelation(0, 1, 1, 1);
+    public void testTwoWayRelationWithNullToOneAndOnetoOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, 1, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToOneAndNulltoInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To One And Null to Infinite Cardinalities")
-    public void testTwoWayRelationWithOneToOneAndNulltoInfiniteCardinalities() {
-        testTwoWayRelation(1, 1, 0, -1);
+    public void testTwoWayRelationWithOneToOneAndNulltoInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 0, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToOneAndOnetoInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To One And One to Infinite Cardinalities")
-    public void testTwoWayRelationWithOneToOneAndOnetoInfiniteCardinalities() {
-        testTwoWayRelation(1, 1, 1, -1);
+    public void testTwoWayRelationWithOneToOneAndOnetoInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 1, -1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToOneAndNulltoOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To One And Null to One Cardinalities")
-    public void testTwoWayRelationWithOneToOneAndNulltoOneCardinalities() {
-        testTwoWayRelation(1, 1, 0, 1);
+    public void testTwoWayRelationWithOneToOneAndNulltoOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 0, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testTwoWayRelationWithOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test TwoWayRelation With One To One Cardinalities")
-    public void testTwoWayRelationWithOneToOneCardinalities() {
-        testTwoWayRelation(1, 1);
+    public void testTwoWayRelationWithOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayRelationWithNulltoOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayRelation With Null to One Cardinality")
-    public void testSelfOneWayRelationWithNulltoOneCardinality() {
-        testOneWayRelation(0, 1, false, true);
+    public void testSelfOneWayRelationWithNulltoOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, 1, false, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayRelationWithOnetoOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayRelation With One to One Cardinality")
-    public void testSelfOneWayRelationWithOnetoOneCardinality() {
-        testOneWayRelation(1, 1, false, true);
+    public void testSelfOneWayRelationWithOnetoOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, 1, false, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayRelationWithNulltoInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayRelation With Null to Infinite Cardinality")
-    public void testSelfOneWayRelationWithNulltoInfiniteCardinality() {
-        testOneWayRelation(0, -1, false, true);
+    public void testSelfOneWayRelationWithNulltoInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, -1, false, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayRelationWithOnetoInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayRelation With One to Infinite Cardinality")
-    public void testSelfOneWayRelationWithOnetoInfiniteCardinality() {
-        testOneWayRelation(1, -1, false, true);
+    public void testSelfOneWayRelationWithOnetoInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, -1, false, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayContainmentWithNulltoOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayContainment With Null to One Cardinality")
-    public void testSelfOneWayContainmentWithNulltoOneCardinality() {
-        testOneWayRelation(0, 1, true, true);
+    public void testSelfOneWayContainmentWithNulltoOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, 1, true, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayContainmentWithOnetoOneCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayContainment With One to One Cardinality")
-    public void testSelfOneWayContainmentWithOnetoOneCardinality() {
-        testOneWayRelation(1, 1, true, true);
+    public void testSelfOneWayContainmentWithOnetoOneCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, 1, true, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayContainmentWithNulltoInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayContainment With Null to Infinite Cardinality")
-    public void testSelfOneWayContainmentWithNulltoInfiniteCardinality() {
-        testOneWayRelation(0, -1, true, true);
+    public void testSelfOneWayContainmentWithNulltoInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(0, -1, true, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfOneWayContainmentWithOnetoInfiniteCardinality with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self OneWayContainment With One to Infinite Cardinality")
-    public void testSelfOneWayContainmentWithOnetoInfiniteCardinality() {
-        testOneWayRelation(1, -1, true, true);
+    public void testSelfOneWayContainmentWithOnetoInfiniteCardinality(TransformationType transformationType) {
+        testOneWayRelation(1, -1, true, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To One Cardinalities")
-    public void testSelfTwoWayRelationWithNullToOneCardinalities() {
-        testTwoWayRelation(0, 1, true);
+    public void testSelfTwoWayRelationWithNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To One Cardinalities")
-    public void testSelfTwoWayRelationWithOneToOneCardinalities() {
-        testTwoWayRelation(1, 1, true);
+    public void testSelfTwoWayRelationWithOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToOneAndNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To One And Null To One Cardinalities")
-    public void testSelfTwoWayRelationWithOneToOneAndNullToOneCardinalities() {
-        testTwoWayRelation(1, 1, 0, 1, true);
+    public void testSelfTwoWayRelationWithOneToOneAndNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 0, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToOneAndOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To One And One To One Cardinalities")
-    public void testSelfTwoWayRelationWithNullToOneAndOneToOneCardinalities() {
-        testTwoWayRelation(0, 1, 1, 1, true);
+    public void testSelfTwoWayRelationWithNullToOneAndOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, 1, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToOneAndNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To One And Null To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithNullToOneAndNullToInfiniteCardinalities() {
-        testTwoWayRelation(0, 1, 0, -1, true);
+    public void testSelfTwoWayRelationWithNullToOneAndNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, 0, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToOneAndOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To One And One To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithNullToOneAndOneToInfiniteCardinalities() {
-        testTwoWayRelation(0, 1, 1, -1, true);
+    public void testSelfTwoWayRelationWithNullToOneAndOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, 1, 1, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToOneAndNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To One And Null To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithOneToOneAndNullToInfiniteCardinalities() {
-        testTwoWayRelation(1, 1, 0, -1, true);
+    public void testSelfTwoWayRelationWithOneToOneAndNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 0, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToOneAndOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To One And One To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithOneToOneAndOneToInfiniteCardinalities() {
-        testTwoWayRelation(1, 1, 1, -1, true);
+    public void testSelfTwoWayRelationWithOneToOneAndOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, 1, 1, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToInfiniteAndNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To Infinite And Null To One Cardinalities")
-    public void testSelfTwoWayRelationWithNullToInfiniteAndNullToOneCardinalities() {
-        testTwoWayRelation(0, -1, 0, 1, true);
+    public void testSelfTwoWayRelationWithNullToInfiniteAndNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, 0, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToInfiniteAndOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To Infinite And One To One Cardinalities")
-    public void testSelfTwoWayRelationWithNullToInfiniteAndOneToOneCardinalities() {
-        testTwoWayRelation(0, -1, 1, 1, true);
+    public void testSelfTwoWayRelationWithNullToInfiniteAndOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, 1, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToInfiniteAndNullToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To Infinite And Null To One Cardinalities")
-    public void testSelfTwoWayRelationWithOneToInfiniteAndNullToOneCardinalities() {
-        testTwoWayRelation(1, -1, 0, 1, true);
+    public void testSelfTwoWayRelationWithOneToInfiniteAndNullToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, 0, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToInfiniteAndOneToOneCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To Infinite And One To One Cardinalities")
-    public void testSelfTwoWayRelationWithOneToInfiniteAndOneToOneCardinalities() {
-        testTwoWayRelation(1, -1, 1, 1, true);
+    public void testSelfTwoWayRelationWithOneToInfiniteAndOneToOneCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, 1, 1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithNullToInfiniteCardinalities() {
-        testTwoWayRelation(0, -1, true);
+    public void testSelfTwoWayRelationWithNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithNullToInfiniteAndOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With Null To Infinite And One To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithNullToInfiniteAndOneToInfiniteCardinalities() {
-        testTwoWayRelation(0, -1, 1, -1, true);
+    public void testSelfTwoWayRelationWithNullToInfiniteAndOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(0, -1, 1, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToInfiniteAndNullToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To Infinite And Null To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithOneToInfiniteAndNullToInfiniteCardinalities() {
-        testTwoWayRelation(1, -1, 0, -1, true);
+    public void testSelfTwoWayRelationWithOneToInfiniteAndNullToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, 0, -1, true, transformationType);
     }
 
-    @Test
+    @ParameterizedTest(name = "testSelfTwoWayRelationWithOneToInfiniteCardinalities with {0}")
+    @EnumSource(TransformationType.class)
     @DisplayName("Test Self TwoWayRelation With One To Infinite Cardinalities")
-    public void testSelfTwoWayRelationWithOneToInfiniteCardinalities() {
-        testTwoWayRelation(1, -1, true);
+    public void testSelfTwoWayRelationWithOneToInfiniteCardinalities(TransformationType transformationType) {
+        testTwoWayRelation(1, -1, true, transformationType);
     }
 
 }

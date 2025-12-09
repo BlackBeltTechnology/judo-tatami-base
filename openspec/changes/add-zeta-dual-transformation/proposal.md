@@ -816,6 +816,18 @@ None. ETL transformations remain available and functional.
 | Increased maintenance burden | Medium | Medium | Clear documentation, single source of truth for rules |
 | Zeta API changes | Low | Medium | Pin specific Zeta version |
 
+## Transformation Documentation
+
+The `docs/transformations/` directory contains complete documentation for all transformation modules:
+
+| File | Status | Description |
+|------|--------|-------------|
+| `docs/transformations/psm2asm.md` | Complete | PSM to ASM transformation rules |
+| `docs/transformations/psm2measure.md` | Complete | PSM to Measure transformation rules |
+| `docs/transformations/asm2rdbms.md` | Complete | ASM to RDBMS transformation rules |
+| `docs/transformations/rdbms2liquibase.md` | Complete | RDBMS to Liquibase transformation rules |
+| `docs/transformations/asm2keycloak.md` | Complete | ASM to Keycloak transformation rules |
+
 ## Success Criteria
 
 1. All existing tests pass with both ETL and Zeta transformations
@@ -823,3 +835,4 @@ None. ETL transformations remain available and functional.
 3. Zeta transformation performance is comparable or better than ETL
 4. All transformation rules documented
 5. Documentation converted to Markdown format
+6. All referenced documentation files in `docs/transformations/` exist and are complete

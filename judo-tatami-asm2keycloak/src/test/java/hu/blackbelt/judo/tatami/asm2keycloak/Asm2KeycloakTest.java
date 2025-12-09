@@ -36,7 +36,9 @@ import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EObject;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakZetaTransformation;
 
 import java.io.File;
 import java.util.*;
@@ -67,22 +69,26 @@ public class Asm2KeycloakTest {
     AsmModel asmModel;
     KeycloakModel keycloakModel;
 
-    @Test
-    public void testAsm2KeycloakTransformation() throws Exception {
+    @ParameterizedTest(name = "testAsm2KeycloakTransformation with {0}")
+    @EnumSource(TransformationType.class)
+    public void testAsm2KeycloakTransformation(TransformationType transformationType) throws Exception {
         final PsmModel psmModel = new Demo().fullDemo();
 
-        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel);
+        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel, transformationType);
 
-        // Printing trace
-        for (EObject e : resolvedTrace.keySet()) {
-            for (EObject t : resolvedTrace.get(e)) {
-                log.trace(e.toString() + " -> " + t.toString());
+        // Printing trace (only for ETL which has trace)
+        if (resolvedTrace != null) {
+            for (EObject e : resolvedTrace.keySet()) {
+                for (EObject t : resolvedTrace.get(e)) {
+                    log.trace(e.toString() + " -> " + t.toString());
+                }
             }
         }
     }
 
-    @Test
-    public void testRealmCreation() throws Exception {
+    @ParameterizedTest(name = "testRealmCreation with {0}")
+    @EnumSource(TransformationType.class)
+    public void testRealmCreation(TransformationType transformationType) throws Exception {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
@@ -229,7 +235,7 @@ public class Asm2KeycloakTest {
                 .build();
         psmModel.getResource().getContents().add(model);
 
-        final EMap<EObject, List<EObject>> resolvedTrace = ECollections.asEMap(transform(psmModel));
+        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel, transformationType);
         final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         final KeycloakUtils keycloakUtils = new KeycloakUtils(keycloakModel.getResourceSet());
@@ -238,12 +244,16 @@ public class Asm2KeycloakTest {
         assertTrue(realms.stream().anyMatch(r -> "protected1".equals(r.getRealm()) && r.getEnabled() && r.getLoginWithEmailAllowed()));
         assertTrue(realms.stream().anyMatch(r -> "protected2".equals(r.getRealm()) && r.getEnabled() && r.getLoginWithEmailAllowed()));
 
-        asmUtils.getAllActorTypes().stream()
-                .filter(actorType -> AsmUtils.getExtensionAnnotationValue(actorType, "realm", false).isPresent())
-                .forEach(actorType -> assertTrue(resolvedTrace.get(actorType).contains(keycloakUtils.all(Client.class).filter(c -> AsmUtils.getClassifierFQName(actorType).replaceAll("\\.", "-").equals(c.getName())).findAny().get())));
+        // Trace-dependent assertions only for ETL transformation
+        if (resolvedTrace != null) {
+            final EMap<EObject, List<EObject>> resolvedTraceMap = ECollections.asEMap(resolvedTrace);
+            asmUtils.getAllActorTypes().stream()
+                    .filter(actorType -> AsmUtils.getExtensionAnnotationValue(actorType, "realm", false).isPresent())
+                    .forEach(actorType -> assertTrue(resolvedTraceMap.get(actorType).contains(keycloakUtils.all(Client.class).filter(c -> AsmUtils.getClassifierFQName(actorType).replaceAll("\\.", "-").equals(c.getName())).findAny().get())));
+        }
     }
 
-    private Map<EObject, List<EObject>> transform(final PsmModel psmModel) throws Exception {
+    private Map<EObject, List<EObject>> transform(final PsmModel psmModel, final TransformationType transformationType) throws Exception {
         // Create empty ASM model
         asmModel = AsmModel.buildAsmModel()
                 .build();
@@ -257,22 +267,34 @@ public class Asm2KeycloakTest {
                 .name(psmModel.getName())
                 .build();
 
-        final Asm2KeycloakTransformationTrace asm2KeycloakTransformationTrace =
-                executeAsm2KeycloakTransformation(asm2KeycloakParameter()
-                        .asmModel(asmModel)
-                        .keycloakModel(keycloakModel)
-                        .createTrace(true));
+        Map<EObject, List<EObject>> resolvedTrace = null;
 
-        // Saving trace map
-        asm2KeycloakTransformationTrace.save(new File(TARGET_TEST_CLASSES, psmModel.getName() + NORTHWIND_ASM_2_KEYCLOAK_MODEL_POSTFIX));
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation");
+            Asm2KeycloakZetaTransformation transformation = Asm2KeycloakZetaTransformation.builder()
+                    .asmModel(asmModel)
+                    .keycloakModel(keycloakModel)
+                    .build();
+            transformation.execute();
+            // For Zeta transformation, trace is not available
+        } else {
+            log.info("Running ETL transformation");
+            final Asm2KeycloakTransformationTrace asm2KeycloakTransformationTrace =
+                    executeAsm2KeycloakTransformation(asm2KeycloakParameter()
+                            .asmModel(asmModel)
+                            .keycloakModel(keycloakModel)
+                            .createTrace(true));
 
-        // Loading trace map
-        final Asm2KeycloakTransformationTrace asm2KeycloakTransformationTraceLoaded =
-                fromModelsAndTrace(psmModel.getName(), asmModel, keycloakModel, new File(TARGET_TEST_CLASSES, psmModel.getName() + NORTHWIND_ASM_2_KEYCLOAK_MODEL_POSTFIX));
+            // Saving trace map
+            asm2KeycloakTransformationTrace.save(new File(TARGET_TEST_CLASSES, psmModel.getName() + NORTHWIND_ASM_2_KEYCLOAK_MODEL_POSTFIX));
 
+            // Loading trace map
+            final Asm2KeycloakTransformationTrace asm2KeycloakTransformationTraceLoaded =
+                    fromModelsAndTrace(psmModel.getName(), asmModel, keycloakModel, new File(TARGET_TEST_CLASSES, psmModel.getName() + NORTHWIND_ASM_2_KEYCLOAK_MODEL_POSTFIX));
 
-        // Resolve serialized URI's as EObject map
-        final Map<EObject, List<EObject>> resolvedTrace = asm2KeycloakTransformationTraceLoaded.getTransformationTrace();
+            // Resolve serialized URI's as EObject map
+            resolvedTrace = asm2KeycloakTransformationTraceLoaded.getTransformationTrace();
+        }
 
         keycloakModel.saveKeycloakModel(keycloakSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, psmModel.getName() + NORTHWIND_KEYCLOAK_MODEL_POSTFIX)));

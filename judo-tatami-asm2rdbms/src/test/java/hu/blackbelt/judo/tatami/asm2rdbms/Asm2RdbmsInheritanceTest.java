@@ -28,6 +28,8 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -62,9 +64,9 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         }
     }
 
-    @Test
-    @DisplayName("Test Basic Inheritance")
-    public void testBasicInheritance() {
+    @ParameterizedTest(name = "Test Basic Inheritance with {0}")
+    @EnumSource(TransformationType.class)
+    public void testBasicInheritance(TransformationType transformationType) {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -87,7 +89,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(apple);
         addExtensionAnnotation(apple, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testBasicInheritance");
+        executeTransformation("testBasicInheritance", transformationType);
 
         final String RDBMS_TABLE_FRUIT = "TestEpackage.fruit";
         final String RDBMS_TABLE_APPLE = "TestEpackage.apple";
@@ -144,9 +146,9 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
                 rdbmsUtils.getRdbmsTable(RDBMS_TABLE_APPLE).get().getParents().get(0).getPrimaryKey());
     }
 
-    @Test
-    @DisplayName("Test Inheritance With Two Parents")
-    public void testInheritanceWithTwoParents() {
+    @ParameterizedTest(name = "Test Inheritance With Two Parents with {0}")
+    @EnumSource(TransformationType.class)
+    public void testInheritanceWithTwoParents(TransformationType transformationType) {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -175,7 +177,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(tomato);
         addExtensionAnnotation(tomato, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testInheritanceWithTwoParents");
+        executeTransformation("testInheritanceWithTwoParents", transformationType);
 
         // setup asm model and transform
         ////////////////////////////////////////////////////////////
@@ -251,9 +253,9 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
                 RDBMS_TABLE_TOMATO + "'s parent's primary key is not valid: " + primaryKey2.getName());
     }
 
-    @Test
-    @DisplayName("Test Indirect Inheritance")
-    public void testIndirectInheritance() {
+    @ParameterizedTest(name = "Test Indirect Inheritance with {0}")
+    @EnumSource(TransformationType.class)
+    public void testIndirectInheritance(TransformationType transformationType) {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -283,7 +285,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(ev);
         addExtensionAnnotation(ev, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testIndirectInheritance");
+        executeTransformation("testIndirectInheritance", transformationType);
 
         // setup asm model and transform
         ////////////////////////////////////////////////////////////
@@ -365,9 +367,9 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
                 RDBMS_TABLE_ELECTRIC_CAR + "'s parent's primary key is not valid: " + primaryKey1.getName());
     }
 
-    @Test
-    @DisplayName("Test Diamond Inheritance")
-    public void testDiamondInheritance() {
+    @ParameterizedTest(name = "Test Diamond Inheritance with {0}")
+    @EnumSource(TransformationType.class)
+    public void testDiamondInheritance(TransformationType transformationType) {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -401,7 +403,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(C);
         addExtensionAnnotation(C, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testDiamondInheritance");
+        executeTransformation("testDiamondInheritance", transformationType);
 
         // setup asm model and transform
         ////////////////////////////////////////////////////////////

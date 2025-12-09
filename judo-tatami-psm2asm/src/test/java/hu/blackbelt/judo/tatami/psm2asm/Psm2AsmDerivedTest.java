@@ -41,6 +41,9 @@ import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 
 import java.io.File;
 import java.util.List;
@@ -89,7 +92,7 @@ public class Psm2AsmDerivedTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName) throws Exception {
+    private void transform(final String testName, final TransformationType transformationType) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model")).build());
 
@@ -99,9 +102,20 @@ public class Psm2AsmDerivedTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI(), List.of(), null);
         }
 
-        executePsm2AsmTransformation(psm2AsmParameter()
-                .psmModel(psmModel)
-                .asmModel(asmModel));
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation for test: {}", testName);
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName(MODEL_NAME)
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation for test: {}", testName);
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
 
         log.info(asmModel.getDiagnosticsAsString());
         assertTrue(asmModel.isValid());
@@ -109,8 +123,9 @@ public class Psm2AsmDerivedTest {
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model")).build());
     }
 
-    @Test
-    void testDerived() throws Exception {
+    @ParameterizedTest(name = "testDerived with {0}")
+    @EnumSource(TransformationType.class)
+    void testDerived(TransformationType transformationType) throws Exception {
 
         StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).build();
         NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
@@ -160,7 +175,7 @@ public class Psm2AsmDerivedTest {
 
         psmModel.addContent(model);
 
-        transform("testDerived");
+        transform("testDerived", transformationType);
 
         final EClass asmEntity1 = asmUtils.all(EClass.class).filter(c -> c.getName().equals(entity1.getName()))
                 .findAny().get();
@@ -326,8 +341,9 @@ public class Psm2AsmDerivedTest {
                 .equals(navProp.getGetterExpression().getDialect().toString()));
     }
 
-    @Test
-    void testDerivedInUnmappedTransferObjectTypes() throws Exception {
+    @ParameterizedTest(name = "testDerivedInUnmappedTransferObjectTypes with {0}")
+    @EnumSource(TransformationType.class)
+    void testDerivedInUnmappedTransferObjectTypes(TransformationType transformationType) throws Exception {
 
         Package defaultTo = newPackageBuilder().withName("_default_transferobjecttypes").build();
         Package genNav = newPackageBuilder().withName("_generated_navigations").build();
@@ -381,7 +397,7 @@ public class Psm2AsmDerivedTest {
 
         psmModel.addContent(model);
 
-        transform("testDerivedMixin");
+        transform("testDerivedMixin", transformationType);
 
         final EClass asmUnmapped = asmUtils.all(EClass.class).filter(c -> c.getName().equals(unmapped.getName()))
                 .findAny().get();
