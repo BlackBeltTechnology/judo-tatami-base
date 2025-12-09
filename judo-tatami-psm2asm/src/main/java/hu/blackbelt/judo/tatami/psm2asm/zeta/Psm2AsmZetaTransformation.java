@@ -136,11 +136,11 @@ public class Psm2AsmZetaTransformation {
         // Phase 4: Transform derived properties
         transformDerivedProperties();
 
-        // Phase 5: Transform operations
-        transformOperations();
-
-        // Phase 6: Transform transfer objects
+        // Phase 5: Transform transfer objects (must be before operations since operations reference transfer object types)
         transformTransferObjects();
+
+        // Phase 6: Transform operations (after transfer objects since operations reference transfer object types for parameters)
+        transformOperations();
 
         // Phase 7: Transform actors
         transformActors();
@@ -256,11 +256,6 @@ public class Psm2AsmZetaTransformation {
     }
 
     private void transformNumericType(NumericType numericType) {
-        if (numericType instanceof MeasuredType) {
-            // MeasuredType is handled separately
-            return;
-        }
-
         EDataType dataType = EcoreFactory.eINSTANCE.createEDataType();
         
         if (isInteger(numericType)) {
@@ -273,6 +268,28 @@ public class Psm2AsmZetaTransformation {
             dataType.setName(numericType.getName());
             dataType.setInstanceClassName(getDecimalClassName(numericType));
             addTrace(numericType, CREATE_DECIMAL_TYPE, dataType);
+        }
+
+        // Add measured annotation for MeasuredType
+        if (numericType instanceof MeasuredType) {
+            MeasuredType measuredType = (MeasuredType) numericType;
+            if (measuredType.getStoreUnit() != null) {
+                EAnnotation measuredAnnotation = EcoreFactory.eINSTANCE.createEAnnotation();
+                setId(measuredAnnotation, "(psm/" + getId(numericType) + ")/MeasuredAnnotation");
+                measuredAnnotation.setSource(asmUtils.getAnnotationUri("measured"));
+                
+                // Add unit detail
+                measuredAnnotation.getDetails().put("unit", measuredType.getStoreUnit().getName());
+                
+                // Add measure detail (namespace of the unit)
+                if (measuredType.getStoreUnit().eContainer() != null) {
+                    String measure = psmUtils.namespaceElementToString((NamespaceElement) measuredType.getStoreUnit().eContainer())
+                            .replace("::", ".");
+                    measuredAnnotation.getDetails().put("measure", measure);
+                }
+                
+                dataType.getEAnnotations().add(measuredAnnotation);
+            }
         }
 
         getContainerPackage(numericType).getEClassifiers().add(dataType);
@@ -783,6 +800,15 @@ public class Psm2AsmZetaTransformation {
         log.debug("Transforming operations");
         all(BoundOperation.class).forEach(this::transformBoundOperation);
         all(UnboundOperation.class).forEach(this::transformUnboundOperation);
+        // Transform transfer operations (on TransferObjectTypes)
+        // BoundTransferOperation extends TransferOperation, so we handle them separately
+        all(BoundTransferOperation.class).forEach(this::transformBoundTransferOperation);
+        // Transform unbound transfer operations (TransferOperation that are not BoundTransferOperation or UnboundOperation)
+        // UnboundOperation extends TransferOperation, so it would be included twice without this filter
+        all(TransferOperation.class)
+                .filter(op -> !(op instanceof BoundTransferOperation))
+                .filter(op -> !(op instanceof UnboundOperation))
+                .forEach(this::transformTransferOperation);
     }
 
     private void transformBoundOperation(BoundOperation boundOp) {
@@ -790,7 +816,8 @@ public class Psm2AsmZetaTransformation {
         setId(eOp, "(psm/" + getId(boundOp) + ")/BoundOperation");
         eOp.setName(boundOp.getName());
 
-        // Set output type and cardinality
+        // Set output type and cardinality - only when output is defined
+        // For void operations, Ecore requires upperBound = 1 (not the default -1)
         if (boundOp.getOutput() != null) {
             eOp.setLowerBound(boundOp.getOutput().getCardinality().getLower());
             eOp.setUpperBound(boundOp.getOutput().getCardinality().getUpper());
@@ -799,6 +826,8 @@ public class Psm2AsmZetaTransformation {
                 eOp.setEType(outputType);
             }
         }
+        // Note: For void operations (no output), we don't set bounds - ETL doesn't either
+        // The Ecore default upperBound is 1 which is correct for void operations
 
         // Add fault exceptions
         for (var fault : boundOp.getFaults()) {
@@ -885,9 +914,10 @@ public class Psm2AsmZetaTransformation {
             }
         }
 
-        // Add to containing namespace via an OperationHolder class
-        Namespace ns = (Namespace) unboundOp.eContainer();
-        if (ns != null) {
+        // Add to containing element - could be Namespace (Package/Model), ActorType, or TransferObjectType
+        EObject container = unboundOp.eContainer();
+        if (container instanceof Namespace) {
+            Namespace ns = (Namespace) container;
             EPackage pkg = (EPackage) getEquivalent(ns, 
                     ns instanceof Model ? MODEL_TO_PACKAGE : PACKAGE_TO_PACKAGE);
             if (pkg != null) {
@@ -908,6 +938,18 @@ public class Psm2AsmZetaTransformation {
                 }
                 // Add the operation to the holder class
                 operationHolder.getEOperations().add(eOp);
+            }
+        } else if (container instanceof ActorType) {
+            // For ActorType, add operation to the equivalent EClass
+            EClass actorClass = (EClass) getEquivalent((ActorType) container, CREATE_ACTOR_TYPE_CLASS);
+            if (actorClass != null) {
+                actorClass.getEOperations().add(eOp);
+            }
+        } else if (container instanceof TransferObjectType) {
+            // For TransferObjectType, add operation to the equivalent EClass
+            EClass toClass = getEquivalentTransferObjectClass((TransferObjectType) container);
+            if (toClass != null) {
+                toClass.getEOperations().add(eOp);
             }
         }
 
@@ -945,6 +987,166 @@ public class Psm2AsmZetaTransformation {
                     asmUtils.getAnnotationUri("initializer"));
             addAnnotationDetail(initAnnotation, "value", "true");
             eOp.getEAnnotations().add(initAnnotation);
+        }
+    }
+
+    private void transformBoundTransferOperation(BoundTransferOperation boundTransferOp) {
+        EOperation eOp = EcoreFactory.eINSTANCE.createEOperation();
+        setId(eOp, "(psm/" + getId(boundTransferOp) + ")/BoundTransferOperation");
+        eOp.setName(boundTransferOp.getName());
+
+        // Get output from the binding (BoundOperation)
+        BoundOperation binding = boundTransferOp.getBinding();
+        if (binding != null && binding.getOutput() != null) {
+            eOp.setLowerBound(binding.getOutput().getCardinality().getLower());
+            eOp.setUpperBound(binding.getOutput().getCardinality().getUpper());
+            EClassifier outputType = getEquivalentTransferObject(binding.getOutput().getType());
+            if (outputType != null) {
+                eOp.setEType(outputType);
+            }
+        }
+        // Note: For void operations (no output), we don't set bounds
+        // The Ecore default upperBound is 1 which is correct for void operations
+
+        // Add fault exceptions from binding
+        if (binding != null) {
+            for (var fault : binding.getFaults()) {
+                EClassifier faultType = getEquivalentTransferObject(fault.getType());
+                if (faultType != null) {
+                    eOp.getEExceptions().add(faultType);
+                }
+            }
+        }
+
+        // Add to owning transfer object class
+        TransferObjectType owner = (TransferObjectType) boundTransferOp.eContainer();
+        if (owner != null) {
+            EClass ownerClass = getEquivalentTransferObjectClass(owner);
+            if (ownerClass != null) {
+                ownerClass.getEOperations().add(eOp);
+            }
+        }
+
+        addTrace(boundTransferOp, "CreateBoundTransferOperation", eOp);
+
+        // Add binding annotation
+        if (binding != null) {
+            EObject bindingEquivalent = getEquivalent(binding, CREATE_BOUND_OPERATION);
+            if (bindingEquivalent instanceof EOperation) {
+                EAnnotation bindingAnnotation = createAnnotation(
+                        "(psm/" + getId(boundTransferOp) + ")/BindingAnnotation",
+                        asmUtils.getAnnotationUri("binding"));
+                addAnnotationDetail(bindingAnnotation, "value", ((EOperation) bindingEquivalent).getName());
+                eOp.getEAnnotations().add(bindingAnnotation);
+            }
+        }
+
+        // Add bound annotation
+        addBoundAnnotation(boundTransferOp, eOp);
+
+        // Add documentation if present
+        if (boundTransferOp.getDocumentation() != null &&
+            !boundTransferOp.getDocumentation().trim().isEmpty()) {
+            EAnnotation docAnnotation = createAnnotation(
+                    "(psm/" + getId(boundTransferOp) + ")/DocumentationAnnotationForBoundTransferOperation",
+                    asmUtils.getAnnotationUri("documentation"));
+            addAnnotationDetail(docAnnotation, "value", boundTransferOp.getDocumentation());
+            eOp.getEAnnotations().add(docAnnotation);
+        }
+    }
+
+    private void transformTransferOperation(TransferOperation transferOp) {
+        EOperation eOp = EcoreFactory.eINSTANCE.createEOperation();
+        setId(eOp, "(psm/" + getId(transferOp) + ")/TransferOperation");
+        eOp.setName(transferOp.getName());
+
+        // Set output type and cardinality
+        if (transferOp.getOutput() != null) {
+            eOp.setLowerBound(transferOp.getOutput().getCardinality().getLower());
+            eOp.setUpperBound(transferOp.getOutput().getCardinality().getUpper());
+            EClassifier outputType = getEquivalentTransferObject(transferOp.getOutput().getType());
+            if (outputType != null) {
+                eOp.setEType(outputType);
+            }
+        }
+        // Note: For void operations (no output), we don't set bounds
+        // The Ecore default upperBound is 1 which is correct for void operations
+
+        // Add fault exceptions
+        for (var fault : transferOp.getFaults()) {
+            EClassifier faultType = getEquivalentTransferObject(fault.getType());
+            if (faultType != null) {
+                eOp.getEExceptions().add(faultType);
+            }
+        }
+
+        // Add to owning transfer object class
+        TransferObjectType owner = (TransferObjectType) transferOp.eContainer();
+        if (owner != null) {
+            EClass ownerClass = getEquivalentTransferObjectClass(owner);
+            if (ownerClass != null) {
+                ownerClass.getEOperations().add(eOp);
+            }
+        }
+
+        addTrace(transferOp, "CreateTransferOperation", eOp);
+
+        // Transform input parameter
+        if (transferOp.getInput() != null) {
+            transformInputParameter(transferOp.getInput(), eOp);
+        }
+
+        // Add bound annotation (value = false for unbound transfer operations)
+        EAnnotation boundAnnotation = createAnnotation(
+                "(psm/" + getId(transferOp) + ")/BoundOperationAnnotation",
+                asmUtils.getAnnotationUri("bound"));
+        addAnnotationDetail(boundAnnotation, "value", "false");
+        eOp.getEAnnotations().add(boundAnnotation);
+
+        // Add custom implementation annotation
+        if (transferOp.getImplementation() != null) {
+            EAnnotation customImplAnnotation = createAnnotation(
+                    "(psm/" + getId(transferOp) + ")/CustomImplementationAnnotationOnOperation",
+                    asmUtils.getAnnotationUri("customImplementation"));
+            addAnnotationDetail(customImplAnnotation, "value",
+                    String.valueOf(transferOp.getImplementation().isCustomImplementation()));
+            eOp.getEAnnotations().add(customImplAnnotation);
+        }
+
+        // Add stateful annotation
+        if (transferOp.getImplementation() != null) {
+            EAnnotation statefulAnnotation = createAnnotation(
+                    "(psm/" + getId(transferOp) + ")/StatefulAnnotationOnOperation",
+                    asmUtils.getAnnotationUri("stateful"));
+            addAnnotationDetail(statefulAnnotation, "value",
+                    String.valueOf(transferOp.getImplementation().isStateful()));
+            eOp.getEAnnotations().add(statefulAnnotation);
+        } else if (transferOp.getBehaviour() == null) {
+            // No implementation and no behaviour - default stateful = true
+            EAnnotation statefulAnnotation = createAnnotation(
+                    "(psm/" + getId(transferOp) + ")/StatefulAnnotationOnOperationWithoutImplementationAndBehaviour",
+                    asmUtils.getAnnotationUri("stateful"));
+            addAnnotationDetail(statefulAnnotation, "value", "true");
+            eOp.getEAnnotations().add(statefulAnnotation);
+        }
+
+        // Add output parameter name annotation
+        if (transferOp.getOutput() != null) {
+            EAnnotation outputAnnotation = createAnnotation(
+                    "(psm/" + getId(transferOp) + ")/OutputParameterName",
+                    asmUtils.getAnnotationUri("outputParameterName"));
+            addAnnotationDetail(outputAnnotation, "value", transferOp.getOutput().getName());
+            eOp.getEAnnotations().add(outputAnnotation);
+        }
+
+        // Add documentation if present
+        if (transferOp.getDocumentation() != null &&
+            !transferOp.getDocumentation().trim().isEmpty()) {
+            EAnnotation docAnnotation = createAnnotation(
+                    "(psm/" + getId(transferOp) + ")/DocumentationAnnotationForTransferOperation",
+                    asmUtils.getAnnotationUri("documentation"));
+            addAnnotationDetail(docAnnotation, "value", transferOp.getDocumentation());
+            eOp.getEAnnotations().add(docAnnotation);
         }
     }
 
