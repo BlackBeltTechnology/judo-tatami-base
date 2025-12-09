@@ -30,6 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -75,29 +78,47 @@ public class Psm2AsmTest {
                 .build();
     }
 
-    @Test
-    public void testPsm2AsmTransformation() throws Exception {
+    @ParameterizedTest(name = "testPsm2AsmTransformation with {0}")
+    @EnumSource(TransformationType.class)
+    public void testPsm2AsmTransformation(TransformationType transformationType) throws Exception {
 
         // Make transformation which returns the trace with the serialized URI's
-        Psm2AsmTransformationTrace psm2AsmTransformationTrace = executePsm2AsmTransformation(psm2AsmParameter()
-                        .psmModel(psmModel)
-                        .asmModel(asmModel));
+        Psm2AsmTransformationTrace psm2AsmTransformationTrace;
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation");
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName(DEMO)
+                    .build();
+            transformation.execute();
+            // For Zeta transformation, trace is not available - create empty trace for compatibility
+            psm2AsmTransformationTrace = null;
+        } else {
+            log.info("Running ETL transformation");
+            psm2AsmTransformationTrace = executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
 
-        psm2AsmTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_ASM_MODEL));
+        // Trace operations only for ETL transformation
+        if (psm2AsmTransformationTrace != null) {
+            psm2AsmTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_ASM_MODEL));
 
-        Psm2AsmTransformationTrace psm2AsmTransformationTraceLoaded = fromModelsAndTrace(
-                DEMO,
-                psmModel,
-                asmModel,
-                new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_ASM_MODEL));
+            Psm2AsmTransformationTrace psm2AsmTransformationTraceLoaded = fromModelsAndTrace(
+                    DEMO,
+                    psmModel,
+                    asmModel,
+                    new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_ASM_MODEL));
 
-        // Resolve serialized URI's as EObject map
-        Map<EObject, List<EObject>> resolvedTrace = psm2AsmTransformationTraceLoaded.getTransformationTrace();
+            // Resolve serialized URI's as EObject map
+            Map<EObject, List<EObject>> resolvedTrace = psm2AsmTransformationTraceLoaded.getTransformationTrace();
 
-        // Printing trace
-        for (EObject e : resolvedTrace.keySet()) {
-            for (EObject t : resolvedTrace.get(e)) {
-                log.trace(e.toString() + " -> " + t.toString());
+            // Printing trace
+            for (EObject e : resolvedTrace.keySet()) {
+                for (EObject t : resolvedTrace.get(e)) {
+                    log.trace(e.toString() + " -> " + t.toString());
+                }
             }
         }
 

@@ -37,6 +37,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 
 import java.io.File;
 import java.util.Arrays;
@@ -80,7 +83,7 @@ public class AccessPointTest {
                 .build();
     }
 
-    private void transform(final String testName) throws Exception {
+    private void transform(final String testName, final TransformationType transformationType) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model"))
                 .build());
@@ -89,17 +92,29 @@ public class AccessPointTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 
-        executePsm2AsmTransformation(psm2AsmParameter()
-                .psmModel(psmModel)
-                .asmModel(asmModel));
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation for test: {}", testName);
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName(MODEL_NAME)
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation for test: {}", testName);
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
 
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model"))
                 .build());
     }
 
-    @Test
-    void testGetPrincipalOperations() throws Exception {
+    @ParameterizedTest(name = "testGetPrincipalOperations with {0}")
+    @EnumSource(TransformationType.class)
+    void testGetPrincipalOperations(TransformationType transformationType) throws Exception {
         final ActorType actor1 = newActorTypeBuilder()
                 .withName("Actor1")
                 .withRealm("realm1")
@@ -168,7 +183,7 @@ public class AccessPointTest {
 
         psmModel.addContent(model);
 
-        transform("testGetPrincipalOperations");
+        transform("testGetPrincipalOperations", transformationType);
 
         final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         final Optional<EOperation> getPrincipal1 = asmUtils.all(EOperation.class)
@@ -192,8 +207,9 @@ public class AccessPointTest {
                 .anyMatch(a -> "Model.Actor2".equals(a.getDetails().get("value"))), equalTo(Boolean.TRUE));
     }
 
-    @Test
-    void testExposedServicesAndGraphs() throws Exception {
+    @ParameterizedTest(name = "testExposedServicesAndGraphs with {0}")
+    @EnumSource(TransformationType.class)
+    void testExposedServicesAndGraphs(TransformationType transformationType) throws Exception {
         final StringType string = newStringTypeBuilder()
                 .withName("String")
                 .withMaxLength(255)
@@ -500,6 +516,6 @@ public class AccessPointTest {
 
         psmModel.addContent(model);
 
-        transform("testExposedServicesAndGraphs");
+        transform("testExposedServicesAndGraphs", transformationType);
     }
 }

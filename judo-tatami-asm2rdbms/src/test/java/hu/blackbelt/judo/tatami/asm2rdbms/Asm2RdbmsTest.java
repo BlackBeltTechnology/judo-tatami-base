@@ -26,8 +26,13 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.epsilon.common.util.UriUtil;
+import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 
 import java.io.File;
 import java.util.List;
@@ -75,31 +80,60 @@ public class Asm2RdbmsTest {
         registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
     }
 
-    @Test
-    public void testAsm2RdbmsTransformation() throws Exception {
+    @ParameterizedTest(name = "testAsm2RdbmsTransformation with {0}")
+    @EnumSource(TransformationType.class)
+    public void testAsm2RdbmsTransformation(TransformationType transformationType) throws Exception {
 
-        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace =
-                executeAsm2RdbmsTransformation(asm2RdbmsParameter()
-                        .asmModel(asmModel)
-                        .rdbmsModel(rdbmsModel)
-                        .createTrace(true)
-                        .dialect("hsqldb"));
+        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace;
+        
+        if (transformationType == TransformationType.ZETA) {
+            // Load mapping model for Zeta transformation
+            String dialect = "hsqldb";
+            java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+            RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                    rdbmsLoadArgumentsBuilder()
+                            .validateModel(false)
+                            .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms"))
+                            .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                    .toURL()
+                                    .openStream()));
+            rdbmsModel.getResource().getContents().addAll(mappingModel.getResource().getContents());
 
-        // Saving trace map
-        asm2RdbmsTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
+            log.info("Running Zeta transformation");
+            Asm2RdbmsZetaTransformation transformation = Asm2RdbmsZetaTransformation.builder()
+                    .asmModel(asmModel)
+                    .rdbmsModel(rdbmsModel)
+                    .dialect("hsqldb")
+                    .build();
+            transformation.execute();
+            // For Zeta transformation, trace is not available
+            asm2RdbmsTransformationTrace = null;
+        } else {
+            log.info("Running ETL transformation");
+            asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                    .asmModel(asmModel)
+                    .rdbmsModel(rdbmsModel)
+                    .createTrace(true)
+                    .dialect("hsqldb"));
+        }
 
-        // Loading trace map
-        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
-                fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
+        // Trace operations only for ETL transformation
+        if (asm2RdbmsTransformationTrace != null) {
+            // Saving trace map
+            asm2RdbmsTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
 
+            // Loading trace map
+            Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
+                    fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
 
-        // Resolve serialized URI's as EObject map
-        Map<EObject, List<EObject>> resolvedTrace = asm2RdbmsTransformationTraceLoaded.getTransformationTrace();
+            // Resolve serialized URI's as EObject map
+            Map<EObject, List<EObject>> resolvedTrace = asm2RdbmsTransformationTraceLoaded.getTransformationTrace();
 
-        // Printing trace
-        for (EObject e : resolvedTrace.keySet()) {
-            for (EObject t : resolvedTrace.get(e)) {
-                log.trace(e.toString() + " -> " + t.toString());
+            // Printing trace
+            for (EObject e : resolvedTrace.keySet()) {
+                for (EObject t : resolvedTrace.get(e)) {
+                    log.trace(e.toString() + " -> " + t.toString());
+                }
             }
         }
 

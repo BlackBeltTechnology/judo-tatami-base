@@ -27,6 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureZetaTransformation;
 
 import java.io.File;
 import java.util.List;
@@ -60,28 +63,46 @@ public class Psm2MeasureTest {
     }
 
 
-    @Test
-    public void testPsm2MeasureTransformation() throws Exception {
-        Psm2MeasureTransformationTrace psm2MeasureTransformationTrace =
-                executePsm2MeasureTransformation(psm2MeasureParameter()
-                        .psmModel(psmModel)
-                        .measureModel(measureModel));
+    @ParameterizedTest(name = "testPsm2MeasureTransformation with {0}")
+    @EnumSource(TransformationType.class)
+    public void testPsm2MeasureTransformation(TransformationType transformationType) throws Exception {
+        Psm2MeasureTransformationTrace psm2MeasureTransformationTrace;
+        
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation");
+            Psm2MeasureZetaTransformation transformation = Psm2MeasureZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .measureModel(measureModel)
+                    .build();
+            transformation.execute();
+            // For Zeta transformation, trace is not available
+            psm2MeasureTransformationTrace = null;
+        } else {
+            log.info("Running ETL transformation");
+            psm2MeasureTransformationTrace = executePsm2MeasureTransformation(psm2MeasureParameter()
+                    .psmModel(psmModel)
+                    .measureModel(measureModel));
+        }
 
-        // Saving trace map
-        psm2MeasureTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
+        // Trace operations only for ETL transformation
+        if (psm2MeasureTransformationTrace != null) {
+            // Saving trace map
+            psm2MeasureTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
 
-        // Loading trace map
-        Psm2MeasureTransformationTrace psm2MeasureTransformationTraceLoaded =
-                fromModelsAndTrace(DEMO, psmModel, measureModel, new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
+            // Loading trace map
+            Psm2MeasureTransformationTrace psm2MeasureTransformationTraceLoaded =
+                    fromModelsAndTrace(DEMO, psmModel, measureModel, new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
 
-        Map<EObject, List<EObject>> resolvedTrace = psm2MeasureTransformationTraceLoaded.getTransformationTrace();
+            Map<EObject, List<EObject>> resolvedTrace = psm2MeasureTransformationTraceLoaded.getTransformationTrace();
 
-        // Printing trace
-        for (EObject e : resolvedTrace.keySet()) {
-            for (EObject t : resolvedTrace.get(e)) {
-                log.info(e.toString() + " -> " + t.toString());
+            // Printing trace
+            for (EObject e : resolvedTrace.keySet()) {
+                for (EObject t : resolvedTrace.get(e)) {
+                    log.info(e.toString() + " -> " + t.toString());
+                }
             }
         }
+        
         measureModel.saveMeasureModel(measureSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_MEASURE_MODEL)));
     }

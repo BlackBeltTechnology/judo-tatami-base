@@ -35,10 +35,12 @@ import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.service.*;
 import hu.blackbelt.judo.meta.psm.type.Primitive;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -97,8 +99,29 @@ public class Psm2AsmInheritanceTest {
                 .build();
     }
 
-    @Test
-    public void testInheritance() throws Exception {
+    private void transform(final String testName, final TransformationType transformationType) throws Exception {
+        if (transformationType == TransformationType.ZETA) {
+            log.info("Running Zeta transformation for test: {}", testName);
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName("model")
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation for test: {}", testName);
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
+
+        asmModel.saveAsmModel(asmSaveArgumentsBuilder()
+                .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, testName + "-" + transformationType + "-" + INHERITANCE_ASM_MODEL))));
+    }
+
+    @ParameterizedTest(name = "testInheritance with {0}")
+    @EnumSource(TransformationType.class)
+    public void testInheritance(TransformationType transformationType) throws Exception {
         log.info("testInheritance~~~~~~~~~~~~~~~~~~~~");
         Primitive string = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         EntityType personEntity = newEntityTypeBuilder().withName("Person")
@@ -220,12 +243,7 @@ public class Psm2AsmInheritanceTest {
                 .build();
         psmModel.addContent(model);
 
-        executePsm2AsmTransformation(psm2AsmParameter()
-                .psmModel(psmModel)
-                .asmModel(asmModel));
-
-        asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, INHERITANCE_ASM_MODEL))));
+        transform("testInheritance", transformationType);
 
         final Optional<EClass> asmEmployeeTransferObject = allAsm(EClass.class).filter(clazz -> employeeTransferObject.getName().equals(clazz.getName())).findAny();
         assertTrue(asmEmployeeTransferObject.isPresent());
