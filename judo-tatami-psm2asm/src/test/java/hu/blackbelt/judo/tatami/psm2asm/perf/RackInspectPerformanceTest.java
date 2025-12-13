@@ -48,10 +48,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 
  * Run with: mvn test -pl judo-tatami-psm2asm -Dtest=RackInspectPerformanceTest -Pperformance
  */
-@Slf4j
 @Tag("performance")
 public class RackInspectPerformanceTest {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RackInspectPerformanceTest.class);
+    
     private static final File RACKINSPECT_PSM = new File("../rackinspect/rackinspect-psm.model");
     
     private static PsmModel psmModel;
