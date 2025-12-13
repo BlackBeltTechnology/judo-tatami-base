@@ -47,6 +47,8 @@ import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTrans
 import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace.fromModelsAndTrace;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
+import static org.junit.jupiter.api.Assertions.fail;
+import hu.blackbelt.judo.tatami.asm2rdbms.util.ModelComparator;
 
 @Slf4j
 public class Asm2RdbmsTest {
@@ -139,5 +141,76 @@ public class Asm2RdbmsTest {
 
         rdbmsModel.saveRdbmsModel(rdbmsSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_RDBMS_MODEL)));
+    }
+
+    /**
+     * Test that ETL and Zeta transformations produce equivalent RDBMS models.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Prepare ASM model (same for both transformations)
+        PsmModel psmModel = new Demo().fullDemo();
+        AsmModel sharedAsmModel = AsmModel.buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(sharedAsmModel));
+
+        // Run ETL transformation
+        log.info("Running ETL transformation for equivalence test...");
+        RdbmsModel etlResult = RdbmsModel.buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(etlResult.getResourceSet());
+        registerRdbmsDataTypesMetamodel(etlResult.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(etlResult.getResourceSet());
+        executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                .asmModel(sharedAsmModel)
+                .rdbmsModel(etlResult)
+                .createTrace(false)
+                .dialect("hsqldb"));
+
+        // Run Zeta transformation
+        log.info("Running Zeta transformation for equivalence test...");
+        RdbmsModel zetaResult = RdbmsModel.buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(zetaResult.getResourceSet());
+        registerRdbmsDataTypesMetamodel(zetaResult.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(zetaResult.getResourceSet());
+        
+        // Load mapping model for Zeta transformation
+        String dialect = "hsqldb";
+        java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+        RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                rdbmsLoadArgumentsBuilder()
+                        .validateModel(false)
+                        .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms-zeta"))
+                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                .toURL()
+                                .openStream()));
+        zetaResult.getResource().getContents().addAll(mappingModel.getResource().getContents());
+
+        Asm2RdbmsZetaTransformation zetaTransformation = Asm2RdbmsZetaTransformation.builder()
+                .asmModel(sharedAsmModel)
+                .rdbmsModel(zetaResult)
+                .dialect("hsqldb")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        log.info("Comparing ETL and Zeta output models...");
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
     }
 }

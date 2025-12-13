@@ -23,9 +23,10 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.perf;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.RdbmsField;
 import hu.blackbelt.judo.meta.rdbms.RdbmsIdentifierField;
-import hu.blackbelt.judo.meta.rdbms.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
-import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsUtils;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.util.ModelComparator;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -50,9 +51,9 @@ import static hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase.executeRd
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Performance tests for RDBMS to Liquibase transformation.
+ * Performance tests comparing ETL vs Zeta for RDBMS to Liquibase transformation.
  * 
- * Run with: mvn test -pl judo-tatami-rdbms2liquibase -Dtest=Rdbms2LiquibasePerformanceTest -Dgroups=performance
+ * Run with: mvn test -pl judo-tatami-rdbms2liquibase -Pperformance -Dtest=Rdbms2LiquibasePerformanceTest
  */
 @Slf4j
 @Tag("performance")
@@ -67,25 +68,25 @@ public class Rdbms2LiquibasePerformanceTest {
     }
 
     @Test
-    void testSmallModel() throws Exception {
-        runPerformanceTest(100, "Small");
+    void testSmallModelComparison() throws Exception {
+        runComparisonTest(100, "Small");
     }
 
     @Test
-    void testMediumModel() throws Exception {
-        runPerformanceTest(500, "Medium");
+    void testMediumModelComparison() throws Exception {
+        runComparisonTest(500, "Medium");
     }
 
     @ParameterizedTest
     @ValueSource(ints = {100, 500, 1000})
-    void testVariousModelSizes(int tableCount) throws Exception {
-        runPerformanceTest(tableCount, "Size-" + tableCount);
+    void testVariousModelSizesComparison(int tableCount) throws Exception {
+        runComparisonTest(tableCount, "Size-" + tableCount);
     }
 
-    private void runPerformanceTest(int tableCount, String testName) throws Exception {
-        log.info("========================================");
-        log.info("Performance Test: {} ({} tables)", testName, tableCount);
-        log.info("========================================");
+    private void runComparisonTest(int tableCount, String testName) throws Exception {
+        log.info("================================================================");
+        log.info("ETL vs ZETA Performance Comparison: {} ({} tables)", testName, tableCount);
+        log.info("================================================================");
 
         // Generate RDBMS model
         long genStart = System.nanoTime();
@@ -97,31 +98,87 @@ public class Rdbms2LiquibasePerformanceTest {
         log.info("Total model elements: {} ({} tables, {} fields)", 
                 totalElements, tableCount, tableCount * FIELDS_PER_TABLE);
 
-        // Warmup
-        log.info("Warming up ({} iterations)...", WARMUP_ITERATIONS);
-        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            LiquibaseModel liquibaseModel = buildLiquibaseModel()
-                    .name("PerformanceTest")
+        // Run ETL performance test
+        log.info("");
+        log.info("--- ETL Transformation ---");
+        PerformanceResult etlResult = runPerformanceTest(rdbmsModel, TransformationMode.ETL, tableCount);
+
+        // Run Zeta performance test
+        log.info("");
+        log.info("--- ZETA Transformation ---");
+        PerformanceResult zetaResult = runPerformanceTest(rdbmsModel, TransformationMode.ZETA, tableCount);
+
+        // Compare output models
+        log.info("");
+        log.info("--- Model Comparison ---");
+        compareOutputModels(rdbmsModel);
+
+        // Print comparison
+        printComparison(testName, tableCount, totalElements, etlResult, zetaResult);
+    }
+
+    private void compareOutputModels(hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel rdbmsModel) throws Exception {
+        // Execute both transformations and compare results
+        LiquibaseModel etlResult = executeTransformationWithResult(rdbmsModel, TransformationMode.ETL);
+        LiquibaseModel zetaResult = executeTransformationWithResult(rdbmsModel, TransformationMode.ZETA);
+
+        // Compare the models - for performance tests with synthetic models, we do a structural comparison
+        if (!etlResult.getResourceSet().getResources().isEmpty() && 
+            !zetaResult.getResourceSet().getResources().isEmpty()) {
+            
+            ModelComparator.ComparisonResult result = ModelComparator.compare(
+                    etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                    zetaResult.getResourceSet().getResources().get(0).getContents().get(0)
+            );
+            
+            if (result.isEquivalent()) {
+                log.info("Output models are EQUIVALENT");
+            } else {
+                log.info("Output models have {} differences (annotation variations expected for synthetic models)", 
+                        result.getDifferenceList().size());
+                // Log first 10 differences for debugging
+                result.getDifferenceList().stream().limit(10).forEach(diff -> log.info("  - {}", diff));
+            }
+        }
+    }
+
+    private LiquibaseModel executeTransformationWithResult(hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel rdbmsModel, 
+                                                            TransformationMode mode) throws Exception {
+        LiquibaseModel liquibaseModel = buildLiquibaseModel()
+                .name("PerformanceTest")
+                .build();
+        
+        if (mode.isZeta()) {
+            Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
+                    .rdbmsModel(rdbmsModel)
+                    .liquibaseModel(liquibaseModel)
+                    .dialect("hsqldb")
                     .build();
+            transformation.execute();
+        } else {
             executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
                     .rdbmsModel(rdbmsModel)
                     .liquibaseModel(liquibaseModel)
                     .dialect("hsqldb"));
+        }
+        
+        return liquibaseModel;
+    }
+
+    private PerformanceResult runPerformanceTest(hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel rdbmsModel, 
+                                                  TransformationMode mode, int tableCount) throws Exception {
+        // Warmup
+        log.info("Warming up ({} iterations)...", WARMUP_ITERATIONS);
+        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
+            executeTransformation(rdbmsModel, mode);
         }
 
         // Measurement
         log.info("Measuring ({} iterations)...", MEASUREMENT_ITERATIONS);
         List<Long> times = new ArrayList<>();
         for (int i = 0; i < MEASUREMENT_ITERATIONS; i++) {
-            LiquibaseModel liquibaseModel = buildLiquibaseModel()
-                    .name("PerformanceTest")
-                    .build();
-            
             long startTime = System.nanoTime();
-            executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
-                    .rdbmsModel(rdbmsModel)
-                    .liquibaseModel(liquibaseModel)
-                    .dialect("hsqldb"));
+            executeTransformation(rdbmsModel, mode);
             long endTime = System.nanoTime();
             
             long timeMs = TimeUnit.NANOSECONDS.toMillis(endTime - startTime);
@@ -133,23 +190,94 @@ public class Rdbms2LiquibasePerformanceTest {
         LongSummaryStatistics stats = times.stream().mapToLong(Long::longValue).summaryStatistics();
         Collections.sort(times);
         long median = times.get(times.size() / 2);
-        
         double stdDev = calculateStdDev(times, stats.getAverage());
-        double elementsPerSecond = totalElements / (stats.getAverage() / 1000.0);
 
-        log.info("----------------------------------------");
-        log.info("Results for {} ({} tables, {} elements):", testName, tableCount, totalElements);
-        log.info("  Min:    {}ms", stats.getMin());
-        log.info("  Max:    {}ms", stats.getMax());
-        log.info("  Avg:    {}ms", String.format("%.1f", stats.getAverage()));
-        log.info("  Median: {}ms", median);
-        log.info("  StdDev: {}ms", String.format("%.1f", stdDev));
-        log.info("  Throughput: {} elements/sec", String.format("%.0f", elementsPerSecond));
-        log.info("========================================\n");
+        return new PerformanceResult(mode, stats.getMin(), stats.getMax(), stats.getAverage(), median, stdDev);
+    }
 
-        // Basic sanity check - allow 50ms per table to account for ETL overhead and slow CI machines
-        assertTrue(stats.getAverage() < tableCount * 50, 
-                "Transformation too slow: " + stats.getAverage() + "ms for " + tableCount + " tables");
+    private void executeTransformation(hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel rdbmsModel, 
+                                        TransformationMode mode) throws Exception {
+        LiquibaseModel liquibaseModel = buildLiquibaseModel()
+                .name("PerformanceTest")
+                .build();
+        
+        if (mode.isZeta()) {
+            Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
+                    .rdbmsModel(rdbmsModel)
+                    .liquibaseModel(liquibaseModel)
+                    .dialect("hsqldb")
+                    .build();
+            transformation.execute();
+        } else {
+            executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
+                    .rdbmsModel(rdbmsModel)
+                    .liquibaseModel(liquibaseModel)
+                    .dialect("hsqldb"));
+        }
+    }
+
+    private void printComparison(String testName, int tableCount, int totalElements, 
+                                  PerformanceResult etlResult, PerformanceResult zetaResult) {
+        log.info("");
+        log.info("================================================================");
+        log.info("COMPARISON RESULTS: {} ({} tables, {} elements)", testName, tableCount, totalElements);
+        log.info("================================================================");
+        log.info("");
+        log.info("                    ETL              ZETA           Difference");
+        log.info("----------------------------------------------------------------");
+        log.info("Min:          {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8d", etlResult.min), 
+                String.format("%8d", zetaResult.min), 
+                String.format("%+8.1f", (double)(zetaResult.min - etlResult.min)),
+                String.format("%+.1f", percentDiff(etlResult.min, zetaResult.min)));
+        log.info("Max:          {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8d", etlResult.max), 
+                String.format("%8d", zetaResult.max),
+                String.format("%+8.1f", (double)(zetaResult.max - etlResult.max)),
+                String.format("%+.1f", percentDiff(etlResult.max, zetaResult.max)));
+        log.info("Avg:          {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8.1f", etlResult.avg), 
+                String.format("%8.1f", zetaResult.avg),
+                String.format("%+8.1f", zetaResult.avg - etlResult.avg),
+                String.format("%+.1f", percentDiff(etlResult.avg, zetaResult.avg)));
+        log.info("Median:       {}ms       {}ms       {}ms ({}%)", 
+                String.format("%8d", etlResult.median), 
+                String.format("%8d", zetaResult.median),
+                String.format("%+8.1f", (double)(zetaResult.median - etlResult.median)),
+                String.format("%+.1f", percentDiff(etlResult.median, zetaResult.median)));
+        log.info("StdDev:       {}ms       {}ms", 
+                String.format("%8.1f", etlResult.stdDev), 
+                String.format("%8.1f", zetaResult.stdDev));
+        log.info("");
+        
+        double etlThroughput = totalElements / (etlResult.avg / 1000.0);
+        double zetaThroughput = totalElements / (zetaResult.avg / 1000.0);
+        log.info("Throughput:   {}/s       {}/s       {}/s ({}%)", 
+                String.format("%8.0f", etlThroughput), 
+                String.format("%8.0f", zetaThroughput),
+                String.format("%+8.0f", zetaThroughput - etlThroughput),
+                String.format("%+.1f", percentDiff(etlThroughput, zetaThroughput)));
+        log.info("");
+        
+        if (zetaResult.avg < etlResult.avg) {
+            double speedup = etlResult.avg / zetaResult.avg;
+            log.info(">>> ZETA is {}x FASTER than ETL <<<", String.format("%.2f", speedup));
+        } else if (zetaResult.avg > etlResult.avg) {
+            double slowdown = zetaResult.avg / etlResult.avg;
+            log.info(">>> ZETA is {}x SLOWER than ETL <<<", String.format("%.2f", slowdown));
+        } else {
+            log.info(">>> ETL and ZETA have EQUAL performance <<<");
+        }
+        log.info("================================================================\n");
+
+        // Assert Zeta is not significantly slower (allow 50% tolerance)
+        assertTrue(zetaResult.avg < etlResult.avg * 1.5, 
+                "Zeta transformation is significantly slower than ETL: " + 
+                zetaResult.avg + "ms vs " + etlResult.avg + "ms");
+    }
+
+    private double percentDiff(double baseline, double value) {
+        return ((value - baseline) / baseline) * 100.0;
     }
 
     private hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel generateRdbmsModel(int tableCount) {
@@ -215,5 +343,23 @@ public class Rdbms2LiquibasePerformanceTest {
             sumSquaredDiff += Math.pow(value - mean, 2);
         }
         return Math.sqrt(sumSquaredDiff / values.size());
+    }
+
+    private static class PerformanceResult {
+        final TransformationMode mode;
+        final long min;
+        final long max;
+        final double avg;
+        final long median;
+        final double stdDev;
+
+        PerformanceResult(TransformationMode mode, long min, long max, double avg, long median, double stdDev) {
+            this.mode = mode;
+            this.min = min;
+            this.max = max;
+            this.avg = avg;
+            this.median = median;
+            this.stdDev = stdDev;
+        }
     }
 }

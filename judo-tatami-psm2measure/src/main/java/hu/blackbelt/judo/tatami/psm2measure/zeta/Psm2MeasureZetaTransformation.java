@@ -20,14 +20,17 @@ package hu.blackbelt.judo.tatami.psm2measure.zeta;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.measure.*;
+import hu.blackbelt.judo.meta.measure.BaseMeasure;
+import hu.blackbelt.judo.meta.measure.Measure;
+import hu.blackbelt.judo.meta.measure.MeasureFactory;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.PsmUtils;
 import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
 import hu.blackbelt.judo.meta.psm.measure.DurationUnit;
 import hu.blackbelt.judo.meta.psm.measure.MeasureDefinitionTerm;
-import hu.blackbelt.judo.meta.psm.measure.Unit;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.psm2measure.zeta.rules.MeasureRules;
+import hu.blackbelt.judo.tatami.psm2measure.zeta.rules.UnitRules;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -35,18 +38,23 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
 
 /**
- * Java-based PSM to Measure transformation using Zeta framework patterns.
+ * PSM to Measure transformation orchestrator using Zeta framework.
  * <p>
- * This class implements the equivalent transformation logic as the ETL scripts
- * in src/main/epsilon/transformations/measure/, providing a type-safe Java alternative
- * with better IDE support and debugging capabilities.
+ * This class orchestrates the transformation by delegating to rule classes:
+ * <ul>
+ *   <li>{@link MeasureRules} - measure.etl rules (CreateMeasure, CreateBaseMeasure, CreateDerivedMeasure)</li>
+ *   <li>{@link UnitRules} - unit.etl rules (CreateUnit, CreateDurationUnit)</li>
+ * </ul>
  * </p>
  */
 @Slf4j
@@ -57,6 +65,10 @@ public class Psm2MeasureZetaTransformation {
     private final PsmUtils psmUtils;
     private final ResourceSet psmResourceSet;
     private final MeasureFactory measureFactory;
+
+    // Rule classes
+    private final MeasureRules measureRules;
+    private final UnitRules unitRules;
 
     // Trace map for source to target element mapping
     private final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
@@ -70,6 +82,17 @@ public class Psm2MeasureZetaTransformation {
         this.psmResourceSet = psmModel.getResourceSet();
         this.psmUtils = new PsmUtils(psmResourceSet);
         this.measureFactory = MeasureFactory.eINSTANCE;
+
+        // Initialize rule classes with dependencies
+        this.measureRules = new MeasureRules(
+                measureFactory,
+                m -> psmUtils.namespaceToString(m.getNamespace()),
+                this::getEquivalent
+        );
+        this.unitRules = new UnitRules(
+                measureFactory,
+                this::findEquivalentMeasure
+        );
     }
 
     /**
@@ -101,7 +124,7 @@ public class Psm2MeasureZetaTransformation {
     }
 
     // =========================================================================
-    // MEASURE TRANSFORMATIONS
+    // MEASURE TRANSFORMATIONS (delegated to MeasureRules)
     // =========================================================================
 
     private void transformMeasures() {
@@ -118,9 +141,6 @@ public class Psm2MeasureZetaTransformation {
 
     private void transformBaseMeasure(hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure) {
         BaseMeasure baseMeasure = measureFactory.createBaseMeasure();
-        setId(baseMeasure, "(psm/" + getId(psmMeasure) + ")/BaseMeasure");
-
-        // Set common measure properties
         baseMeasure.setNamespace(psmUtils.namespaceToString(psmMeasure.getNamespace()));
         baseMeasure.setName(psmMeasure.getName());
         baseMeasure.setSymbol(psmMeasure.getSymbol());
@@ -130,71 +150,57 @@ public class Psm2MeasureZetaTransformation {
     }
 
     private void transformDerivedMeasure(DerivedMeasure psmDerivedMeasure) {
-        hu.blackbelt.judo.meta.measure.DerivedMeasure derivedMeasure = 
+        hu.blackbelt.judo.meta.measure.DerivedMeasure derivedMeasure =
                 measureFactory.createDerivedMeasure();
-        setId(derivedMeasure, "(psm/" + getId(psmDerivedMeasure) + ")/DerivedMeasure");
-
-        // Set common measure properties
         derivedMeasure.setNamespace(psmUtils.namespaceToString(psmDerivedMeasure.getNamespace()));
         derivedMeasure.setName(psmDerivedMeasure.getName());
         derivedMeasure.setSymbol(psmDerivedMeasure.getSymbol());
 
-        // Get base measures and create terms
-        Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> baseMeasures = 
+        // Get base measures with exponents
+        Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> baseMeasures =
                 getBaseMeasures(psmDerivedMeasure);
 
         for (Map.Entry<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> entry : baseMeasures.entrySet()) {
             hu.blackbelt.judo.meta.psm.measure.Measure psmBaseMeasure = entry.getKey();
             Integer exponent = entry.getValue();
 
-            BaseMeasureTerm term = measureFactory.createBaseMeasureTerm();
-            setId(term, "(" + getId(derivedMeasure) + ")_((psm/" + getId(psmBaseMeasure) + ")/BaseMeasureTerm)");
+            hu.blackbelt.judo.meta.measure.BaseMeasureTerm term = measureFactory.createBaseMeasureTerm();
             term.setExponent(exponent);
 
-            // Get the equivalent base measure
             EObject equivalent = getEquivalent(psmBaseMeasure, CREATE_BASE_MEASURE);
             if (equivalent instanceof BaseMeasure) {
                 term.setBaseMeasure((BaseMeasure) equivalent);
             }
 
             derivedMeasure.getTerms().add(term);
-            addTrace(psmBaseMeasure, CREATE_BASE_MEASURE_TERM, term);
         }
 
         measureModel.getResource().getContents().add(derivedMeasure);
         addTrace(psmDerivedMeasure, CREATE_DERIVED_MEASURE, derivedMeasure);
     }
 
-    /**
-     * Compute base measures for a derived measure by recursively resolving.
-     * This mirrors the getBaseMeasures() operation in the ETL.
-     */
-    private Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> getBaseMeasures(
-            DerivedMeasure derivedMeasure) {
+    private Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> getBaseMeasures(DerivedMeasure derivedMeasure) {
         Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> result = new HashMap<>();
 
         for (MeasureDefinitionTerm term : derivedMeasure.getTerms()) {
-            // Get the measure from the term's unit
             hu.blackbelt.judo.meta.psm.measure.Measure termMeasure = term.getUnit().getMeasure();
             int exponent = term.getExponent();
 
             if (termMeasure instanceof DerivedMeasure) {
-                // Recursively resolve derived measures
-                Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> nestedBaseMeasures = 
+                Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> nestedBaseMeasures =
                         getBaseMeasures((DerivedMeasure) termMeasure);
-                for (Map.Entry<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> entry : 
+                for (Map.Entry<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> entry :
                         nestedBaseMeasures.entrySet()) {
                     int newExponent = entry.getValue() * exponent;
                     result.merge(entry.getKey(), newExponent, (oldVal, newVal) -> {
                         int sum = oldVal + newVal;
-                        return sum == 0 ? null : sum; // Remove if exponent becomes 0
+                        return sum == 0 ? null : sum;
                     });
                 }
             } else {
-                // Base measure - add directly
                 result.merge(termMeasure, exponent, (oldVal, newVal) -> {
                     int sum = oldVal + newVal;
-                    return sum == 0 ? null : sum; // Remove if exponent becomes 0
+                    return sum == 0 ? null : sum;
                 });
             }
         }
@@ -203,14 +209,14 @@ public class Psm2MeasureZetaTransformation {
     }
 
     // =========================================================================
-    // UNIT TRANSFORMATIONS
+    // UNIT TRANSFORMATIONS (delegated to UnitRules)
     // =========================================================================
 
     private void transformUnits() {
         log.debug("Transforming units");
 
         // Transform regular units
-        all(Unit.class)
+        all(hu.blackbelt.judo.meta.psm.measure.Unit.class)
                 .filter(u -> !(u instanceof DurationUnit))
                 .forEach(this::transformUnit);
 
@@ -218,110 +224,74 @@ public class Psm2MeasureZetaTransformation {
         all(DurationUnit.class).forEach(this::transformDurationUnit);
     }
 
-    private void transformUnit(Unit psmUnit) {
+    private void transformUnit(hu.blackbelt.judo.meta.psm.measure.Unit psmUnit) {
         hu.blackbelt.judo.meta.measure.Unit unit = measureFactory.createUnit();
-        setId(unit, "(psm/" + getId(psmUnit) + ")/Unit");
-
         unit.setName(psmUnit.getName());
         unit.setSymbol(psmUnit.getSymbol());
         unit.setRateDividend(BigDecimal.valueOf(psmUnit.getRateDividend()));
         unit.setRateDivisor(BigDecimal.valueOf(psmUnit.getRateDivisor()));
 
-        // Find the parent measure and add the unit to it
-        hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure = findParentMeasure(psmUnit);
-        if (psmMeasure != null) {
-            Measure targetMeasure = (Measure) getEquivalentMeasure(psmMeasure);
-            if (targetMeasure != null) {
-                targetMeasure.getUnits().add(unit);
-            }
+        Measure targetMeasure = findEquivalentMeasure(psmUnit);
+        if (targetMeasure != null) {
+            targetMeasure.getUnits().add(unit);
         }
 
         addTrace(psmUnit, CREATE_UNIT, unit);
     }
 
     private void transformDurationUnit(DurationUnit psmDurationUnit) {
-        hu.blackbelt.judo.meta.measure.DurationUnit durationUnit = 
+        hu.blackbelt.judo.meta.measure.DurationUnit durationUnit =
                 measureFactory.createDurationUnit();
-
-        // Set base unit properties
         durationUnit.setName(psmDurationUnit.getName());
         durationUnit.setSymbol(psmDurationUnit.getSymbol());
         durationUnit.setRateDividend(BigDecimal.valueOf(psmDurationUnit.getRateDividend()));
         durationUnit.setRateDivisor(BigDecimal.valueOf(psmDurationUnit.getRateDivisor()));
 
-        // Map duration type
-        String idBase = "(psm/" + getId(psmDurationUnit) + ")/DurationUnit";
-        hu.blackbelt.judo.meta.psm.measure.DurationType psmType = psmDurationUnit.getUnitType();
+        mapDurationType(durationUnit, psmDurationUnit.getUnitType());
 
-        switch (psmType) {
-            case NANOSECOND:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.NANOSECOND);
-                setId(durationUnit, idBase + "Nanosecond");
-                break;
-            case MICROSECOND:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.MICROSECOND);
-                setId(durationUnit, idBase + "Microsecond");
-                break;
-            case MILLISECOND:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.MILLISECOND);
-                setId(durationUnit, idBase + "Millisecond");
-                break;
-            case SECOND:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.SECOND);
-                setId(durationUnit, idBase + "Second");
-                break;
-            case MINUTE:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.MINUTE);
-                setId(durationUnit, idBase + "Minute");
-                break;
-            case HOUR:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.HOUR);
-                setId(durationUnit, idBase + "Hour");
-                break;
-            case DAY:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.DAY);
-                setId(durationUnit, idBase + "Day");
-                break;
-            case WEEK:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.WEEK);
-                setId(durationUnit, idBase + "Week");
-                break;
-            case MONTH:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.MONTH);
-                setId(durationUnit, idBase + "Month");
-                break;
-            case YEAR:
-                durationUnit.setType(hu.blackbelt.judo.meta.measure.DurationType.YEAR);
-                setId(durationUnit, idBase + "Year");
-                break;
-            default:
-                throw new IllegalArgumentException("Missing or unsupported unit type: " + psmType);
-        }
-
-        // Find the parent measure and add the unit to it
-        hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure = findParentMeasure(psmDurationUnit);
-        if (psmMeasure != null) {
-            Measure targetMeasure = (Measure) getEquivalentMeasure(psmMeasure);
-            if (targetMeasure != null) {
-                targetMeasure.getUnits().add(durationUnit);
-            }
+        Measure targetMeasure = findEquivalentMeasure(psmDurationUnit);
+        if (targetMeasure != null) {
+            targetMeasure.getUnits().add(durationUnit);
         }
 
         addTrace(psmDurationUnit, CREATE_DURATION_UNIT, durationUnit);
     }
 
-    private hu.blackbelt.judo.meta.psm.measure.Measure findParentMeasure(Unit unit) {
-        return all(hu.blackbelt.judo.meta.psm.measure.Measure.class)
-                .filter(m -> m.getUnits().contains(unit))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private EObject getEquivalentMeasure(hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure) {
-        if (psmMeasure instanceof DerivedMeasure) {
-            return getEquivalent(psmMeasure, CREATE_DERIVED_MEASURE);
-        } else {
-            return getEquivalent(psmMeasure, CREATE_BASE_MEASURE);
+    private void mapDurationType(hu.blackbelt.judo.meta.measure.DurationUnit t,
+                                  hu.blackbelt.judo.meta.psm.measure.DurationType psmType) {
+        switch (psmType) {
+            case NANOSECOND:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.NANOSECOND);
+                break;
+            case MICROSECOND:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.MICROSECOND);
+                break;
+            case MILLISECOND:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.MILLISECOND);
+                break;
+            case SECOND:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.SECOND);
+                break;
+            case MINUTE:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.MINUTE);
+                break;
+            case HOUR:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.HOUR);
+                break;
+            case DAY:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.DAY);
+                break;
+            case WEEK:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.WEEK);
+                break;
+            case MONTH:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.MONTH);
+                break;
+            case YEAR:
+                t.setType(hu.blackbelt.judo.meta.measure.DurationType.YEAR);
+                break;
+            default:
+                throw new IllegalArgumentException("Missing or unsupported unit type: " + psmType);
         }
     }
 
@@ -329,20 +299,20 @@ public class Psm2MeasureZetaTransformation {
     // HELPER METHODS
     // =========================================================================
 
-    private String getId(EObject element) {
-        if (element instanceof hu.blackbelt.judo.meta.psm.namespace.NamespaceElement) {
-            hu.blackbelt.judo.meta.psm.namespace.NamespaceElement named = 
-                    (hu.blackbelt.judo.meta.psm.namespace.NamespaceElement) element;
-            return psmUtils.namespaceElementToString(named).replace("::", "_");
-        }
-        // Fall back to hash code if no ID annotation
-        return String.valueOf(System.identityHashCode(element));
-    }
+    private Measure findEquivalentMeasure(hu.blackbelt.judo.meta.psm.measure.Unit unit) {
+        hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure = all(hu.blackbelt.judo.meta.psm.measure.Measure.class)
+                .filter(m -> m.getUnits().contains(unit))
+                .findFirst()
+                .orElse(null);
 
-    private void setId(EObject element, String id) {
-        // For measure model elements, we might need to set ID differently
-        // The measure metamodel might have its own ID mechanism
-        // For now, we rely on the tracing mechanism
+        if (psmMeasure != null) {
+            if (psmMeasure instanceof DerivedMeasure) {
+                return (Measure) getEquivalent(psmMeasure, CREATE_DERIVED_MEASURE);
+            } else {
+                return (Measure) getEquivalent(psmMeasure, CREATE_BASE_MEASURE);
+            }
+        }
+        return null;
     }
 
     private void addTrace(EObject source, String ruleName, EObject target) {

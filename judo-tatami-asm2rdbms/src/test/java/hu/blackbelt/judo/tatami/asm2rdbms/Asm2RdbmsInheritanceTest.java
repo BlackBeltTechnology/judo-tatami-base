@@ -21,11 +21,17 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  */
 
 import com.google.common.collect.ImmutableList;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.RdbmsIdentifierField;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
+import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.asm2rdbms.util.ModelComparator;
+import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
+import org.eclipse.epsilon.common.util.UriUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,14 +39,25 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 
+import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.buildAsmModel;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.addExtensionAnnotation;
+import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder;
+import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.buildRdbmsModel;
+import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel;
+import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
+import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
+import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter;
+import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTransformation;
 import static java.lang.String.format;
 import static org.eclipse.emf.ecore.util.builder.EcoreBuilders.newEClassBuilder;
 import static org.eclipse.emf.ecore.util.builder.EcoreBuilders.newEPackageBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
+@Slf4j
 public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
     private final String ID_ATTRIBUTE = "#_id";
     private final String TYPE_ATTRIBUTE = "#_type";
@@ -66,7 +83,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
 
     @ParameterizedTest(name = "Test Basic Inheritance with {0}")
     @EnumSource(TransformationType.class)
-    public void testBasicInheritance(TransformationType transformationType) {
+    public void testBasicInheritance(TransformationType transformationType) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -144,11 +161,13 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         // ASSERTION - check if apple's parent is valid
         assertEquals(rdbmsUtils.getRdbmsTable(RDBMS_TABLE_FRUIT).get().getPrimaryKey(),
                 rdbmsUtils.getRdbmsTable(RDBMS_TABLE_APPLE).get().getParents().get(0).getPrimaryKey());
+
+        compareTransformations("testBasicInheritance");
     }
 
     @ParameterizedTest(name = "Test Inheritance With Two Parents with {0}")
     @EnumSource(TransformationType.class)
-    public void testInheritanceWithTwoParents(TransformationType transformationType) {
+    public void testInheritanceWithTwoParents(TransformationType transformationType) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -251,11 +270,13 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
                 RDBMS_TABLE_TOMATO + "'s parent's primary key is not valid: " + primaryKey1.getName());
         assertTrue(rdbmsParents.stream().anyMatch(o -> o.getPrimaryKey().equals(primaryKey2)),
                 RDBMS_TABLE_TOMATO + "'s parent's primary key is not valid: " + primaryKey2.getName());
+
+        compareTransformations("testInheritanceWithTwoParents");
     }
 
     @ParameterizedTest(name = "Test Indirect Inheritance with {0}")
     @EnumSource(TransformationType.class)
-    public void testIndirectInheritance(TransformationType transformationType) {
+    public void testIndirectInheritance(TransformationType transformationType) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -365,11 +386,13 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
 
         assertTrue(rdbmsParents3.stream().anyMatch(o -> o.getPrimaryKey().equals(primaryKey2)),
                 RDBMS_TABLE_ELECTRIC_CAR + "'s parent's primary key is not valid: " + primaryKey1.getName());
+
+        compareTransformations("testIndirectInheritance");
     }
 
     @ParameterizedTest(name = "Test Diamond Inheritance with {0}")
     @EnumSource(TransformationType.class)
-    public void testDiamondInheritance(TransformationType transformationType) {
+    public void testDiamondInheritance(TransformationType transformationType) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -508,7 +531,160 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         assertTrue(rdbmsParents3.stream().anyMatch(o -> o.getPrimaryKey().equals(primaryKey22)),
                 RDBMS_TABLE_C + "'s parent's primary key is not valid: " + primaryKey22.getName());
 
+        compareTransformations("testDiamondInheritance");
     }
 
+    /**
+     * Runs both ETL and Zeta transformations and compares their outputs.
+     */
+    private void compareTransformations(final String testName) throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
 
+        // Run ETL fresh
+        AsmModel asmModelEtl = buildAsmModel().build();
+        RdbmsModel rdbmsModelEtl = buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(rdbmsModelEtl.getResourceSet());
+        registerRdbmsDataTypesMetamodel(rdbmsModelEtl.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(rdbmsModelEtl.getResourceSet());
+        asmModelEtl.getResource().getContents().addAll(asmModel.getResource().getContents().stream()
+                .map(EcoreUtil::copy).collect(Collectors.toList()));
+        
+        executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                .asmModel(asmModelEtl)
+                .rdbmsModel(rdbmsModelEtl)
+                .createTrace(false)
+                .dialect("hsqldb"));
+
+        // Run Zeta fresh
+        AsmModel asmModelZeta = buildAsmModel().build();
+        RdbmsModel rdbmsModelZeta = buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(rdbmsModelZeta.getResourceSet());
+        registerRdbmsDataTypesMetamodel(rdbmsModelZeta.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(rdbmsModelZeta.getResourceSet());
+        asmModelZeta.getResource().getContents().addAll(asmModel.getResource().getContents().stream()
+                .map(EcoreUtil::copy).collect(Collectors.toList()));
+
+        // Load mapping model for Zeta
+        String dialect = "hsqldb";
+        java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+        RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                rdbmsLoadArgumentsBuilder()
+                        .validateModel(false)
+                        .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms-compare"))
+                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                .toURL()
+                                .openStream()));
+        rdbmsModelZeta.getResource().getContents().addAll(mappingModel.getResource().getContents());
+
+        Asm2RdbmsZetaTransformation zetaTransformation = Asm2RdbmsZetaTransformation.builder()
+                .asmModel(asmModelZeta)
+                .rdbmsModel(rdbmsModelZeta)
+                .dialect("hsqldb")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                rdbmsModelEtl.getResourceSet().getResources().get(0).getContents().get(0),
+                rdbmsModelZeta.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
+        } else {
+            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
+            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
+        }
+    }
+
+    private AsmModel buildInheritanceAsmModel() {
+        AsmModel asmModel = buildAsmModel().build();
+
+        final EPackage ePackage = newEPackageBuilder()
+                .withName("TestEpackage")
+                .withNsPrefix("test")
+                .withNsURI("http:///com.example.test.ecore")
+                .build();
+        asmModel.addContent(ePackage);
+
+        final EClass fruit = newEClassBuilder()
+                .withName("fruit")
+                .build();
+        ePackage.getEClassifiers().add(fruit);
+        addExtensionAnnotation(fruit, ENTITY_ANNOTATION, VALUE_ANNOTATION);
+
+        final EClass apple = newEClassBuilder()
+                .withName("apple")
+                .withESuperTypes(fruit)
+                .build();
+        ePackage.getEClassifiers().add(apple);
+        addExtensionAnnotation(apple, ENTITY_ANNOTATION, VALUE_ANNOTATION);
+
+        return asmModel;
+    }
+
+    @Test
+    void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Build model and run ETL
+        AsmModel asmModelEtl = buildInheritanceAsmModel();
+        RdbmsModel rdbmsModelEtl = buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(rdbmsModelEtl.getResourceSet());
+        registerRdbmsDataTypesMetamodel(rdbmsModelEtl.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(rdbmsModelEtl.getResourceSet());
+
+        executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                .asmModel(asmModelEtl)
+                .rdbmsModel(rdbmsModelEtl)
+                .createTrace(false)
+                .dialect("hsqldb"));
+
+        // Build model and run Zeta
+        AsmModel asmModelZeta = buildInheritanceAsmModel();
+        RdbmsModel rdbmsModelZeta = buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(rdbmsModelZeta.getResourceSet());
+        registerRdbmsDataTypesMetamodel(rdbmsModelZeta.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(rdbmsModelZeta.getResourceSet());
+
+        // Load mapping model for Zeta
+        String dialect = "hsqldb";
+        java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+        RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                rdbmsLoadArgumentsBuilder()
+                        .validateModel(false)
+                        .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms-zeta"))
+                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                .toURL()
+                                .openStream()));
+        rdbmsModelZeta.getResource().getContents().addAll(mappingModel.getResource().getContents());
+
+        Asm2RdbmsZetaTransformation zetaTransformation = Asm2RdbmsZetaTransformation.builder()
+                .asmModel(asmModelZeta)
+                .rdbmsModel(rdbmsModelZeta)
+                .dialect("hsqldb")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                rdbmsModelEtl.getResourceSet().getResources().get(0).getContents().get(0),
+                rdbmsModelZeta.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
+    }
 }

@@ -38,6 +38,15 @@ import static org.junit.jupiter.api.Assertions.*;
  * to provide the specific transformation logic.
  * </p>
  * 
+ * <h2>Configuration</h2>
+ * The comparison behavior can be configured via system properties:
+ * <ul>
+ *   <li>{@code judo.test.comparison.enabled} - Enable/disable comparison (default: true)</li>
+ *   <li>{@code judo.test.comparison.mode} - Comparison mode: STRICT, STRUCTURAL, LENIENT (default: STRUCTURAL)</li>
+ *   <li>{@code judo.test.comparison.maxDifferences} - Max differences to report (default: 50)</li>
+ *   <li>{@code judo.test.comparison.reportFile} - Output file for diff report (optional)</li>
+ * </ul>
+ * 
  * <p>Example usage:</p>
  * <pre>{@code
  * public class MyTransformationTest extends AbstractDualTransformationTest {
@@ -61,6 +70,10 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Slf4j
 public abstract class AbstractDualTransformationTest {
+
+    // Store transformation results for comparison
+    private AsmModel etlResult;
+    private AsmModel zetaResult;
 
     /**
      * Creates the source PSM model for transformation.
@@ -102,6 +115,59 @@ public abstract class AbstractDualTransformationTest {
     }
 
     /**
+     * Gets the comparison mode to use for model comparison.
+     * Subclasses can override this to specify a different default mode.
+     *
+     * @return the comparison mode
+     */
+    protected ModelComparator.ComparisonMode getComparisonMode() {
+        return ModelComparator.getConfiguredMode();
+    }
+
+    /**
+     * Stores the transformation result for later comparison.
+     *
+     * @param type the transformation type
+     * @param result the transformation result
+     */
+    protected void storeTransformationResult(TransformationType type, AsmModel result) {
+        switch (type) {
+            case ETL -> etlResult = result;
+            case ZETA -> zetaResult = result;
+        }
+    }
+
+    /**
+     * Gets the stored ETL transformation result.
+     *
+     * @return the ETL result, or null if not yet executed
+     */
+    protected AsmModel getStoredEtlResult() {
+        return etlResult;
+    }
+
+    /**
+     * Gets the stored Zeta transformation result.
+     *
+     * @return the Zeta result, or null if not yet executed
+     */
+    protected AsmModel getStoredZetaResult() {
+        return zetaResult;
+    }
+
+    /**
+     * Compares the stored ETL and Zeta results.
+     * Both transformations must have been executed before calling this method.
+     *
+     * @throws AssertionError if the results are not available or not equivalent
+     */
+    protected void compareStoredResults() {
+        assertNotNull(etlResult, "ETL result not available - run ETL transformation first");
+        assertNotNull(zetaResult, "Zeta result not available - run Zeta transformation first");
+        compareModels(etlResult, zetaResult);
+    }
+
+    /**
      * Parameterized test that runs the transformation with both ETL and Zeta engines.
      *
      * @param type the transformation type to use
@@ -119,17 +185,26 @@ public abstract class AbstractDualTransformationTest {
             case ZETA -> runZetaTransformation(source);
         };
 
+        storeTransformationResult(type, result);
         verifyResult(result, type);
     }
 
     /**
      * Tests that both ETL and Zeta transformations produce equivalent results.
      * This test runs both transformations and compares the output models.
+     * <p>
+     * The comparison uses the configured comparison mode (default: STRUCTURAL).
+     * Use {@code -Djudo.test.comparison.mode=STRICT} for exact matching.
      *
      * @throws Exception if transformation or comparison fails
      */
     @Test
     void testDualEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
         PsmModel source = createSourceModel();
         assertNotNull(source, "Source model should not be null");
         assertTrue(source.isValid(), "Source model should be valid");
@@ -146,7 +221,7 @@ public abstract class AbstractDualTransformationTest {
         long zetaDuration = System.currentTimeMillis() - zetaStart;
         log.info("Zeta transformation completed in {}ms", zetaDuration);
 
-        log.info("Comparing results...");
+        log.info("Comparing results with mode: {}", getComparisonMode());
         compareModels(etlResult, zetaResult);
         log.info("Models are equivalent");
     }
@@ -168,9 +243,34 @@ public abstract class AbstractDualTransformationTest {
             
             ModelComparator.assertEquivalent(
                     etlResult.getResourceSet().getResources().get(0),
-                    zetaResult.getResourceSet().getResources().get(0)
+                    zetaResult.getResourceSet().getResources().get(0),
+                    getComparisonMode()
             );
         }
+    }
+
+    /**
+     * Asserts that two models are structurally equivalent.
+     * Utility method for use in subclass tests.
+     *
+     * @param expected the expected model
+     * @param actual the actual model
+     */
+    protected void assertModelsEquivalent(EObject expected, EObject actual) {
+        ModelComparator.assertEquivalent(expected, actual, getComparisonMode());
+    }
+
+    /**
+     * Asserts that two models are structurally equivalent with a specific mode.
+     * Utility method for use in subclass tests.
+     *
+     * @param expected the expected model
+     * @param actual the actual model
+     * @param mode the comparison mode to use
+     */
+    protected void assertModelsEquivalent(EObject expected, EObject actual, 
+                                          ModelComparator.ComparisonMode mode) {
+        ModelComparator.assertEquivalent(expected, actual, mode);
     }
 
     /**
