@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:trace="http:///www.blackbelt.hu/meta/trasformation/trace/asm2keycloak">
+  <trace:Trace sourceUri="asm.model#(psm/(esm/_2IsaQB8AEe6lzaZ1TR-WqQ)/MappedActorType)/MappedTransferObject">
+    <targetUri>rackinspect-keycloak.model#_TqAywNAuEfCjy-YcnQ8SmQ</targetUri>
+  </trace:Trace>
+  <trace:Trace sourceUri="asm.model#(psm/(esm/_uWFmcJeaEe6JNOzPmbd4yw)/Claim)/TransferObjectAttribute">
+    <targetUri>rackinspect-keycloak.model#_TqUUw9AuEfCjy-YcnQ8SmQ</targetUri>
+  </trace:Trace>
+</xmi:XMI>

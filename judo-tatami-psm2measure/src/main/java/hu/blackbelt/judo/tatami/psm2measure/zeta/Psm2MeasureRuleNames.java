@@ -31,9 +31,14 @@ public final class Psm2MeasureRuleNames {
         // Utility class - prevent instantiation
     }
 
-    // Measure transformation rules
+    // Measure transformation rules (measure.etl)
+    /** @abstract - base rule for measure transformation */
+    public static final String CREATE_MEASURE = "CreateMeasure";
+    /** extends CreateMeasure - for non-derived measures */
     public static final String CREATE_BASE_MEASURE = "CreateBaseMeasure";
+    /** extends CreateMeasure - for derived measures */
     public static final String CREATE_DERIVED_MEASURE = "CreateDerivedMeasure";
+    /** helper - term for derived measure definition */
     public static final String CREATE_BASE_MEASURE_TERM = "CreateBaseMeasureTerm";
 
     // Unit transformation rules

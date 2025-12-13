@@ -29,13 +29,16 @@ import hu.blackbelt.judo.meta.psm.measure.*;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.hamcrest.core.IsNull;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.Optional;
@@ -101,7 +104,7 @@ public class Psm2AsmTypeTest {
 
         if (transformationType == TransformationType.ZETA) {
             log.info("Running Zeta transformation for test: {}", testName);
-            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+            Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
                     .psmModel(psmModel)
                     .asmModel(asmModel)
                     .modelName(MODEL_NAME)
@@ -118,6 +121,46 @@ public class Psm2AsmTypeTest {
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-asm.model"))
                 .build());
+    }
+
+    /**
+     * Runs both ETL and Zeta transformations and compares their outputs.
+     * This should be called at the end of parameterized tests to verify equivalence.
+     */
+    private void compareTransformations(final String testName) throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Run ETL fresh
+        AsmModel etlModel = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(etlModel));
+
+        // Run Zeta fresh - use psmModel.getName() to match what ETL uses
+        AsmModel zetaModel = buildAsmModel().build();
+        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaModel)
+                .modelName(psmModel.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlModel.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaModel.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
+        } else {
+            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
+            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
+        }
     }
 
     @ParameterizedTest(name = "testType with {0}")
@@ -245,5 +288,94 @@ public class Psm2AsmTypeTest {
         assertTrue(asmMeasured.isPresent());
         assertTrue(asmMeasured.get().getEPackage().equals(asmTestModel));
         assertTrue(asmMeasured.get().getInstanceClassName().equals(FLOAT));
+
+        // Compare ETL and Zeta outputs
+        compareTransformations("testType");
+    }
+
+    /**
+     * Test that compares ETL and Zeta transformation outputs for equivalence.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Build model for ETL
+        EnumerationMember a = newEnumerationMemberBuilder().withName("a").withOrdinal(1).build();
+        EnumerationMember b = newEnumerationMemberBuilder().withName("b").withOrdinal(2).build();
+        EnumerationMember c = newEnumerationMemberBuilder().withName("c").withOrdinal(3).build();
+        EnumerationType enumType = newEnumerationTypeBuilder().withName("enum")
+                .withMembers(ImmutableList.of(a,b,c)).build();
+        StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).withRegExp(".*").build();
+        NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
+        BooleanType boolType = newBooleanTypeBuilder().withName("bool").build();
+        DateType dateType = newDateTypeBuilder().withName("date").build();
+        TimestampType timestampType = newTimestampTypeBuilder().withName("timestamp").build();
+        TimeType timeType = newTimeTypeBuilder().withName("time").build();
+        CustomType custom = newCustomTypeBuilder().withName("object").build();
+        Unit unit = newUnitBuilder().withName("u").build();
+        Measure m = newMeasureBuilder().withName("measure").withUnits(unit).build();
+        MeasuredType measuredType = newMeasuredTypeBuilder().withName("measuredType").withStoreUnit(unit)
+                .withPrecision(5).withScale(3).build();
+        Model model = newModelBuilder().withName(TEST_MODEL_NAME)
+                .withElements(ImmutableList.of(enumType, strType, intType, boolType, dateType, timestampType, timeType, custom, m, measuredType))
+                .build();
+
+        // Run ETL transformation
+        PsmModel psmModelEtl = buildPsmModel().build();
+        psmModelEtl.addContent(model);
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModelEtl)
+                .asmModel(etlResult));
+
+        // Build model for Zeta (fresh copy)
+        EnumerationMember a2 = newEnumerationMemberBuilder().withName("a").withOrdinal(1).build();
+        EnumerationMember b2 = newEnumerationMemberBuilder().withName("b").withOrdinal(2).build();
+        EnumerationMember c2 = newEnumerationMemberBuilder().withName("c").withOrdinal(3).build();
+        EnumerationType enumType2 = newEnumerationTypeBuilder().withName("enum")
+                .withMembers(ImmutableList.of(a2,b2,c2)).build();
+        StringType strType2 = newStringTypeBuilder().withName("string").withMaxLength(256).withRegExp(".*").build();
+        NumericType intType2 = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
+        BooleanType boolType2 = newBooleanTypeBuilder().withName("bool").build();
+        DateType dateType2 = newDateTypeBuilder().withName("date").build();
+        TimestampType timestampType2 = newTimestampTypeBuilder().withName("timestamp").build();
+        TimeType timeType2 = newTimeTypeBuilder().withName("time").build();
+        CustomType custom2 = newCustomTypeBuilder().withName("object").build();
+        Unit unit2 = newUnitBuilder().withName("u").build();
+        Measure m2 = newMeasureBuilder().withName("measure").withUnits(unit2).build();
+        MeasuredType measuredType2 = newMeasuredTypeBuilder().withName("measuredType").withStoreUnit(unit2)
+                .withPrecision(5).withScale(3).build();
+        Model model2 = newModelBuilder().withName(TEST_MODEL_NAME)
+                .withElements(ImmutableList.of(enumType2, strType2, intType2, boolType2, dateType2, timestampType2, timeType2, custom2, m2, measuredType2))
+                .build();
+
+        // Run Zeta transformation
+        PsmModel psmModelZeta = buildPsmModel().build();
+        psmModelZeta.addContent(model2);
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+                .psmModel(psmModelZeta)
+                .asmModel(zetaResult)
+                .modelName(psmModelZeta.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
     }
 }

@@ -40,6 +40,8 @@ import static hu.blackbelt.judo.meta.measure.runtime.MeasureModel.buildMeasureMo
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter;
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2MeasureTransformationTrace.fromModelsAndTrace;
+import static org.junit.jupiter.api.Assertions.fail;
+import hu.blackbelt.judo.tatami.psm2measure.util.ModelComparator;
 
 @Slf4j
 public class Psm2MeasureTest {
@@ -107,5 +109,48 @@ public class Psm2MeasureTest {
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_MEASURE_MODEL)));
     }
 
+    /**
+     * Test that ETL and Zeta transformations produce equivalent Measure models.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Run ETL transformation
+        log.info("Running ETL transformation for equivalence test...");
+        PsmModel psmModelEtl = new Demo().fullDemo();
+        MeasureModel etlResult = buildMeasureModel().name(DEMO).build();
+        executePsm2MeasureTransformation(psm2MeasureParameter()
+                .psmModel(psmModelEtl)
+                .measureModel(etlResult));
+
+        // Run Zeta transformation
+        log.info("Running Zeta transformation for equivalence test...");
+        PsmModel psmModelZeta = new Demo().fullDemo();
+        MeasureModel zetaResult = buildMeasureModel().name(DEMO).build();
+        Psm2MeasureZetaTransformation zetaTransformation = Psm2MeasureZetaTransformation.builder()
+                .psmModel(psmModelZeta)
+                .measureModel(zetaResult)
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        log.info("Comparing ETL and Zeta output models...");
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
+    }
 
 }

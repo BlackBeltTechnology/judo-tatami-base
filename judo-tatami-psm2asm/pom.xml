@@ -134,7 +134,18 @@
             <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
         </dependency>
 
-        <!-- Note: Zeta Framework dependencies will be added when published -->
-        <!-- For now, the Zeta transformation uses pure EMF/Ecore APIs -->
+        <!-- Zeta Framework dependencies -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.zeta</groupId>
+            <artifactId>hu.blackbelt.judo.zeta.annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.zeta</groupId>
+            <artifactId>hu.blackbelt.judo.zeta.transformation-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.zeta</groupId>
+            <artifactId>hu.blackbelt.judo.zeta.common</artifactId>
+        </dependency>
     </dependencies>
 </project>

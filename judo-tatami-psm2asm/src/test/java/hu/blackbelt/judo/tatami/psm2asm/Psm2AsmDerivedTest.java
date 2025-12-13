@@ -43,7 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
 
 import java.io.File;
 import java.util.List;
@@ -66,6 +66,7 @@ import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformat
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class Psm2AsmDerivedTest {
@@ -104,7 +105,7 @@ public class Psm2AsmDerivedTest {
 
         if (transformationType == TransformationType.ZETA) {
             log.info("Running Zeta transformation for test: {}", testName);
-            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+            Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
                     .psmModel(psmModel)
                     .asmModel(asmModel)
                     .modelName(MODEL_NAME)
@@ -121,6 +122,46 @@ public class Psm2AsmDerivedTest {
         assertTrue(asmModel.isValid());
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model")).build());
+    }
+
+    /**
+     * Runs both ETL and Zeta transformations and compares their outputs.
+     * This should be called at the end of parameterized tests to verify equivalence.
+     */
+    private void compareTransformations(final String testName) throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Run ETL fresh
+        AsmModel etlModel = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(etlModel));
+
+        // Run Zeta fresh - use psmModel.getName() to match what ETL uses
+        AsmModel zetaModel = buildAsmModel().build();
+        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaModel)
+                .modelName(psmModel.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlModel.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaModel.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
+        } else {
+            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
+            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
+        }
     }
 
     @ParameterizedTest(name = "testDerived with {0}")
@@ -339,6 +380,8 @@ public class Psm2AsmDerivedTest {
         assertTrue(asmNavPropExpr.getDetails().containsKey("getter.dialect"));
         assertTrue(asmNavPropExpr.getDetails().get("getter.dialect")
                 .equals(navProp.getGetterExpression().getDialect().toString()));
+
+        compareTransformations("testDerived");
     }
 
     @ParameterizedTest(name = "testDerivedInUnmappedTransferObjectTypes with {0}")
@@ -429,5 +472,112 @@ public class Psm2AsmDerivedTest {
         assertTrue(asmUnmappedDerivedAttr.getDetails().containsKey("getter.dialect"));
         assertTrue(asmUnmappedDerivedAttr.getDetails().get("getter.dialect")
                 .equals(statNav2.getGetterExpression().getDialect().toString()));
+
+        compareTransformations("testDerivedInUnmappedTransferObjectTypes");
+    }
+
+    @Test
+    void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Build model for ETL
+        StringType strTypeEtl = newStringTypeBuilder().withName("string").withMaxLength(256).build();
+        NumericType intTypeEtl = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
+        BooleanType boolTypeEtl = newBooleanTypeBuilder().withName("bool").build();
+        CustomType customEtl = newCustomTypeBuilder().withName("object").build();
+
+        Unit unitEtl = newUnitBuilder().withName("u").build();
+        Measure mEtl = newMeasureBuilder().withName("measure").withUnits(unitEtl).build();
+        MeasuredType measuredTypeEtl = newMeasuredTypeBuilder().withName("measuredType").withStoreUnit(unitEtl)
+                .withPrecision(5).withScale(3).build();
+
+        EntityType entity1Etl = newEntityTypeBuilder().withName("entity1").build();
+        EntityType entity2Etl = newEntityTypeBuilder().withName("entity2").build();
+        EntityType entity3Etl = newEntityTypeBuilder().withName("entity3").withSuperEntityTypes(com.google.common.collect.ImmutableList.of(entity2Etl)).build();
+
+        DataProperty stringDataPropertyEtl = newDataPropertyBuilder().withName("a1").withDataType(strTypeEtl)
+                .withGetterExpression(newDataExpressionTypeBuilder().withExpression("self.a1")).build();
+        DataProperty boolDataPropertyEtl = newDataPropertyBuilder().withName("a3").withDataType(boolTypeEtl)
+                .withGetterExpression(newDataExpressionTypeBuilder().withExpression("self.a3")).build();
+        DataProperty intDataPropertyEtl = newDataPropertyBuilder().withName("a4").withDataType(intTypeEtl)
+                .withGetterExpression(newDataExpressionTypeBuilder().withExpression("self.a4")).build();
+
+        entity1Etl.getDataProperties().addAll(com.google.common.collect.ImmutableList.of(stringDataPropertyEtl, boolDataPropertyEtl, intDataPropertyEtl));
+
+        NavigationProperty navPropEtl = newNavigationPropertyBuilder().withName("navProp")
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1)).withTarget(entity3Etl)
+                .withGetterExpression(newReferenceExpressionTypeBuilder().withExpression("self.navProp")).build();
+        entity1Etl.getNavigationProperties().addAll(com.google.common.collect.ImmutableList.of(navPropEtl));
+
+        Model modelEtl = newModelBuilder().withName("M").withElements(
+                com.google.common.collect.ImmutableList.of(entity1Etl, entity2Etl, entity3Etl, strTypeEtl, intTypeEtl, boolTypeEtl, customEtl, measuredTypeEtl, mEtl))
+                .build();
+
+        PsmModel psmModelEtl = buildPsmModel().build();
+        psmModelEtl.addContent(modelEtl);
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModelEtl)
+                .asmModel(etlResult));
+
+        // Build model for Zeta
+        StringType strTypeZeta = newStringTypeBuilder().withName("string").withMaxLength(256).build();
+        NumericType intTypeZeta = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
+        BooleanType boolTypeZeta = newBooleanTypeBuilder().withName("bool").build();
+        CustomType customZeta = newCustomTypeBuilder().withName("object").build();
+
+        Unit unitZeta = newUnitBuilder().withName("u").build();
+        Measure mZeta = newMeasureBuilder().withName("measure").withUnits(unitZeta).build();
+        MeasuredType measuredTypeZeta = newMeasuredTypeBuilder().withName("measuredType").withStoreUnit(unitZeta)
+                .withPrecision(5).withScale(3).build();
+
+        EntityType entity1Zeta = newEntityTypeBuilder().withName("entity1").build();
+        EntityType entity2Zeta = newEntityTypeBuilder().withName("entity2").build();
+        EntityType entity3Zeta = newEntityTypeBuilder().withName("entity3").withSuperEntityTypes(com.google.common.collect.ImmutableList.of(entity2Zeta)).build();
+
+        DataProperty stringDataPropertyZeta = newDataPropertyBuilder().withName("a1").withDataType(strTypeZeta)
+                .withGetterExpression(newDataExpressionTypeBuilder().withExpression("self.a1")).build();
+        DataProperty boolDataPropertyZeta = newDataPropertyBuilder().withName("a3").withDataType(boolTypeZeta)
+                .withGetterExpression(newDataExpressionTypeBuilder().withExpression("self.a3")).build();
+        DataProperty intDataPropertyZeta = newDataPropertyBuilder().withName("a4").withDataType(intTypeZeta)
+                .withGetterExpression(newDataExpressionTypeBuilder().withExpression("self.a4")).build();
+
+        entity1Zeta.getDataProperties().addAll(com.google.common.collect.ImmutableList.of(stringDataPropertyZeta, boolDataPropertyZeta, intDataPropertyZeta));
+
+        NavigationProperty navPropZeta = newNavigationPropertyBuilder().withName("navProp")
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1)).withTarget(entity3Zeta)
+                .withGetterExpression(newReferenceExpressionTypeBuilder().withExpression("self.navProp")).build();
+        entity1Zeta.getNavigationProperties().addAll(com.google.common.collect.ImmutableList.of(navPropZeta));
+
+        Model modelZeta = newModelBuilder().withName("M").withElements(
+                com.google.common.collect.ImmutableList.of(entity1Zeta, entity2Zeta, entity3Zeta, strTypeZeta, intTypeZeta, boolTypeZeta, customZeta, measuredTypeZeta, mZeta))
+                .build();
+
+        PsmModel psmModelZeta = buildPsmModel().build();
+        psmModelZeta.addContent(modelZeta);
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+                .psmModel(psmModelZeta)
+                .asmModel(zetaResult)
+                .modelName(psmModelZeta.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
     }
 }

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:measure="http://blackbelt.hu/judo/meta/measure">
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94cgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="AmountOfSubstance">
+    <units xmi:id="(psm/(esm/_PZ94cwq6Ee6tvPbknJiimg)/Unit)/Unit" name="mol" symbol="mol" rateDividend="1.0" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="ElectricCurrent">
+    <units xmi:id="(psm/(esm/_PZ94bgq6Ee6tvPbknJiimg)/Unit)/Unit" name="milliampere" symbol="mA" rateDividend="0.001" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94bwq6Ee6tvPbknJiimg)/Unit)/Unit" name="ampere" symbol="A" rateDividend="1.0" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="Length">
+    <units xmi:id="(psm/(esm/_PZ94Hwq6Ee6tvPbknJiimg)/Unit)/Unit" name="nanometre" symbol="nm" rateDividend="1.0E-9" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94IAq6Ee6tvPbknJiimg)/Unit)/Unit" name="micrometre" symbol="μm" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94IQq6Ee6tvPbknJiimg)/Unit)/Unit" name="millimetre" symbol="mm" rateDividend="0.001" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Igq6Ee6tvPbknJiimg)/Unit)/Unit" name="centimetre" symbol="cm" rateDividend="0.01" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Iwq6Ee6tvPbknJiimg)/Unit)/Unit" name="decimetre" symbol="dm" rateDividend="0.1" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94JAq6Ee6tvPbknJiimg)/Unit)/Unit" name="metre" symbol="m" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94JQq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilometre" symbol="km" rateDividend="1000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Jgq6Ee6tvPbknJiimg)/Unit)/Unit" name="inch" symbol="&quot;" rateDividend="0.0254" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Jwq6Ee6tvPbknJiimg)/Unit)/Unit" name="foot" symbol="ft" rateDividend="0.3048" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94KAq6Ee6tvPbknJiimg)/Unit)/Unit" name="mile" symbol="mi" rateDividend="1609.344" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94dAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="LuminousIntensity">
+    <units xmi:id="(psm/(esm/_PZ94dQq6Ee6tvPbknJiimg)/Unit)/Unit" name="candela" symbol="cd" rateDividend="1.0" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="Mass">
+    <units xmi:id="(psm/(esm/_PZ94EQq6Ee6tvPbknJiimg)/Unit)/Unit" name="milligram" symbol="mg" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Egq6Ee6tvPbknJiimg)/Unit)/Unit" name="gram" symbol="g" rateDividend="0.001" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Ewq6Ee6tvPbknJiimg)/Unit)/Unit" name="dekagram" symbol="dkg" rateDividend="0.01" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94FAq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilogram" symbol="kg" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94FQq6Ee6tvPbknJiimg)/Unit)/Unit" name="quintal" symbol="q" rateDividend="100.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Fgq6Ee6tvPbknJiimg)/Unit)/Unit" name="tonne" symbol="t" rateDividend="1000.0" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94KQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="Temperature">
+    <units xmi:id="(psm/(esm/_PZ94Kgq6Ee6tvPbknJiimg)/Unit)/Unit" name="celsius" symbol="°C" rateDividend="1.0" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94cAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="ThermodynamicTemperature">
+    <units xmi:id="(psm/(esm/_PZ94cQq6Ee6tvPbknJiimg)/Unit)/Unit" name="kelvin" symbol="K" rateDividend="1.0" rateDivisor="1.0"/>
+  </measure:BaseMeasure>
+  <measure:BaseMeasure xmi:id="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure" namespace="rackinspect::measures" name="Time">
+    <units xsi:type="measure:DurationUnit" xmi:id="(psm/(esm/_PZ94GAq6Ee6tvPbknJiimg)/DurationUnit)/DurationUnitMillisecond" name="millisecond" symbol="ms" rateDividend="0.001" rateDivisor="1.0" type="millisecond"/>
+    <units xsi:type="measure:DurationUnit" xmi:id="(psm/(esm/_PZ94GQq6Ee6tvPbknJiimg)/DurationUnit)/DurationUnitSecond" name="second" symbol="s" rateDividend="1.0" rateDivisor="1.0" type="second"/>
+    <units xsi:type="measure:DurationUnit" xmi:id="(psm/(esm/_PZ94Ggq6Ee6tvPbknJiimg)/DurationUnit)/DurationUnitMinute" name="minute" symbol="min" rateDividend="60.0" rateDivisor="1.0" type="minute"/>
+    <units xsi:type="measure:DurationUnit" xmi:id="(psm/(esm/_PZ94Gwq6Ee6tvPbknJiimg)/DurationUnit)/DurationUnitHour" name="hour" symbol="h" rateDividend="3600.0" rateDivisor="1.0" type="hour"/>
+    <units xsi:type="measure:DurationUnit" xmi:id="(psm/(esm/_PZ94HAq6Ee6tvPbknJiimg)/DurationUnit)/DurationUnitDay" name="day" symbol="" rateDividend="86400.0" rateDivisor="1.0" type="day"/>
+    <units xsi:type="measure:DurationUnit" xmi:id="(psm/(esm/_PZ94HQq6Ee6tvPbknJiimg)/DurationUnit)/DurationUnitWeek" name="week" symbol="" rateDividend="604800.0" rateDivisor="1.0" type="week"/>
+  </measure:BaseMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Qwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Acceleration">
+    <units xmi:id="(psm/(esm/_PZ94RAq6Ee6tvPbknJiimg)/Unit)/Unit" name="metrePerSecondSquared" symbol="m/s²" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Qwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Qwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Kwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Area">
+    <units xmi:id="(psm/(esm/_PZ94LAq6Ee6tvPbknJiimg)/Unit)/Unit" name="squareMillimetre" symbol="mm²" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94LQq6Ee6tvPbknJiimg)/Unit)/Unit" name="squareCentimetre" symbol="cm²" rateDividend="0.00010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Lgq6Ee6tvPbknJiimg)/Unit)/Unit" name="squareDecimetre" symbol="dm²" rateDividend="0.01" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Lwq6Ee6tvPbknJiimg)/Unit)/Unit" name="squareMetre" symbol="m²" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94MAq6Ee6tvPbknJiimg)/Unit)/Unit" name="hectare" symbol="ha" rateDividend="10000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94MQq6Ee6tvPbknJiimg)/Unit)/Unit" name="squareKilometre" symbol="km²" rateDividend="1000000.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Kwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94fwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Capacitance">
+    <units xmi:id="(psm/(esm/_PZ94gAq6Ee6tvPbknJiimg)/Unit)/Unit" name="pikofarad" symbol="pF" rateDividend="1.0E-12" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94gQq6Ee6tvPbknJiimg)/Unit)/Unit" name="nanofarad" symbol="nF" rateDividend="1.0E-9" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94ggq6Ee6tvPbknJiimg)/Unit)/Unit" name="microfarad" symbol="μF" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94gwq6Ee6tvPbknJiimg)/Unit)/Unit" name="farad" symbol="F" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94fwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94fwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="4" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94fwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94fwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94aAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Density">
+    <units xmi:id="(psm/(esm/_PZ94aQq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilogramPerCubicMetre" symbol="kg/m³" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94agq6Ee6tvPbknJiimg)/Unit)/Unit" name="gramPerCubicCentimetre" symbol="g/cm³" rateDividend="1000.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94aAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94aAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-3" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94dgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="ElectricCharge">
+    <units xmi:id="(psm/(esm/_PZ94dwq6Ee6tvPbknJiimg)/Unit)/Unit" name="coulomb" symbol="C" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94dgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94dgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94egq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="ElectricPotential">
+    <units xmi:id="(psm/(esm/_PZ94ewq6Ee6tvPbknJiimg)/Unit)/Unit" name="volt" symbol="V" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94fAq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilovolt" symbol="kV" rateDividend="1000.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94egq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94egq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-3" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94egq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94egq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94jAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="ElectricalConductance">
+    <units xmi:id="(psm/(esm/_PZ94jQq6Ee6tvPbknJiimg)/Unit)/Unit" name="siemens" symbol="S" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94jAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94jAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="3" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94jAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94jAq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94hgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="ElectricalResistance">
+    <units xmi:id="(psm/(esm/_PZ94hwq6Ee6tvPbknJiimg)/Unit)/Unit" name="microohm" symbol="μΩ" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94iAq6Ee6tvPbknJiimg)/Unit)/Unit" name="milliohm" symbol="mΩ" rateDividend="0.001" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94iQq6Ee6tvPbknJiimg)/Unit)/Unit" name="ohm" symbol="Ω" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94hgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94hgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-3" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94hgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94hgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Swq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Force">
+    <units xmi:id="(psm/(esm/_PZ94TAq6Ee6tvPbknJiimg)/Unit)/Unit" name="newton" symbol="N" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Swq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Swq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Swq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94XQq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Frequency">
+    <units xmi:id="(psm/(esm/_PZ94Xgq6Ee6tvPbknJiimg)/Unit)/Unit" name="hertz" symbol="Hz" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Xwq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilohertz" symbol="kHz" rateDividend="1000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94YAq6Ee6tvPbknJiimg)/Unit)/Unit" name="megahertz" symbol="Mhz" rateDividend="1000000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94YQq6Ee6tvPbknJiimg)/Unit)/Unit" name="gigahertz" symbol="Ghz" rateDividend="1.0E+9" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94XQq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94mwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Illuminance">
+    <units xmi:id="(psm/(esm/_PZ94nAq6Ee6tvPbknJiimg)/Unit)/Unit" name="lux" symbol="lx" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94mwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94dAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94dAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94mwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94lwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Inductance">
+    <units xmi:id="(psm/(esm/_PZ94mAq6Ee6tvPbknJiimg)/Unit)/Unit" name="henry" symbol="H" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94lwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94lwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94lwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94lwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94jwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="MagneticFlux">
+    <units xmi:id="(psm/(esm/_PZ94kAq6Ee6tvPbknJiimg)/Unit)/Unit" name="weber" symbol="Wb" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94jwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94jwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94jwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94jwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94kwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="MagneticFluxDensity">
+    <units xmi:id="(psm/(esm/_PZ94lAq6Ee6tvPbknJiimg)/Unit)/Unit" name="tesla" symbol="T" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94kwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94kwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94kwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94bQq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Rwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Momentum">
+    <units xmi:id="(psm/(esm/_PZ94SAq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilogramMetrePerSecond" symbol="kg*m/s" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Rwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Rwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Rwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Vwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Power">
+    <units xmi:id="(psm/(esm/_PZ94WAq6Ee6tvPbknJiimg)/Unit)/Unit" name="watt" symbol="W" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94WQq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilowatt" symbol="kW" rateDividend="1000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Wgq6Ee6tvPbknJiimg)/Unit)/Unit" name="megawatt" symbol="MW" rateDividend="1000000.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Vwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Vwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-3" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Vwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Ywq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Pressure">
+    <units xmi:id="(psm/(esm/_PZ94ZAq6Ee6tvPbknJiimg)/Unit)/Unit" name="pascal" symbol="Pa" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94ZQq6Ee6tvPbknJiimg)/Unit)/Unit" name="hectopascal" symbol="hPa" rateDividend="100.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Ywq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Ywq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Ywq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Pgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Velocity">
+    <units xmi:id="(psm/(esm/_PZ94Pwq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilometrePerHour" symbol="km/h" rateDividend="1.0" rateDivisor="3.6"/>
+    <units xmi:id="(psm/(esm/_PZ94QAq6Ee6tvPbknJiimg)/Unit)/Unit" name="metrePerSecond" symbol="m/s" rateDividend="1.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Pgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-1" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Pgq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Mwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Volume">
+    <units xmi:id="(psm/(esm/_PZ94NAq6Ee6tvPbknJiimg)/Unit)/Unit" name="cubicMillimetre" symbol="mm³" rateDividend="1.0E-9" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94NQq6Ee6tvPbknJiimg)/Unit)/Unit" name="cubicCentimetre" symbol="cm³" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Ngq6Ee6tvPbknJiimg)/Unit)/Unit" name="cubicDecimetre" symbol="dm³" rateDividend="0.001" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Nwq6Ee6tvPbknJiimg)/Unit)/Unit" name="cubicMetre" symbol="m³" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94OAq6Ee6tvPbknJiimg)/Unit)/Unit" name="millilitre" symbol="ml" rateDividend="0.0000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94OQq6Ee6tvPbknJiimg)/Unit)/Unit" name="centilitre" symbol="cl" rateDividend="0.000010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Ogq6Ee6tvPbknJiimg)/Unit)/Unit" name="decilitre" symbol="dl" rateDividend="0.00010" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Owq6Ee6tvPbknJiimg)/Unit)/Unit" name="litre" symbol="l" rateDividend="0.001" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94PAq6Ee6tvPbknJiimg)/Unit)/Unit" name="hectolitre" symbol="hl" rateDividend="0.1" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Mwq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="3" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+  <measure:DerivedMeasure xmi:id="(psm/(esm/_PZ94Twq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure" namespace="rackinspect::measures" name="Work">
+    <units xmi:id="(psm/(esm/_PZ94UAq6Ee6tvPbknJiimg)/Unit)/Unit" name="joule" symbol="J" rateDividend="1.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94UQq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilojoule" symbol="kJ" rateDividend="1000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Ugq6Ee6tvPbknJiimg)/Unit)/Unit" name="megajoule" symbol="MJ" rateDividend="1000000.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94Uwq6Ee6tvPbknJiimg)/Unit)/Unit" name="watthour" rateDividend="3600.0" rateDivisor="1.0"/>
+    <units xmi:id="(psm/(esm/_PZ94VAq6Ee6tvPbknJiimg)/Unit)/Unit" name="kilowatthour" symbol="kWh" rateDividend="3600000.0" rateDivisor="1.0"/>
+    <terms xmi:id="((psm/(esm/_PZ94Twq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="1" baseMeasure="(psm/(esm/_PZ94EAq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Twq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="-2" baseMeasure="(psm/(esm/_PZ94Fwq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+    <terms xmi:id="((psm/(esm/_PZ94Twq6Ee6tvPbknJiimg)/DerivedMeasure)/DerivedMeasure)_((psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasureTerm)" exponent="2" baseMeasure="(psm/(esm/_PZ94Hgq6Ee6tvPbknJiimg)/Measure)/BaseMeasure"/>
+  </measure:DerivedMeasure>
+</xmi:XMI>

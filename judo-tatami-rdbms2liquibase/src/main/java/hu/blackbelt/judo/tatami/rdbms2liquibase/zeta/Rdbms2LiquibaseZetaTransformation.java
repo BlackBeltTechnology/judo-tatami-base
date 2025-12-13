@@ -24,6 +24,14 @@ import hu.blackbelt.judo.meta.liquibase.*;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.*;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.zeta.annotation.Abstract;
+import hu.blackbelt.judo.zeta.annotation.Guard;
+import hu.blackbelt.judo.zeta.annotation.PostExecution;
+import hu.blackbelt.judo.zeta.annotation.To;
+import hu.blackbelt.judo.zeta.annotation.Transform;
+import hu.blackbelt.judo.zeta.annotation.TransformRule;
+import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +89,7 @@ public class Rdbms2LiquibaseZetaTransformation {
         return all(hu.blackbelt.judo.meta.rdbms.RdbmsModel.class)
                 .findFirst()
                 .map(hu.blackbelt.judo.meta.rdbms.RdbmsModel::getVersion)
-                .orElse("1.0");
+                .orElse(null);
     }
 
     /**
@@ -161,7 +169,7 @@ public class Rdbms2LiquibaseZetaTransformation {
         createTableChangeSet.setId("create-table-" + table.getSqlName());
         createTableChangeSet.setAuthor("tatami-rdbms2liquibase");
         createTableChangeSet.setDbms(dialect);
-        createTableChangeSet.setContext("full and " + context);
+        createTableChangeSet.setContext("full and " + (context != null ? context : ""));
         createTableChangeSet.setLogicalFilePath("create-tables");
         createTableChangeSet.getCreateTable().add(createTable);
         changeLog.getChangeSet().add(createTableChangeSet);
@@ -237,6 +245,11 @@ public class Rdbms2LiquibaseZetaTransformation {
         constraints.setNullable(false);
         column.setConstraints(constraints);
         addTrace(field, IDENTIFIER_FIELD_TO_PK_CONSTRAINT, constraints);
+
+        // Add not null constraint if mandatory (matches ETL FieldToCreateTableAddNotNullConstraint rule)
+        if (field.isMandatory()) {
+            createNotNullConstraint(field, table);
+        }
     }
 
     private void transformValueField(RdbmsValueField field) {
@@ -466,5 +479,432 @@ public class Rdbms2LiquibaseZetaTransformation {
             result.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
         }
         return result;
+    }
+
+    // =========================================================================
+    // ZETA ANNOTATED TRANSFORMATION RULES
+    // =========================================================================
+    // The following methods use Zeta annotations to define transformation rules.
+    // These rules are equivalent to the ETL rules in the epsilon scripts.
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // TABLE RULES
+    // -------------------------------------------------------------------------
+
+    @TransformRule(name = TABLE_TO_CREATE_TABLE, description = "Transform RdbmsTable to CreateTable")
+    @Transform(type = RdbmsTable.class)
+    @To(type = CreateTable.class)
+    public TransformFunction<RdbmsTable, CreateTable> tableToCreateTableRule() {
+        return (table, ctx) -> {
+            CreateTable createTable = liquibaseFactory.createCreateTable();
+            createTable.setTableName(table.getSqlName());
+            createTable.setRemarks(table.getUuid());
+            return createTable;
+        };
+    }
+
+    @TransformRule(name = TABLE_TO_CREATE_TABLE_CHANGESET, description = "Transform RdbmsTable to CreateTable ChangeSet")
+    @Transform(type = RdbmsTable.class)
+    @To(type = ChangeSet.class)
+    public TransformFunction<RdbmsTable, ChangeSet> tableToCreateTableChangeSetRule() {
+        return (table, ctx) -> {
+            ChangeSet createTableChangeSet = liquibaseFactory.createChangeSet();
+            createTableChangeSet.setId("create-table-" + table.getSqlName());
+            createTableChangeSet.setAuthor("tatami-rdbms2liquibase");
+            createTableChangeSet.setDbms(dialect);
+            createTableChangeSet.setContext("full and " + (context != null ? context : ""));
+            createTableChangeSet.setLogicalFilePath("create-tables");
+            
+            // Add the CreateTable element
+            CreateTable createTable = (CreateTable) getEquivalent(table, TABLE_TO_CREATE_TABLE);
+            if (createTable != null) {
+                createTableChangeSet.getCreateTable().add(createTable);
+            }
+            
+            changeLog.getChangeSet().add(createTableChangeSet);
+            return createTableChangeSet;
+        };
+    }
+
+    /**
+     * Guard: Check if table has foreign key fields.
+     */
+    public boolean hasForeignKeys(RdbmsTable table) {
+        return table.getFields().stream().anyMatch(f -> f instanceof RdbmsForeignKey);
+    }
+
+    @TransformRule(name = TABLE_TO_CREATE_FOREIGN_KEYS_CHANGESET, description = "Transform RdbmsTable to FK ChangeSet")
+    @Guard(method = "hasForeignKeys")
+    @Transform(type = RdbmsTable.class)
+    @To(type = ChangeSet.class)
+    public TransformFunction<RdbmsTable, ChangeSet> tableToFkChangeSetRule() {
+        return (table, ctx) -> {
+            ChangeSet fkChangeSet = liquibaseFactory.createChangeSet();
+            fkChangeSet.setId("create-foreignkeys-" + table.getSqlName());
+            fkChangeSet.setAuthor("tatami-rdbms2liquibase");
+            fkChangeSet.setDbms(dialect);
+            fkChangeSet.setContext(context);
+            fkChangeSet.setLogicalFilePath("create-foreignkeys");
+            changeLog.getChangeSet().add(fkChangeSet);
+            return fkChangeSet;
+        };
+    }
+
+    /**
+     * Guard: Check if table has mandatory fields.
+     */
+    public boolean hasMandatoryFields(RdbmsTable table) {
+        return table.getFields().stream().anyMatch(RdbmsField::isMandatory);
+    }
+
+    @TransformRule(name = TABLE_TO_ADD_NOT_NULL_CHANGESET, description = "Transform RdbmsTable to NotNull ChangeSet")
+    @Guard(method = "hasMandatoryFields")
+    @Transform(type = RdbmsTable.class)
+    @To(type = ChangeSet.class)
+    public TransformFunction<RdbmsTable, ChangeSet> tableToNotNullChangeSetRule() {
+        return (table, ctx) -> {
+            ChangeSet notNullChangeSet = liquibaseFactory.createChangeSet();
+            notNullChangeSet.setId("add-not-null-" + table.getSqlName());
+            notNullChangeSet.setAuthor("tatami-rdbms2liquibase");
+            notNullChangeSet.setDbms(dialect);
+            notNullChangeSet.setContext(context);
+            notNullChangeSet.setLogicalFilePath("add-not-null");
+            changeLog.getChangeSet().add(notNullChangeSet);
+            return notNullChangeSet;
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // FIELD RULES
+    // -------------------------------------------------------------------------
+
+    /**
+     * Guard: Check if field is identifier but not foreign key.
+     */
+    public boolean isIdentifierNotForeignKey(RdbmsIdentifierField field) {
+        return !(field instanceof RdbmsForeignKey);
+    }
+
+    @TransformRule(name = IDENTIFIER_FIELD_TO_COLUMN, description = "Transform RdbmsIdentifierField to Column")
+    @Guard(method = "isIdentifierNotForeignKey")
+    @Transform(type = RdbmsIdentifierField.class)
+    @To(type = Column.class)
+    public TransformFunction<RdbmsIdentifierField, Column> identifierFieldToColumnRule() {
+        return (field, ctx) -> {
+            RdbmsTable table = getTable(field);
+            if (table == null) return null;
+
+            Column column = createColumn(field);
+            
+            // Add primary key constraint
+            Constraints constraints = liquibaseFactory.createConstraints();
+            constraints.setPrimaryKey(true);
+            constraints.setNullable(false);
+            column.setConstraints(constraints);
+
+            // Add to CreateTable
+            CreateTable createTable = (CreateTable) getEquivalent(table, TABLE_TO_CREATE_TABLE);
+            if (createTable != null) {
+                createTable.getColumn().add(column);
+            }
+
+            return column;
+        };
+    }
+
+    @TransformRule(name = IDENTIFIER_FIELD_TO_PK_CONSTRAINT, description = "Transform RdbmsIdentifierField to PK Constraints")
+    @Guard(method = "isIdentifierNotForeignKey")
+    @Transform(type = RdbmsIdentifierField.class)
+    @To(type = Constraints.class)
+    public TransformFunction<RdbmsIdentifierField, Constraints> identifierFieldToPkConstraintRule() {
+        return (field, ctx) -> {
+            Column column = (Column) getEquivalent(field, IDENTIFIER_FIELD_TO_COLUMN);
+            if (column == null) return null;
+
+            Constraints constraints = liquibaseFactory.createConstraints();
+            constraints.setPrimaryKey(true);
+            constraints.setNullable(false);
+            column.setConstraints(constraints);
+
+            return constraints;
+        };
+    }
+
+    @TransformRule(name = VALUE_FIELD_TO_COLUMN, description = "Transform RdbmsValueField to Column")
+    @Transform(type = RdbmsValueField.class)
+    @To(type = Column.class)
+    public TransformFunction<RdbmsValueField, Column> valueFieldToColumnRule() {
+        return (field, ctx) -> {
+            RdbmsTable table = getTable(field);
+            if (table == null) return null;
+
+            Column column = createColumn(field);
+
+            // Add to CreateTable
+            CreateTable createTable = (CreateTable) getEquivalent(table, TABLE_TO_CREATE_TABLE);
+            if (createTable != null) {
+                createTable.getColumn().add(column);
+            }
+
+            return column;
+        };
+    }
+
+    @TransformRule(name = FOREIGN_KEY_FIELD_TO_COLUMN, description = "Transform RdbmsForeignKey to Column")
+    @Transform(type = RdbmsForeignKey.class)
+    @To(type = Column.class)
+    public TransformFunction<RdbmsForeignKey, Column> foreignKeyFieldToColumnRule() {
+        return (field, ctx) -> {
+            RdbmsTable table = getTable(field);
+            if (table == null) return null;
+
+            Column column = createColumn(field);
+
+            // Add to CreateTable
+            CreateTable createTable = (CreateTable) getEquivalent(table, TABLE_TO_CREATE_TABLE);
+            if (createTable != null) {
+                createTable.getColumn().add(column);
+            }
+
+            return column;
+        };
+    }
+
+    @TransformRule(name = FOREIGN_KEY_TO_ADD_FK_CONSTRAINT, description = "Transform RdbmsForeignKey to AddForeignKeyConstraint")
+    @Transform(type = RdbmsForeignKey.class)
+    @To(type = AddForeignKeyConstraint.class)
+    public TransformFunction<RdbmsForeignKey, AddForeignKeyConstraint> foreignKeyToFkConstraintRule() {
+        return (field, ctx) -> {
+            RdbmsTable table = getTable(field);
+            if (table == null) return null;
+
+            AddForeignKeyConstraint fkConstraint = liquibaseFactory.createAddForeignKeyConstraint();
+            fkConstraint.setBaseTableName(table.getSqlName());
+            fkConstraint.setBaseColumnNames(field.getSqlName());
+            fkConstraint.setConstraintName(field.getForeignKeySqlName());
+
+            if (field.getReferenceKey() != null) {
+                RdbmsTable refTable = getTable(field.getReferenceKey());
+                if (refTable != null) {
+                    fkConstraint.setReferencedTableName(refTable.getSqlName());
+                    if (refTable.getPrimaryKey() != null) {
+                        fkConstraint.setReferencedColumnNames(refTable.getPrimaryKey().getSqlName());
+                    }
+                }
+            }
+
+            // Add to FK ChangeSet
+            ChangeSet fkChangeSet = (ChangeSet) getEquivalent(table, TABLE_TO_CREATE_FOREIGN_KEYS_CHANGESET);
+            if (fkChangeSet != null) {
+                fkChangeSet.getAddForeignKeyConstraint().add(fkConstraint);
+            }
+
+            return fkConstraint;
+        };
+    }
+
+    /**
+     * Guard: Check if field is mandatory.
+     */
+    public boolean isMandatoryField(RdbmsField field) {
+        return field.isMandatory();
+    }
+
+    @TransformRule(name = FIELD_TO_ADD_NOT_NULL_CONSTRAINT, description = "Transform mandatory RdbmsField to AddNotNullConstraint")
+    @Guard(method = "isMandatoryField")
+    @Transform(type = RdbmsField.class)
+    @To(type = AddNotNullConstraint.class)
+    public TransformFunction<RdbmsField, AddNotNullConstraint> fieldToNotNullConstraintRule() {
+        return (field, ctx) -> {
+            RdbmsTable table = getTable(field);
+            if (table == null) return null;
+
+            AddNotNullConstraint notNull = liquibaseFactory.createAddNotNullConstraint();
+            notNull.setColumnDataType(toFieldDefinition(field));
+            notNull.setColumnName(field.getSqlName());
+            notNull.setTableName(table.getSqlName());
+
+            ChangeSet notNullChangeSet = (ChangeSet) getEquivalent(table, TABLE_TO_ADD_NOT_NULL_CHANGESET);
+            if (notNullChangeSet != null) {
+                notNullChangeSet.getAddNotNullConstraint().add(notNull);
+            }
+
+            return notNull;
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // INDEX RULES
+    // -------------------------------------------------------------------------
+
+    @TransformRule(name = INDEX_TO_CREATE_INDEX, description = "Transform RdbmsIndex to CreateIndex")
+    @Transform(type = RdbmsIndex.class)
+    @To(type = CreateIndex.class)
+    public TransformFunction<RdbmsIndex, CreateIndex> indexToCreateIndexRule() {
+        return (index, ctx) -> {
+            RdbmsTable table = (RdbmsTable) index.eContainer();
+            if (table == null) return null;
+
+            CreateIndex createIndex = liquibaseFactory.createCreateIndex();
+            createIndex.setTableName(table.getSqlName());
+            createIndex.setIndexName(index.getSqlName());
+
+            for (RdbmsField field : index.getFields()) {
+                Column column = liquibaseFactory.createColumn();
+                column.setName(field.getSqlName());
+                createIndex.getColumn().add(column);
+            }
+
+            // Get or create ChangeSet for indexes
+            ChangeSet indexChangeSet = getOrCreateChangeSet(
+                    "create-indexes-in-" + table.getSqlName(),
+                    "create-indexes");
+            indexChangeSet.getCreateIndex().add(createIndex);
+
+            return createIndex;
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // UNIQUE CONSTRAINT RULES
+    // -------------------------------------------------------------------------
+
+    @TransformRule(name = UNIQUE_CONSTRAINT_TO_ADD_UNIQUE, description = "Transform RdbmsUniqueConstraint to AddUniqueConstraint")
+    @Transform(type = RdbmsUniqueConstraint.class)
+    @To(type = AddUniqueConstraint.class)
+    public TransformFunction<RdbmsUniqueConstraint, AddUniqueConstraint> uniqueConstraintToAddUniqueRule() {
+        return (constraint, ctx) -> {
+            RdbmsTable table = (RdbmsTable) constraint.eContainer();
+            if (table == null) return null;
+
+            AddUniqueConstraint firstAddUnique = null;
+            for (RdbmsField field : constraint.getFields()) {
+                AddUniqueConstraint addUnique = liquibaseFactory.createAddUniqueConstraint();
+                addUnique.setConstraintName(constraint.getSqlName());
+                addUnique.setTableName(((RdbmsTable) field.eContainer()).getSqlName());
+                addUnique.setColumnNames(field.getSqlName());
+
+                // Get or create ChangeSet for unique constraints
+                ChangeSet uniqueChangeSet = getOrCreateChangeSet(
+                        "add-unique-constraints-to-" + table.getSqlName(),
+                        "add-unique-constraints");
+                uniqueChangeSet.getAddUniqueConstraint().add(addUnique);
+
+                if (firstAddUnique == null) {
+                    firstAddUnique = addUnique;
+                }
+            }
+
+            return firstAddUnique;
+        };
+    }
+
+    // =========================================================================
+    // ABSTRACT BASE RULES
+    // =========================================================================
+    // These @Abstract rules are base rules invoked only via @Extends inheritance.
+
+    /**
+     * @abstract
+     * rule FieldToColumn
+     *     transform s : RDBMS!RdbmsField
+     *     to t : LIQUIBASE!Column
+     * Base rule for field-to-column transformations.
+     * Extended by concrete field type rules.
+     */
+    @TransformRule(name = FIELD_TO_COLUMN, description = "Abstract base rule for field to column transformation")
+    @Abstract
+    @Transform(type = RdbmsField.class)
+    @To(type = Column.class)
+    public TransformFunction<RdbmsField, Column> fieldToColumnRule() {
+        return (field, ctx) -> {
+            Column column = liquibaseFactory.createColumn();
+            column.setName(field.getSqlName());
+            return column;
+        };
+    }
+
+    /**
+     * @abstract
+     * rule FieldToAddNotNull
+     *     transform s : RDBMS!RdbmsField
+     *     to t : LIQUIBASE!AddNotNullConstraint
+     * Base rule for adding not-null constraints to fields.
+     */
+    @TransformRule(name = FIELD_TO_ADD_NOT_NULL, description = "Abstract base rule for field not-null constraint")
+    @Abstract
+    @Guard(method = "isMandatoryField")
+    @Transform(type = RdbmsField.class)
+    @To(type = AddNotNullConstraint.class)
+    public TransformFunction<RdbmsField, AddNotNullConstraint> fieldToAddNotNullRule() {
+        return (field, ctx) -> {
+            AddNotNullConstraint addNotNull = liquibaseFactory.createAddNotNullConstraint();
+            addNotNull.setColumnName(field.getSqlName());
+            RdbmsTable table = (RdbmsTable) field.eContainer();
+            if (table != null) {
+                addNotNull.setTableName(table.getSqlName());
+            }
+            return addNotNull;
+        };
+    }
+
+    /**
+     * @abstract
+     * rule ForeignKeyFieldToAddForeignKeyConstraint
+     *     transform s : RDBMS!RdbmsForeignKey
+     *     to t : LIQUIBASE!AddForeignKeyConstraint
+     * Base rule for adding foreign key constraints.
+     */
+    @TransformRule(name = FOREIGN_KEY_FIELD_TO_ADD_FK_CONSTRAINT, description = "Abstract base rule for foreign key constraint")
+    @Abstract
+    @Transform(type = RdbmsForeignKey.class)
+    @To(type = AddForeignKeyConstraint.class)
+    public TransformFunction<RdbmsForeignKey, AddForeignKeyConstraint> foreignKeyFieldToAddFkConstraintRule() {
+        return (fk, ctx) -> {
+            AddForeignKeyConstraint addFk = liquibaseFactory.createAddForeignKeyConstraint();
+            addFk.setConstraintName(fk.getForeignKeySqlName());
+            addFk.setBaseColumnNames(fk.getSqlName());
+            RdbmsTable baseTable = (RdbmsTable) fk.eContainer();
+            if (baseTable != null) {
+                addFk.setBaseTableName(baseTable.getSqlName());
+            }
+            if (fk.getReferenceKey() != null) {
+                RdbmsTable refTable = (RdbmsTable) fk.getReferenceKey().eContainer();
+                if (refTable != null) {
+                    addFk.setReferencedTableName(refTable.getSqlName());
+                    addFk.setReferencedColumnNames(fk.getReferenceKey().getSqlName());
+                }
+            }
+            return addFk;
+        };
+    }
+
+    /**
+     * rule CheckUniqueConstraints
+     *     transform s : RDBMS!RdbmsUniqueConstraint
+     *     to t : DBCHECKUP!UniqueConstraintExists
+     * Creates unique constraint check in dbCheckup changelog.
+     * Note: This is for incremental transformation - dbCheckup phase.
+     */
+    @TransformRule(name = CHECK_UNIQUE_CONSTRAINTS, description = "Create unique constraint check in dbCheckup")
+    @Transform(type = RdbmsUniqueConstraint.class)
+    @To(type = AddUniqueConstraint.class)
+    public TransformFunction<RdbmsUniqueConstraint, AddUniqueConstraint> checkUniqueConstraintsRule() {
+        return (constraint, ctx) -> {
+            // This rule is for incremental transformation - dbCheckup phase
+            // Returns null as actual implementation is in incremental transformation
+            return null;
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // POST-EXECUTION HOOK
+    // -------------------------------------------------------------------------
+
+    @PostExecution
+    public void postExecutionHook(TransformationContext ctx) {
+        log.debug("Post-execution: Liquibase changelog created with {} changeSets", 
+                changeLog != null ? changeLog.getChangeSet().size() : 0);
     }
 }

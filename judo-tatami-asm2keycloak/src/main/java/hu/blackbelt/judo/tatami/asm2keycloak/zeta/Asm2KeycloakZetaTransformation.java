@@ -24,6 +24,8 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.keycloak.*;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
+import hu.blackbelt.judo.tatami.asm2keycloak.zeta.rules.ClientRules;
+import hu.blackbelt.judo.tatami.asm2keycloak.zeta.rules.RealmRules;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -32,16 +34,17 @@ import org.eclipse.emf.ecore.resource.ResourceSet;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
 
 import static hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakRuleNames.*;
 
 /**
- * Java-based ASM to Keycloak transformation using Zeta framework patterns.
+ * ASM to Keycloak transformation orchestrator using Zeta framework.
  * <p>
- * This class implements the equivalent transformation logic as the ETL scripts
- * in src/main/epsilon/transformations/, providing a type-safe Java alternative
- * with better IDE support and debugging capabilities.
+ * This class orchestrates the transformation by delegating to rule classes:
+ * <ul>
+ *   <li>{@link RealmRules} - realm.etl rules (pre-execution realm creation)</li>
+ *   <li>{@link ClientRules} - client.etl rules (CreateKeycloakClient, CreateKeycloakClientClaim)</li>
+ * </ul>
  * </p>
  */
 @Slf4j
@@ -50,13 +53,16 @@ public class Asm2KeycloakZetaTransformation {
     private final AsmModel asmModel;
     private final KeycloakModel keycloakModel;
     private final AsmUtils asmUtils;
-    private final ResourceSet asmResourceSet;
     private final KeycloakFactory keycloakFactory;
+
+    // Rule classes
+    private final RealmRules realmRules;
+    private final ClientRules clientRules;
 
     // Trace map for source to target element mapping
     private final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
 
-    // Cache for realms by name (thread-safe for parallel execution)
+    // Cache for realms by name
     private final Map<String, Realm> realmCache = new ConcurrentHashMap<>();
 
     @Builder
@@ -65,16 +71,22 @@ public class Asm2KeycloakZetaTransformation {
             @NonNull KeycloakModel keycloakModel) {
         this.asmModel = asmModel;
         this.keycloakModel = keycloakModel;
-        this.asmResourceSet = asmModel.getResourceSet();
-        this.asmUtils = new AsmUtils(asmResourceSet);
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.keycloakFactory = KeycloakFactory.eINSTANCE;
-    }
 
-    /**
-     * Helper method to get all elements of a given type from the ASM model.
-     */
-    private <T> Stream<T> all(Class<T> clazz) {
-        return asmUtils.all(clazz);
+        // Initialize rule classes with dependencies
+        this.realmRules = new RealmRules(
+                keycloakFactory,
+                asmUtils,
+                this::addRealmToModel,
+                this::addRealmTrace
+        );
+        this.clientRules = new ClientRules(
+                keycloakFactory,
+                asmUtils,
+                realmCache::get,
+                this::getEquivalent
+        );
     }
 
     /**
@@ -86,8 +98,8 @@ public class Asm2KeycloakZetaTransformation {
         log.info("Starting ASM to Keycloak Zeta transformation");
         long startTime = System.currentTimeMillis();
 
-        // Phase 1: Create realms from actor types
-        createRealms();
+        // Phase 1: Create realms from actor types (pre block in ETL)
+        realmRules.createRealms();
 
         // Phase 2: Create clients from actor types
         createClients();
@@ -99,49 +111,20 @@ public class Asm2KeycloakZetaTransformation {
     }
 
     // =========================================================================
-    // REALM CREATION
+    // REALM MANAGEMENT
     // =========================================================================
 
-    private void createRealms() {
-        log.debug("Creating realms");
-
-        // Collect actor types grouped by realm name (first actor for each realm is the source for tracing)
-        Map<String, EClass> realmToFirstActor = new LinkedHashMap<>();
-        asmUtils.getAllActorTypes().forEach(actor -> {
-            Optional<String> realmOpt = asmUtils.getExtensionAnnotationValue(actor, "realm", false);
-            if (realmOpt.isPresent() && !realmOpt.get().trim().isEmpty()) {
-                String realmName = realmOpt.get().trim();
-                // Only store the first actor that references this realm (for tracing)
-                realmToFirstActor.putIfAbsent(realmName, actor);
-            }
-        });
-
-        // Create realm for each unique name with proper tracing
-        for (Map.Entry<String, EClass> entry : realmToFirstActor.entrySet()) {
-            createRealm(entry.getKey(), entry.getValue());
-        }
-    }
-
-    private void createRealm(String realmName, EClass sourceActor) {
-        log.debug("  Creating realm: {} (from actor: {})", realmName, sourceActor.getName());
-
-        Realm realm = keycloakFactory.createRealm();
-        realm.setId(realmName);
-        realm.setRealm(realmName);
-        realm.setEnabled(true);
-        realm.setLoginWithEmailAllowed(true);
-
+    private void addRealmToModel(Realm realm) {
         keycloakModel.getResource().getContents().add(realm);
-        realmCache.put(realmName, realm);
-        
-        // Add trace entry using the source actor that triggered realm creation
-        addTrace(sourceActor, CREATE_REALM, realm);
+        realmCache.put(realm.getRealm(), realm);
+    }
 
-        log.debug("Realm created: {}", realm.getRealm());
+    private void addRealmTrace(EClass sourceActor, Realm realm) {
+        addTrace(sourceActor, CREATE_REALM, realm);
     }
 
     // =========================================================================
-    // CLIENT CREATION
+    // CLIENT TRANSFORMATION
     // =========================================================================
 
     private void createClients() {
@@ -151,13 +134,11 @@ public class Asm2KeycloakZetaTransformation {
     }
 
     private void createClientIfApplicable(EClass actorType) {
-        // Check guard: must be actor type with realm annotation
-        Optional<String> realmOpt = asmUtils.getExtensionAnnotationValue(actorType, "realm", false);
-        if (!realmOpt.isPresent() || realmOpt.get().trim().isEmpty()) {
+        if (!clientRules.isActorWithRealm(actorType)) {
             return;
         }
 
-        String realmName = realmOpt.get().trim();
+        String realmName = asmUtils.getExtensionAnnotationValue(actorType, "realm", false).get().trim();
         Realm realm = realmCache.get(realmName);
         if (realm == null) {
             log.warn("Realm not found for actor type: {}", actorType.getName());
@@ -193,7 +174,6 @@ public class Asm2KeycloakZetaTransformation {
 
         AttributeBinding binding = keycloakFactory.createAttributeBinding();
 
-        // Determine attribute name based on claim annotation
         Optional<String> claimType = asmUtils.getExtensionAnnotationValue(attr, "claim", false);
 
         if (claimType.isPresent()) {

@@ -33,12 +33,16 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.model.northwind.Demo;
+import hu.blackbelt.judo.tatami.asm2keycloak.util.ModelComparator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EObject;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakZetaTransformation;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.*;
@@ -300,5 +304,91 @@ public class Asm2KeycloakTest {
                 .file(new File(TARGET_TEST_CLASSES, psmModel.getName() + NORTHWIND_KEYCLOAK_MODEL_POSTFIX)));
 
         return resolvedTrace;
+    }
+
+    /**
+     * Test that compares ETL and Zeta transformation outputs for equivalence.
+     * This test runs both transformation engines on the same input and compares
+     * the resulting Keycloak models to verify they produce equivalent output.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Create input models for ETL transformation
+        final PsmModel psmModelEtl = new Demo().fullDemo();
+        AsmModel asmModelEtl = AsmModel.buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModelEtl)
+                .asmModel(asmModelEtl));
+        KeycloakModel etlResult = KeycloakModel.buildKeycloakModel()
+                .name(psmModelEtl.getName())
+                .build();
+
+        // Run ETL transformation
+        log.info("Running ETL transformation for equivalence test");
+        executeAsm2KeycloakTransformation(asm2KeycloakParameter()
+                .asmModel(asmModelEtl)
+                .keycloakModel(etlResult)
+                .createTrace(false));
+
+        // Create input models for Zeta transformation
+        final PsmModel psmModelZeta = new Demo().fullDemo();
+        AsmModel asmModelZeta = AsmModel.buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModelZeta)
+                .asmModel(asmModelZeta));
+        KeycloakModel zetaResult = KeycloakModel.buildKeycloakModel()
+                .name(psmModelZeta.getName())
+                .build();
+
+        // Run Zeta transformation
+        log.info("Running Zeta transformation for equivalence test");
+        Asm2KeycloakZetaTransformation zetaTransformation = Asm2KeycloakZetaTransformation.builder()
+                .asmModel(asmModelZeta)
+                .keycloakModel(zetaResult)
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        log.info("ETL resources: {}, contents: {}", 
+                etlResult.getResourceSet().getResources().size(),
+                etlResult.getResourceSet().getResources().isEmpty() ? 0 : 
+                    etlResult.getResourceSet().getResources().get(0).getContents().size());
+        log.info("Zeta resources: {}, contents: {}", 
+                zetaResult.getResourceSet().getResources().size(),
+                zetaResult.getResourceSet().getResources().isEmpty() ? 0 : 
+                    zetaResult.getResourceSet().getResources().get(0).getContents().size());
+        
+        // Both models may be empty if the Demo doesn't have actors with realms
+        boolean etlEmpty = etlResult.getResourceSet().getResources().isEmpty() ||
+                          etlResult.getResourceSet().getResources().get(0).getContents().isEmpty();
+        boolean zetaEmpty = zetaResult.getResourceSet().getResources().isEmpty() ||
+                           zetaResult.getResourceSet().getResources().get(0).getContents().isEmpty();
+        
+        if (etlEmpty && zetaEmpty) {
+            log.info("SUCCESS: Both ETL and Zeta produced empty models (no actors with realms in Demo)");
+            return;
+        }
+        
+        if (etlEmpty || zetaEmpty) {
+            fail("Model mismatch: ETL empty=" + etlEmpty + ", Zeta empty=" + zetaEmpty);
+        }
+        
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent Keycloak models");
+        } else {
+            log.warn("Keycloak models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta Keycloak models are not equivalent:\n" + result.getDetailedReport());
+        }
     }
 }

@@ -183,6 +183,69 @@ This project uses OpenSpec for change management. See `openspec/AGENTS.md` for:
 - Change workflow
 - Spec format conventions
 
+## ETL-Zeta Model Comparison
+
+The project includes infrastructure for comparing ETL and Zeta transformation outputs. This is useful for validating that both transformation engines produce equivalent models.
+
+### ModelComparator
+
+Each transformation module includes a `ModelComparator` utility class that provides:
+- **Order-independent comparison** - Collections matched by identifier, not position
+- **Typed difference reporting** - `MissingElement`, `ExtraElement`, `ValueMismatch`, `TypeMismatch`
+- **Comparison modes**:
+  - `STRICT` - All attributes and references must match exactly
+  - `STRUCTURAL` - Element structure must match, annotation differences tolerated (default)
+  - `LENIENT` - Major structural elements must match, minor differences allowed
+
+### Configuration via System Properties
+
+```bash
+# Enable/disable comparison (default: true)
+-Djudo.test.comparison.enabled=true
+
+# Comparison mode (default: STRUCTURAL)
+-Djudo.test.comparison.mode=STRICT|STRUCTURAL|LENIENT
+
+# Maximum differences to report (default: 50)
+-Djudo.test.comparison.maxDifferences=100
+
+# Output file for diff report (optional)
+-Djudo.test.comparison.reportFile=target/comparison-report.txt
+```
+
+### Usage in Tests
+
+```java
+// Assert models are equivalent (uses configured mode)
+ModelComparator.assertEquivalent(expectedModel, actualModel);
+
+// Compare with specific mode
+ModelComparator.assertEquivalent(expectedModel, actualModel, ComparisonMode.STRICT);
+
+// Get detailed comparison result
+ComparisonResult result = ModelComparator.compare(model1, model2);
+if (!result.isEquivalent()) {
+    System.out.println(result.getSummary());
+    System.out.println(result.getDetailedReport());
+}
+
+// Filter differences by type
+List<MissingElement> missing = result.getDifferencesOfType(MissingElement.class);
+```
+
+### Running Comparison Tests
+
+```bash
+# Run with default STRUCTURAL mode
+mvn test -Dtest=Psm2AsmDualTransformationTest
+
+# Run with STRICT mode
+mvn test -Dtest=Psm2AsmDualTransformationTest -Djudo.test.comparison.mode=STRICT
+
+# Disable comparison (skip comparison tests)
+mvn test -Djudo.test.comparison.enabled=false
+```
+
 ## Important Notes
 
 1. **ETL files are the source of truth** for transformation logic
@@ -190,3 +253,4 @@ This project uses OpenSpec for change management. See `openspec/AGENTS.md` for:
 3. **OSGi compatibility** is maintained through Felix bundle plugin
 4. **Transformation traces** allow mapping between source and target elements
 5. **Validation modules** use Java WorkClass pattern (not EVL)
+6. **Model comparison** uses `ModelComparator` with configurable modes and detailed reporting
