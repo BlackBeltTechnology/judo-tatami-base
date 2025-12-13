@@ -31,7 +31,7 @@ import hu.blackbelt.judo.meta.psm.measure.*;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.hamcrest.core.IsNull;
@@ -98,7 +98,7 @@ public class Psm2AsmDataTest {
 
         if (transformationType == TransformationType.ZETA) {
             log.info("Running Zeta transformation for test: {}", testName);
-            Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
                     .asmModel(asmModel)
                     .modelName(MODEL_NAME)
@@ -134,7 +134,7 @@ public class Psm2AsmDataTest {
 
         // Run Zeta fresh - use psmModel.getName() to match what ETL uses
         AsmModel zetaModel = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
                 .asmModel(zetaModel)
                 .modelName(psmModel.getName())
@@ -524,7 +524,7 @@ public class Psm2AsmDataTest {
         PsmModel psmModelZeta = buildPsmModel().build();
         psmModelZeta.addContent(modelZeta);
         AsmModel zetaResult = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModelZeta)
                 .asmModel(zetaResult)
                 .modelName(psmModelZeta.getName())

@@ -110,14 +110,14 @@ public final class Psm2AsmHelper {
      * <p>
      * Note: IDs are not required for functional model equivalence.
      * ETL transformations do not produce these ID annotations, so this is a no-op
-     * to ensure Zeta V2 produces equivalent output to ETL.
+     * to ensure Zeta produces equivalent output to ETL.
      * </p>
      *
      * @param element the element to set the ID on
      * @param id      the ID value to set
      */
     public static void setId(EObject element, String id) {
-        // No-op: ETL doesn't produce ID annotations, so neither should V2
+        // No-op: ETL doesn't produce ID annotations, so neither should Zeta
         // This method is kept for API compatibility but does nothing
     }
 

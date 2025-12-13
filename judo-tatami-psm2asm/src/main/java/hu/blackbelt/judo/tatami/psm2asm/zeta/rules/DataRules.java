@@ -296,7 +296,7 @@ public class DataRules {
 
     // NOTE: SetAssociationEndOpposite is handled in post-processing
     // to avoid recursive update issues when processing bidirectional associations.
-    // See Psm2AsmZetaTransformationV2.postProcess()
+    // See Psm2AsmZetaTransformation.postProcess()
 
     /**
      * rule CreateContainmentRelation

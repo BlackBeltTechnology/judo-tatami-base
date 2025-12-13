@@ -22,8 +22,8 @@ package hu.blackbelt.judo.tatami.psm2asm;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
@@ -83,7 +83,7 @@ public class Psm2AsmDualTransformationTest {
         PsmModel psmModelForZeta = new Demo().fullDemo();
         AsmModel zetaResult = buildAsmModel().build();
         long zetaStart = System.currentTimeMillis();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModelForZeta)
                 .asmModel(zetaResult)
                 .modelName(psmModelForZeta.getName())
@@ -283,7 +283,7 @@ public class Psm2AsmDualTransformationTest {
         // Run Zeta transformation
         PsmModel psmModelForZeta = new Demo().fullDemo();
         AsmModel zetaResult = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModelForZeta)
                 .asmModel(zetaResult)
                 .modelName(psmModelForZeta.getName())
@@ -311,7 +311,7 @@ public class Psm2AsmDualTransformationTest {
         log.info("Running Zeta V2 transformation (TransformationRegistry-based)...");
         AsmModel zetaV2Result = buildAsmModel().build();
         long v2Start = System.currentTimeMillis();
-        Psm2AsmZetaTransformationV2 v2Transformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation v2Transformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
                 .asmModel(zetaV2Result)
                 .modelName(psmModel.getName())

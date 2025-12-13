@@ -39,7 +39,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 
 import java.io.File;
 import java.util.Arrays;
@@ -105,7 +105,7 @@ public class Psm2AsmAccessPointTest {
 
         if (transformationType == TransformationType.ZETA) {
             log.info("Running Zeta transformation for test: {}", testName);
-            Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
                     .asmModel(asmModel)
                     .modelName(MODEL_NAME)
@@ -142,7 +142,7 @@ public class Psm2AsmAccessPointTest {
 
         // Run Zeta fresh - use psmModel.getName() to match what ETL uses
         AsmModel zetaModel = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
                 .asmModel(zetaModel)
                 .modelName(psmModel.getName())
@@ -453,7 +453,7 @@ public class Psm2AsmAccessPointTest {
         PsmModel psmModelZeta = buildPsmModel().build();
         psmModelZeta.addContent(modelZeta);
         AsmModel zetaResult = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModelZeta)
                 .asmModel(zetaResult)
                 .modelName(psmModelZeta.getName())

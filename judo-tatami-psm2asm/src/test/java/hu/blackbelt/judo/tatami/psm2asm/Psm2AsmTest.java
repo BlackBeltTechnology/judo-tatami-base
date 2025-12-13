@@ -32,7 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -87,7 +87,7 @@ public class Psm2AsmTest {
         Psm2AsmTransformationTrace psm2AsmTransformationTrace;
         if (transformationType == TransformationType.ZETA) {
             log.info("Running Zeta transformation");
-            Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
                     .asmModel(asmModel)
                     .modelName(DEMO)
@@ -161,7 +161,7 @@ public class Psm2AsmTest {
         log.info("Running Zeta transformation for equivalence test...");
         PsmModel psmModelZeta = new Demo().fullDemo();
         AsmModel zetaResult = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 zetaTransformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModelZeta)
                 .asmModel(zetaResult)
                 .modelName(DEMO)

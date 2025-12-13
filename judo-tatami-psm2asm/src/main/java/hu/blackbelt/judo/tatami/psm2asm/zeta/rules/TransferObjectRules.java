@@ -267,7 +267,7 @@ public class TransferObjectRules {
     /**
      * Guard: transfer object type is a get range input type.
      * A transfer object is a get range input type if it's the input type of a GET_RANGE operation.
-     * Uses pre-computed set from Psm2AsmZetaTransformationV2.
+     * Uses pre-computed set from Psm2AsmZetaTransformation.
      */
     @SuppressWarnings("unchecked")
     public boolean isGetRangeInputType(EObject source, TransformationContext ctx) {
@@ -912,7 +912,7 @@ public class TransferObjectRules {
 
     // NOTE: SetTransferObjectRelationTarget is handled in post-processing
     // to avoid recursive update issues when transfer objects have circular references.
-    // See Psm2AsmZetaTransformationV2.postProcess()
+    // See Psm2AsmZetaTransformation.postProcess()
 
     /**
      * rule CreateTransferObjectRelationAccessAnnotation
@@ -1106,7 +1106,7 @@ public class TransferObjectRules {
                 containerPkg.getEClassifiers().add(t);
             }
             
-            // Note: Inheritance setup is deferred to post-processing in Psm2AsmZetaTransformationV2
+            // Note: Inheritance setup is deferred to post-processing in Psm2AsmZetaTransformation
             // because parent reference classes may not exist yet when this rule runs.
             
             return t;
@@ -1114,7 +1114,7 @@ public class TransferObjectRules {
     }
 
     // Note: Reference class inheritance (SetupReferenceClassInheritance) is handled in post-processing
-    // in Psm2AsmZetaTransformationV2.postProcess() to ensure all reference classes exist first.
+    // in Psm2AsmZetaTransformation.postProcess() to ensure all reference classes exist first.
 
     // =========================================================================
     // HELPER METHODS

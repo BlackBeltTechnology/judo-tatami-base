@@ -33,7 +33,7 @@ import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.psm2asm.ModelComparator;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformationV2;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -209,7 +209,7 @@ public class Psm2AsmPerformanceTest {
 
     private AsmModel executeTransformationV2WithResult(PsmModel psmModel) throws Exception {
         AsmModel asmModel = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
                 .asmModel(asmModel)
                 .modelName("PerformanceTest")
@@ -298,7 +298,7 @@ public class Psm2AsmPerformanceTest {
 
     private void executeTransformationV2(PsmModel psmModel) throws Exception {
         AsmModel asmModel = buildAsmModel().build();
-        Psm2AsmZetaTransformationV2 transformation = Psm2AsmZetaTransformationV2.builder()
+        Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
                 .asmModel(asmModel)
                 .modelName("PerformanceTest")
