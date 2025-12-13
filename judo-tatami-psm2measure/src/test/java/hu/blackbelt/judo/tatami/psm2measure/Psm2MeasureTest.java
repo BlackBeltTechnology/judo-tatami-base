@@ -137,19 +137,18 @@ public class Psm2MeasureTest {
                 .build();
         zetaTransformation.execute();
 
-        // Compare models
+        // Compare models using Resource-level comparison for complete coverage
         log.info("Comparing ETL and Zeta output models...");
-        ModelComparator.ComparisonResult result = ModelComparator.compare(
-                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
-                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
-                ModelComparator.getConfiguredMode()
-        );
-
-        if (result.isEquivalent()) {
+        try {
+            ModelComparator.assertEquivalent(
+                    etlResult.getResourceSet().getResources().get(0),
+                    zetaResult.getResourceSet().getResources().get(0),
+                    ModelComparator.getConfiguredMode()
+            );
             log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
-        } else {
-            log.warn("Models have differences:\n{}", result.getSummary());
-            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        } catch (AssertionError e) {
+            log.warn("Models have differences:\n{}", e.getMessage());
+            fail("ETL and Zeta models are not equivalent:\n" + e.getMessage());
         }
     }
 

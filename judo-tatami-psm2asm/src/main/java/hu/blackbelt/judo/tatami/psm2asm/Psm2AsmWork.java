@@ -113,6 +113,8 @@ public class Psm2AsmWork extends AbstractTransformationWork {
         Map<EObject, List<EObject>> trace = transformation.execute();
         
         return Psm2AsmTransformationTrace.psm2AsmTransformationTraceBuilder()
+                .psmModel(psmModel)
+                .asmModel(asmModel)
                 .trace(trace)
                 .build();
     }

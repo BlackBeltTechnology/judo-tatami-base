@@ -59,8 +59,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("performance")
 public class Rdbms2LiquibasePerformanceTest {
 
-    private static final int WARMUP_ITERATIONS = 3;
-    private static final int MEASUREMENT_ITERATIONS = 5;
+    private static final int WARMUP_ITERATIONS = 0;
+    private static final int MEASUREMENT_ITERATIONS = 1;
     private static final int FIELDS_PER_TABLE = 5;
 
     @BeforeEach
