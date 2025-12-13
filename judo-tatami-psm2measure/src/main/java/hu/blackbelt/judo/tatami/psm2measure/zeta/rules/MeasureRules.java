@@ -24,6 +24,7 @@ import hu.blackbelt.judo.meta.measure.BaseMeasure;
 import hu.blackbelt.judo.meta.measure.BaseMeasureTerm;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.MeasureFactory;
+import hu.blackbelt.judo.meta.psm.PsmUtils;
 import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
 import hu.blackbelt.judo.meta.psm.measure.MeasureDefinitionTerm;
 import hu.blackbelt.judo.zeta.annotation.Abstract;
@@ -33,13 +34,12 @@ import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
-import lombok.RequiredArgsConstructor;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
 
@@ -53,12 +53,31 @@ import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
  *   <li>CreateDerivedMeasure - @Extends CreateMeasure, transforms derived measures with terms</li>
  * </ul>
  */
-@RequiredArgsConstructor
+@hu.blackbelt.judo.zeta.annotation.TransformationContext(source = hu.blackbelt.judo.meta.psm.measure.Measure.class, target = Measure.class)
 public class MeasureRules {
 
-    private final MeasureFactory measureFactory;
-    private final Function<hu.blackbelt.judo.meta.psm.measure.Measure, String> namespaceResolver;
-    private final BiFunction<EObject, String, EObject> traceResolver;
+    private final MeasureFactory measureFactory = MeasureFactory.eINSTANCE;
+
+    /**
+     * Default constructor required for TransformationRegistry.
+     */
+    public MeasureRules() {
+    }
+
+    // =========================================================================
+    // GUARDS
+    // =========================================================================
+
+    /**
+     * Guard for CreateBaseMeasure: not s.isKindOf(JUDOPSM!DerivedMeasure)
+     */
+    public boolean isNotDerivedMeasure(EObject source, TransformationContext ctx) {
+        return !(source instanceof DerivedMeasure);
+    }
+
+    // =========================================================================
+    // TRANSFORMATION RULES
+    // =========================================================================
 
     /**
      * @abstract
@@ -73,18 +92,12 @@ public class MeasureRules {
     public TransformFunction<hu.blackbelt.judo.meta.psm.measure.Measure, Measure> createMeasure() {
         return (s, ctx) -> {
             Measure t = ctx.createTarget(Measure.class);
-            t.setNamespace(namespaceResolver.apply(s));
+            PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
+            t.setNamespace(psmUtils.namespaceToString(s.getNamespace()));
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
             return t;
         };
-    }
-
-    /**
-     * Guard for CreateBaseMeasure: not s.isKindOf(JUDOPSM!DerivedMeasure)
-     */
-    public boolean isNotDerivedMeasure(hu.blackbelt.judo.meta.psm.measure.Measure measure) {
-        return !(measure instanceof DerivedMeasure);
     }
 
     /**
@@ -103,9 +116,17 @@ public class MeasureRules {
     public TransformFunction<hu.blackbelt.judo.meta.psm.measure.Measure, BaseMeasure> createBaseMeasure() {
         return (s, ctx) -> {
             BaseMeasure t = measureFactory.createBaseMeasure();
-            t.setNamespace(namespaceResolver.apply(s));
+            PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
+            t.setNamespace(psmUtils.namespaceToString(s.getNamespace()));
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
+
+            // Add to target resource
+            Resource targetResource = (Resource) ctx.getAttribute("measureResource");
+            if (targetResource != null) {
+                targetResource.getContents().add(t);
+            }
+
             return t;
         };
     }
@@ -120,11 +141,11 @@ public class MeasureRules {
     @Extends(CREATE_MEASURE)
     @Transform(type = DerivedMeasure.class)
     @To(type = hu.blackbelt.judo.meta.measure.DerivedMeasure.class)
-    @To(type = BaseMeasureTerm.class)
     public TransformFunction<DerivedMeasure, hu.blackbelt.judo.meta.measure.DerivedMeasure> createDerivedMeasure() {
         return (s, ctx) -> {
             hu.blackbelt.judo.meta.measure.DerivedMeasure t = measureFactory.createDerivedMeasure();
-            t.setNamespace(namespaceResolver.apply(s));
+            PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
+            t.setNamespace(psmUtils.namespaceToString(s.getNamespace()));
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
 
@@ -137,14 +158,29 @@ public class MeasureRules {
 
                 BaseMeasureTerm term = measureFactory.createBaseMeasureTerm();
                 term.setExponent(exponent);
-                term.setBaseMeasure((BaseMeasure) traceResolver.apply(m, CREATE_BASE_MEASURE));
+
+                // Get equivalent base measure from context
+                BaseMeasure equivalentMeasure = ctx.equivalent(m, BaseMeasure.class);
+                if (equivalentMeasure != null) {
+                    term.setBaseMeasure(equivalentMeasure);
+                }
 
                 t.getTerms().add(term);
+            }
+
+            // Add to target resource
+            Resource targetResource = (Resource) ctx.getAttribute("measureResource");
+            if (targetResource != null) {
+                targetResource.getContents().add(t);
             }
 
             return t;
         };
     }
+
+    // =========================================================================
+    // HELPER METHODS
+    // =========================================================================
 
     /**
      * Compute base measures for a derived measure by recursively resolving.
