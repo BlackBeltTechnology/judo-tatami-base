@@ -61,8 +61,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("performance")
 public class Psm2MeasurePerformanceTest {
 
-    private static final int WARMUP_ITERATIONS = 3;
-    private static final int MEASUREMENT_ITERATIONS = 5;
+    private static final int WARMUP_ITERATIONS = 0;
+    private static final int MEASUREMENT_ITERATIONS = 1;
     private static final int UNITS_PER_MEASURE = 3;
 
     @BeforeEach

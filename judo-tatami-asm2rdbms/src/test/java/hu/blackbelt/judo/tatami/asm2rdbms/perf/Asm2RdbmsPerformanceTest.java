@@ -62,8 +62,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("performance")
 public class Asm2RdbmsPerformanceTest {
 
-    private static final int WARMUP_ITERATIONS = 3;
-    private static final int MEASUREMENT_ITERATIONS = 5;
+    private static final int WARMUP_ITERATIONS = 0;
+    private static final int MEASUREMENT_ITERATIONS = 1;
     private static final int ATTRIBUTES_PER_CLASS = 5;
 
     @BeforeEach

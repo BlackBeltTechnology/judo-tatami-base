@@ -140,8 +140,62 @@ public class ModelComparator {
                     expected.getContents().size() + " vs " + actual.getContents().size());
         }
         
-        for (int i = 0; i < expected.getContents().size(); i++) {
-            assertEquivalent(expected.getContents().get(i), actual.getContents().get(i), mode);
+        // Use order-independent comparison by matching elements by identifier
+        Map<String, EObject> expectedMap = new LinkedHashMap<>();
+        Map<String, EObject> actualMap = new LinkedHashMap<>();
+        
+        for (EObject obj : expected.getContents()) {
+            String id = getIdentifier(obj);
+            if (id != null) {
+                expectedMap.put(id, obj);
+            }
+        }
+        for (EObject obj : actual.getContents()) {
+            String id = getIdentifier(obj);
+            if (id != null) {
+                actualMap.put(id, obj);
+            }
+        }
+        
+        // If all elements have identifiers, use order-independent matching
+        if (expectedMap.size() == expected.getContents().size() && 
+            actualMap.size() == actual.getContents().size()) {
+            
+            Set<String> allKeys = new LinkedHashSet<>();
+            allKeys.addAll(expectedMap.keySet());
+            allKeys.addAll(actualMap.keySet());
+            
+            List<String> missingInActual = new ArrayList<>();
+            List<String> extraInActual = new ArrayList<>();
+            
+            for (String key : allKeys) {
+                EObject exp = expectedMap.get(key);
+                EObject act = actualMap.get(key);
+                
+                if (exp == null) {
+                    extraInActual.add(key);
+                } else if (act == null) {
+                    missingInActual.add(key);
+                } else {
+                    assertEquivalent(exp, act, mode);
+                }
+            }
+            
+            if (!missingInActual.isEmpty() || !extraInActual.isEmpty()) {
+                StringBuilder sb = new StringBuilder("Root element mismatch:");
+                if (!missingInActual.isEmpty()) {
+                    sb.append(" missing=").append(missingInActual);
+                }
+                if (!extraInActual.isEmpty()) {
+                    sb.append(" extra=").append(extraInActual);
+                }
+                throw new AssertionError(sb.toString());
+            }
+        } else {
+            // Fall back to positional comparison
+            for (int i = 0; i < expected.getContents().size(); i++) {
+                assertEquivalent(expected.getContents().get(i), actual.getContents().get(i), mode);
+            }
         }
     }
 
@@ -573,10 +627,40 @@ public class ModelComparator {
         StringBuilder sb = new StringBuilder();
         sb.append(obj.eClass().getName());
         
+        // First try common identifier attributes
         for (String attr : Arrays.asList("name", "id", "uuid", "sqlName", "logicalFilePath")) {
             String val = getAttributeValue(obj, attr);
             if (val != null) {
                 sb.append("|").append(attr).append("=").append(val);
+            }
+        }
+        
+        // If no identifier found, include all attributes and single-valued references
+        // to create a unique content-based signature
+        if (sb.toString().equals(obj.eClass().getName())) {
+            // Include all attribute values
+            for (EStructuralFeature feature : obj.eClass().getEAllStructuralFeatures()) {
+                if (feature.isDerived() || feature.isTransient()) {
+                    continue;
+                }
+                if (feature instanceof EAttribute) {
+                    Object value = obj.eGet(feature);
+                    if (value != null) {
+                        sb.append("|").append(feature.getName()).append("=").append(value);
+                    }
+                } else if (feature instanceof EReference) {
+                    EReference ref = (EReference) feature;
+                    if (!ref.isMany() && !ref.isContainment()) {
+                        // Single-valued non-containment reference
+                        EObject refTarget = (EObject) obj.eGet(ref);
+                        if (refTarget != null) {
+                            String refId = getIdentifier(refTarget);
+                            if (refId != null) {
+                                sb.append("|").append(feature.getName()).append("=").append(refId);
+                            }
+                        }
+                    }
+                }
             }
         }
         
