@@ -20,10 +20,13 @@ package hu.blackbelt.judo.tatami.psm2measure.zeta.rules;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.measure.BaseMeasure;
 import hu.blackbelt.judo.meta.measure.DurationType;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.MeasureFactory;
 import hu.blackbelt.judo.meta.measure.Unit;
+import hu.blackbelt.judo.meta.psm.PsmUtils;
+import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
 import hu.blackbelt.judo.meta.psm.measure.DurationUnit;
 import hu.blackbelt.judo.zeta.annotation.Extends;
 import hu.blackbelt.judo.zeta.annotation.Guard;
@@ -31,11 +34,11 @@ import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
-import lombok.RequiredArgsConstructor;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EObject;
 
 import java.math.BigDecimal;
-import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
 
@@ -48,18 +51,31 @@ import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
  *   <li>CreateDurationUnit - @Extends CreateUnit, maps duration types</li>
  * </ul>
  */
-@RequiredArgsConstructor
+@hu.blackbelt.judo.zeta.annotation.TransformationContext(source = hu.blackbelt.judo.meta.psm.measure.Unit.class, target = Unit.class)
 public class UnitRules {
 
-    private final MeasureFactory measureFactory;
-    private final Function<hu.blackbelt.judo.meta.psm.measure.Unit, Measure> parentMeasureResolver;
+    private final MeasureFactory measureFactory = MeasureFactory.eINSTANCE;
+
+    /**
+     * Default constructor required for TransformationRegistry.
+     */
+    public UnitRules() {
+    }
+
+    // =========================================================================
+    // GUARDS
+    // =========================================================================
 
     /**
      * Guard for CreateUnit: not s.isKindOf(JUDOPSM!DurationUnit)
      */
-    public boolean isNotDurationUnit(hu.blackbelt.judo.meta.psm.measure.Unit unit) {
-        return !(unit instanceof DurationUnit);
+    public boolean isNotDurationUnit(EObject source, TransformationContext ctx) {
+        return !(source instanceof DurationUnit);
     }
+
+    // =========================================================================
+    // TRANSFORMATION RULES
+    // =========================================================================
 
     /**
      * rule CreateUnit
@@ -79,7 +95,7 @@ public class UnitRules {
             t.setRateDivisor(new BigDecimal(String.valueOf(s.getRateDivisor())));
 
             // Find parent measure and add unit to it
-            Measure parentMeasure = parentMeasureResolver.apply(s);
+            Measure parentMeasure = findEquivalentMeasure(s, ctx);
             if (parentMeasure != null) {
                 parentMeasure.getUnits().add(t);
             }
@@ -110,7 +126,7 @@ public class UnitRules {
             mapDurationType(t, s.getUnitType());
 
             // Find parent measure and add unit to it
-            Measure parentMeasure = parentMeasureResolver.apply(s);
+            Measure parentMeasure = findEquivalentMeasure(s, ctx);
             if (parentMeasure != null) {
                 parentMeasure.getUnits().add(t);
             }
@@ -119,6 +135,37 @@ public class UnitRules {
         };
     }
 
+    // =========================================================================
+    // HELPER METHODS
+    // =========================================================================
+
+    /**
+     * Find the equivalent measure for a unit.
+     */
+    private Measure findEquivalentMeasure(hu.blackbelt.judo.meta.psm.measure.Unit unit, TransformationContext ctx) {
+        PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
+
+        // Find the PSM measure that contains this unit
+        hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure = psmUtils.all(
+                ctx.getSourceResourceSet(), hu.blackbelt.judo.meta.psm.measure.Measure.class)
+                .filter(m -> m.getUnits().contains(unit))
+                .findFirst()
+                .orElse(null);
+
+        if (psmMeasure != null) {
+            // Get the equivalent measure from transformation context
+            if (psmMeasure instanceof DerivedMeasure) {
+                return ctx.equivalent(psmMeasure, hu.blackbelt.judo.meta.measure.DerivedMeasure.class);
+            } else {
+                return ctx.equivalent(psmMeasure, BaseMeasure.class);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Map PSM duration type to Measure duration type.
+     */
     private void mapDurationType(hu.blackbelt.judo.meta.measure.DurationUnit t,
                                   hu.blackbelt.judo.meta.psm.measure.DurationType psmType) {
         switch (psmType) {

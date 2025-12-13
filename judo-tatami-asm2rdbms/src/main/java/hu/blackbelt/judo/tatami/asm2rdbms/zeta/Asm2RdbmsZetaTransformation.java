@@ -45,11 +45,23 @@ import java.util.stream.Stream;
 import static hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsRuleNames.*;
 
 /**
- * Java-based ASM to RDBMS transformation using Zeta framework patterns.
+ * ASM to RDBMS transformation using Zeta framework patterns.
  * <p>
  * This class implements the equivalent transformation logic as the ETL scripts
  * in src/main/epsilon/transformations/, providing a type-safe Java alternative
  * with better IDE support and debugging capabilities.
+ * </p>
+ * <p>
+ * Transformation rules are documented with @TransformRule annotations in
+ * {@link hu.blackbelt.judo.tatami.asm2rdbms.zeta.rules.Asm2RdbmsRules}.
+ * The transformation is executed in phases:
+ * <ul>
+ *   <li>Phase 1: Package transformation (rootPackegeToModel, rootPackegeToConfiguration)</li>
+ *   <li>Phase 2: Class transformation (EClassToRdbmsTable, system field rules)</li>
+ *   <li>Phase 3: Attribute transformation (EAttributeToTableValueField, EAttributeToIndex)</li>
+ *   <li>Phase 4: Reference transformation (foreign keys, junction tables)</li>
+ *   <li>Phase 5: Post-processing (name mappings)</li>
+ * </ul>
  * </p>
  */
 @Slf4j

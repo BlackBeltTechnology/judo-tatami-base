@@ -21,6 +21,7 @@ package hu.blackbelt.judo.tatami.psm2measure.zeta;
  */
 
 import hu.blackbelt.judo.meta.measure.BaseMeasure;
+import hu.blackbelt.judo.meta.measure.BaseMeasureTerm;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.MeasureFactory;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
@@ -48,13 +49,17 @@ import java.util.stream.Stream;
 import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
 
 /**
- * PSM to Measure transformation orchestrator using Zeta framework.
+ * PSM to Measure transformation using Zeta framework patterns.
  * <p>
- * This class orchestrates the transformation by delegating to rule classes:
+ * This class orchestrates the transformation using @TransformRule annotated rule classes:
  * <ul>
  *   <li>{@link MeasureRules} - measure.etl rules (CreateMeasure, CreateBaseMeasure, CreateDerivedMeasure)</li>
  *   <li>{@link UnitRules} - unit.etl rules (CreateUnit, CreateDurationUnit)</li>
  * </ul>
+ * </p>
+ * <p>
+ * The transformation follows the Zeta pattern with explicit phase ordering to ensure
+ * correct dependency resolution (base measures before derived, measures before units).
  * </p>
  */
 @Slf4j
@@ -65,10 +70,6 @@ public class Psm2MeasureZetaTransformation {
     private final PsmUtils psmUtils;
     private final ResourceSet psmResourceSet;
     private final MeasureFactory measureFactory;
-
-    // Rule classes
-    private final MeasureRules measureRules;
-    private final UnitRules unitRules;
 
     // Trace map for source to target element mapping
     private final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
@@ -82,17 +83,6 @@ public class Psm2MeasureZetaTransformation {
         this.psmResourceSet = psmModel.getResourceSet();
         this.psmUtils = new PsmUtils(psmResourceSet);
         this.measureFactory = MeasureFactory.eINSTANCE;
-
-        // Initialize rule classes with dependencies
-        this.measureRules = new MeasureRules(
-                measureFactory,
-                m -> psmUtils.namespaceToString(m.getNamespace()),
-                this::getEquivalent
-        );
-        this.unitRules = new UnitRules(
-                measureFactory,
-                this::findEquivalentMeasure
-        );
     }
 
     /**
@@ -124,13 +114,13 @@ public class Psm2MeasureZetaTransformation {
     }
 
     // =========================================================================
-    // MEASURE TRANSFORMATIONS (delegated to MeasureRules)
+    // MEASURE TRANSFORMATIONS (based on MeasureRules @TransformRule methods)
     // =========================================================================
 
     private void transformMeasures() {
         log.debug("Transforming measures");
 
-        // First pass: create base measures
+        // First pass: create base measures (guard: not DerivedMeasure)
         all(hu.blackbelt.judo.meta.psm.measure.Measure.class)
                 .filter(m -> !(m instanceof DerivedMeasure))
                 .forEach(this::transformBaseMeasure);
@@ -139,6 +129,10 @@ public class Psm2MeasureZetaTransformation {
         all(DerivedMeasure.class).forEach(this::transformDerivedMeasure);
     }
 
+    /**
+     * CreateBaseMeasure rule implementation.
+     * @see MeasureRules#createBaseMeasure()
+     */
     private void transformBaseMeasure(hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure) {
         BaseMeasure baseMeasure = measureFactory.createBaseMeasure();
         baseMeasure.setNamespace(psmUtils.namespaceToString(psmMeasure.getNamespace()));
@@ -149,6 +143,10 @@ public class Psm2MeasureZetaTransformation {
         addTrace(psmMeasure, CREATE_BASE_MEASURE, baseMeasure);
     }
 
+    /**
+     * CreateDerivedMeasure rule implementation.
+     * @see MeasureRules#createDerivedMeasure()
+     */
     private void transformDerivedMeasure(DerivedMeasure psmDerivedMeasure) {
         hu.blackbelt.judo.meta.measure.DerivedMeasure derivedMeasure =
                 measureFactory.createDerivedMeasure();
@@ -164,7 +162,7 @@ public class Psm2MeasureZetaTransformation {
             hu.blackbelt.judo.meta.psm.measure.Measure psmBaseMeasure = entry.getKey();
             Integer exponent = entry.getValue();
 
-            hu.blackbelt.judo.meta.measure.BaseMeasureTerm term = measureFactory.createBaseMeasureTerm();
+            BaseMeasureTerm term = measureFactory.createBaseMeasureTerm();
             term.setExponent(exponent);
 
             EObject equivalent = getEquivalent(psmBaseMeasure, CREATE_BASE_MEASURE);
@@ -209,13 +207,13 @@ public class Psm2MeasureZetaTransformation {
     }
 
     // =========================================================================
-    // UNIT TRANSFORMATIONS (delegated to UnitRules)
+    // UNIT TRANSFORMATIONS (based on UnitRules @TransformRule methods)
     // =========================================================================
 
     private void transformUnits() {
         log.debug("Transforming units");
 
-        // Transform regular units
+        // Transform regular units (guard: not DurationUnit)
         all(hu.blackbelt.judo.meta.psm.measure.Unit.class)
                 .filter(u -> !(u instanceof DurationUnit))
                 .forEach(this::transformUnit);
@@ -224,6 +222,10 @@ public class Psm2MeasureZetaTransformation {
         all(DurationUnit.class).forEach(this::transformDurationUnit);
     }
 
+    /**
+     * CreateUnit rule implementation.
+     * @see UnitRules#createUnit()
+     */
     private void transformUnit(hu.blackbelt.judo.meta.psm.measure.Unit psmUnit) {
         hu.blackbelt.judo.meta.measure.Unit unit = measureFactory.createUnit();
         unit.setName(psmUnit.getName());
@@ -239,6 +241,10 @@ public class Psm2MeasureZetaTransformation {
         addTrace(psmUnit, CREATE_UNIT, unit);
     }
 
+    /**
+     * CreateDurationUnit rule implementation.
+     * @see UnitRules#createDurationUnit()
+     */
     private void transformDurationUnit(DurationUnit psmDurationUnit) {
         hu.blackbelt.judo.meta.measure.DurationUnit durationUnit =
                 measureFactory.createDurationUnit();
