@@ -888,11 +888,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.4.1</version>
+                <version>3.11.2</version>
                 <configuration>
-                    <source>8</source>
+                    <source>21</source>
+                    <release>21</release>
                     <detectJavaApiLink>false</detectJavaApiLink>
                     <failOnError>false</failOnError>
+                    <failOnWarnings>false</failOnWarnings>
+                    <doclint>none</doclint>
                     <sourcepath>${project.basedir}/target/delombok</sourcepath>
                     <tags>
                         <tag>
@@ -915,7 +918,6 @@
                             <placement>a</placement>
                             <head>EMF Param</head>
                         </tag>
-
                     </tags>
                 </configuration>
                 <executions>
