@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableList;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.RdbmsField;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.tatami.asm2rdbms.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;

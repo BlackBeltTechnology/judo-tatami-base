@@ -23,7 +23,7 @@ package hu.blackbelt.judo.tatami.psm2measure.perf;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
-import hu.blackbelt.judo.tatami.psm2measure.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureZetaTransformation;
 import hu.blackbelt.judo.tatami.test.RealisticPsmModelGenerator;
 import lombok.extern.slf4j.Slf4j;

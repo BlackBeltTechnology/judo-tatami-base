@@ -22,6 +22,7 @@ package hu.blackbelt.judo.tatami.psm2asm;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.junit.jupiter.api.Test;

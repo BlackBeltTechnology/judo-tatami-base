@@ -22,7 +22,7 @@ package hu.blackbelt.judo.tatami.asm2keycloak.perf;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
-import hu.blackbelt.judo.tatami.asm2keycloak.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakZetaTransformation;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.RealisticAsmModelGenerator;

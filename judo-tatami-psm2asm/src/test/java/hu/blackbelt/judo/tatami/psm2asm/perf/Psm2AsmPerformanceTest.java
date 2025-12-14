@@ -31,7 +31,7 @@ import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
 import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
-import hu.blackbelt.judo.tatami.psm2asm.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;

@@ -41,7 +41,7 @@ import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.Psm2MeasureParame
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2MeasureTransformationTrace.fromModelsAndTrace;
 import static org.junit.jupiter.api.Assertions.fail;
-import hu.blackbelt.judo.tatami.psm2measure.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 @Slf4j
 public class Psm2MeasureTest {

@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.tatami.asm2keycloak.util;
+package hu.blackbelt.judo.tatami.test.util;
 
 /*-
  * #%L
@@ -72,15 +72,36 @@ public class ModelComparator {
      * Comparison modes for model equivalence checking.
      */
     public enum ComparisonMode {
+        /**
+         * All attributes and references must match exactly.
+         */
         STRICT,
+        
+        /**
+         * Element structure must match, annotation differences are tolerated.
+         */
         STRUCTURAL,
+        
+        /**
+         * Major structural elements must match, minor differences are allowed.
+         */
         LENIENT
     }
 
+    /**
+     * Checks if comparison is enabled via system property.
+     * 
+     * @return true if comparison is enabled (default: true)
+     */
     public static boolean isComparisonEnabled() {
         return Boolean.parseBoolean(System.getProperty(PROP_COMPARISON_ENABLED, "true"));
     }
 
+    /**
+     * Gets the configured comparison mode from system property.
+     * 
+     * @return the configured ComparisonMode (default: STRUCTURAL)
+     */
     public static ComparisonMode getConfiguredMode() {
         String modeStr = System.getProperty(PROP_COMPARISON_MODE);
         if (modeStr != null) {
@@ -93,6 +114,11 @@ public class ModelComparator {
         return DEFAULT_MODE;
     }
 
+    /**
+     * Gets the configured maximum differences from system property.
+     * 
+     * @return the max differences to report (default: 50)
+     */
     public static int getConfiguredMaxDifferences() {
         String maxStr = System.getProperty(PROP_MAX_DIFFERENCES);
         if (maxStr != null) {
@@ -105,14 +131,35 @@ public class ModelComparator {
         return DEFAULT_MAX_DIFFERENCES;
     }
 
+    /**
+     * Gets the configured report file path from system property.
+     * 
+     * @return the report file path, or null if not configured
+     */
     public static String getConfiguredReportFile() {
         return System.getProperty(PROP_REPORT_FILE);
     }
 
+    /**
+     * Asserts that two EObjects are structurally equivalent (order-independent).
+     * Uses the default STRUCTURAL comparison mode.
+     *
+     * @param expected the expected model
+     * @param actual the actual model
+     * @throws AssertionError if the models are not equivalent
+     */
     public static void assertEquivalent(EObject expected, EObject actual) {
         assertEquivalent(expected, actual, getConfiguredMode());
     }
 
+    /**
+     * Asserts that two EObjects are structurally equivalent (order-independent).
+     *
+     * @param expected the expected model
+     * @param actual the actual model
+     * @param mode the comparison mode to use
+     * @throws AssertionError if the models are not equivalent
+     */
     public static void assertEquivalent(EObject expected, EObject actual, ComparisonMode mode) {
         if (!isComparisonEnabled()) {
             return;
@@ -126,29 +173,116 @@ public class ModelComparator {
         }
     }
 
+    /**
+     * Asserts that two Resources are structurally equivalent (order-independent).
+     * Uses the default STRUCTURAL comparison mode.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @throws AssertionError if the resources are not equivalent
+     */
     public static void assertEquivalent(Resource expected, Resource actual) {
         assertEquivalent(expected, actual, getConfiguredMode());
     }
 
+    /**
+     * Asserts that two Resources are structurally equivalent (order-independent).
+     * Uses identifier-based matching when possible, falls back to positional comparison.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @param mode the comparison mode to use
+     * @throws AssertionError if the resources are not equivalent
+     */
     public static void assertEquivalent(Resource expected, Resource actual, ComparisonMode mode) {
         if (!isComparisonEnabled()) {
             return;
         }
-        
+
         if (expected.getContents().size() != actual.getContents().size()) {
             throw new AssertionError("Resources have different number of root elements: " +
                     expected.getContents().size() + " vs " + actual.getContents().size());
         }
-        
-        for (int i = 0; i < expected.getContents().size(); i++) {
-            assertEquivalent(expected.getContents().get(i), actual.getContents().get(i), mode);
+
+        // Use order-independent comparison by matching elements by identifier
+        Map<String, EObject> expectedMap = new LinkedHashMap<>();
+        Map<String, EObject> actualMap = new LinkedHashMap<>();
+
+        for (EObject obj : expected.getContents()) {
+            String id = getIdentifier(obj);
+            if (id != null) {
+                expectedMap.put(id, obj);
+            }
+        }
+        for (EObject obj : actual.getContents()) {
+            String id = getIdentifier(obj);
+            if (id != null) {
+                actualMap.put(id, obj);
+            }
+        }
+
+        // If all elements have identifiers, use order-independent matching
+        if (expectedMap.size() == expected.getContents().size() &&
+            actualMap.size() == actual.getContents().size()) {
+
+            Set<String> allKeys = new LinkedHashSet<>();
+            allKeys.addAll(expectedMap.keySet());
+            allKeys.addAll(actualMap.keySet());
+
+            List<String> missingInActual = new ArrayList<>();
+            List<String> extraInActual = new ArrayList<>();
+
+            for (String key : allKeys) {
+                EObject exp = expectedMap.get(key);
+                EObject act = actualMap.get(key);
+
+                if (exp == null) {
+                    extraInActual.add(key);
+                } else if (act == null) {
+                    missingInActual.add(key);
+                } else {
+                    assertEquivalent(exp, act, mode);
+                }
+            }
+
+            if (!missingInActual.isEmpty() || !extraInActual.isEmpty()) {
+                StringBuilder sb = new StringBuilder("Root element mismatch:");
+                if (!missingInActual.isEmpty()) {
+                    sb.append(" missing=").append(missingInActual);
+                }
+                if (!extraInActual.isEmpty()) {
+                    sb.append(" extra=").append(extraInActual);
+                }
+                throw new AssertionError(sb.toString());
+            }
+        } else {
+            // Fall back to positional comparison
+            for (int i = 0; i < expected.getContents().size(); i++) {
+                assertEquivalent(expected.getContents().get(i), actual.getContents().get(i), mode);
+            }
         }
     }
 
+    /**
+     * Compares two EObjects for structural equivalence (order-independent).
+     * Uses the default STRUCTURAL comparison mode.
+     *
+     * @param obj1 the first object
+     * @param obj2 the second object
+     * @return a ComparisonResult indicating whether the objects are equivalent
+     */
     public static ComparisonResult compare(EObject obj1, EObject obj2) {
         return compare(obj1, obj2, getConfiguredMode());
     }
 
+    /**
+     * Compares two EObjects for structural equivalence (order-independent).
+     *
+     * @param obj1 the first object
+     * @param obj2 the second object
+     * @param mode the comparison mode to use
+     * @return a ComparisonResult indicating whether the objects are equivalent
+     */
     public static ComparisonResult compare(EObject obj1, EObject obj2, ComparisonMode mode) {
         List<Difference> differences = new ArrayList<>();
         int maxDifferences = getConfiguredMaxDifferences();
@@ -192,16 +326,19 @@ public class ModelComparator {
             return;
         }
 
+        // Avoid infinite loops
         if (visited.containsKey(obj1)) {
             return;
         }
         visited.put(obj1, obj2);
 
+        // Compare classes
         if (!obj1.eClass().getName().equals(obj2.eClass().getName())) {
             differences.add(new TypeMismatch(path, obj1.eClass().getName(), obj2.eClass().getName()));
             return;
         }
 
+        // Compare structural features
         for (EStructuralFeature feature : obj1.eClass().getEAllStructuralFeatures()) {
             if (shouldStop(differences, maxDifferences)) {
                 return;
@@ -230,12 +367,15 @@ public class ModelComparator {
     }
 
     private static boolean shouldSkipFeature(EStructuralFeature feature, ComparisonMode mode) {
+        // Always skip derived and transient features
         if (feature.isDerived() || feature.isTransient()) {
             return true;
         }
         
+        // In LENIENT mode, skip certain features
         if (mode == ComparisonMode.LENIENT) {
             String name = feature.getName();
+            // Skip documentation and metadata-like features
             if (name.equals("documentation") || name.equals("comment") || name.equals("description")) {
                 return true;
             }
@@ -247,7 +387,9 @@ public class ModelComparator {
     @SuppressWarnings("unchecked")
     private static void compareAttributes(Object val1, Object val2, String path, 
                                           List<Difference> differences, ComparisonMode mode) {
+        // Skip 'mixed' feature comparison as it contains FeatureMap entries with object identity issues
         if (path.endsWith(".mixed")) {
+            // For mixed content, just check sizes match
             if (val1 instanceof List && val2 instanceof List) {
                 List<?> list1 = (List<?>) val1;
                 List<?> list2 = (List<?>) val2;
@@ -259,10 +401,12 @@ public class ModelComparator {
             return;
         }
         
+        // Handle empty vs null as equivalent
         if (isEffectivelyEmpty(val1) && isEffectivelyEmpty(val2)) {
             return;
         }
         
+        // Handle lists (like 'mixed' feature which may contain EObjects)
         if (val1 instanceof List && val2 instanceof List) {
             List<?> list1 = (List<?>) val1;
             List<?> list2 = (List<?>) val2;
@@ -273,7 +417,9 @@ public class ModelComparator {
                 return;
             }
             
+            // For mixed content lists containing EObjects, compare by content not identity
             if (!list1.isEmpty() && list1.get(0) instanceof EObject) {
+                // Compare EObjects by their class and key attributes
                 for (int i = 0; i < list1.size(); i++) {
                     EObject obj1 = (EObject) list1.get(i);
                     EObject obj2 = (EObject) list2.get(i);
@@ -281,11 +427,13 @@ public class ModelComparator {
                         differences.add(new TypeMismatch(path + "[" + i + "]", 
                                 obj1.eClass().getName(), obj2.eClass().getName()));
                     }
+                    // Don't recurse into these objects to avoid over-reporting
                 }
                 return;
             }
         }
         
+        // Handle floating point comparison with epsilon
         if (val1 instanceof Double && val2 instanceof Double) {
             if (Math.abs((Double) val1 - (Double) val2) > EPSILON) {
                 differences.add(new ValueMismatch(path, String.valueOf(val1), String.valueOf(val2)));
@@ -331,6 +479,7 @@ public class ModelComparator {
             EList<EObject> list1 = (EList<EObject>) val1;
             EList<EObject> list2 = (EList<EObject>) val2;
             
+            // Handle empty vs null as equivalent
             if (list1.isEmpty() && list2.isEmpty()) {
                 return;
             }
@@ -338,9 +487,11 @@ public class ModelComparator {
             if (list1.size() != list2.size()) {
                 differences.add(new ValueMismatch(path, 
                         "size=" + list1.size(), "size=" + list2.size()));
+                // Continue to report individual differences
             }
             
             if (list1.isEmpty() || list2.isEmpty()) {
+                // One is empty, other is not - report missing/extra elements
                 for (EObject elem : list1) {
                     differences.add(new MissingElement(path, getObjectIdentifier(elem)));
                     if (shouldStop(differences, maxDifferences)) return;
@@ -352,14 +503,18 @@ public class ModelComparator {
                 return;
             }
             
+            // Skip EAnnotation comparison in STRUCTURAL and LENIENT modes
             if (mode != ComparisonMode.STRICT && !list1.isEmpty() && list1.get(0) instanceof EAnnotation) {
                 return;
             }
             
+            // Try to match elements by identifier (order-independent)
             Map<String, EObject> map1 = mapByIdentifier(list1);
             Map<String, EObject> map2 = mapByIdentifier(list2);
             
+            // Check if we can use identifier-based matching
             if (map1.size() == list1.size() && map2.size() == list2.size()) {
+                // All elements have unique identifiers - compare by identifier (order-independent)
                 Set<String> allKeys = new HashSet<>();
                 allKeys.addAll(map1.keySet());
                 allKeys.addAll(map2.keySet());
@@ -379,6 +534,7 @@ public class ModelComparator {
                     }
                 }
             } else {
+                // Try matching by type signature for elements without unique names
                 Map<String, List<EObject>> byType1 = groupByTypeSignature(list1);
                 Map<String, List<EObject>> byType2 = groupByTypeSignature(list2);
                 
@@ -396,6 +552,7 @@ public class ModelComparator {
                         differences.add(new ValueMismatch(path + "[" + type + "]", 
                                 "count=" + elems1.size(), "count=" + elems2.size()));
                     } else {
+                        // Match elements of same type by their content hash
                         matchAndCompareByContent(elems1, elems2, path + "[" + type + "]", 
                                 differences, visited, mode, maxDifferences);
                     }
@@ -418,6 +575,7 @@ public class ModelComparator {
             return;
         }
         
+        // Try to match by content signature first
         Map<String, EObject> sig1 = new LinkedHashMap<>();
         Map<String, EObject> sig2 = new LinkedHashMap<>();
         Map<String, Integer> sigCount1 = new HashMap<>();
@@ -436,6 +594,7 @@ public class ModelComparator {
             sigCount2.put(sig, count + 1);
         }
         
+        // Match by signature
         Set<String> matched = new HashSet<>();
         for (Map.Entry<String, EObject> entry : sig1.entrySet()) {
             if (shouldStop(differences, maxDifferences)) return;
@@ -448,6 +607,7 @@ public class ModelComparator {
             }
         }
         
+        // Report unmatched as positional comparison fallback
         List<EObject> unmatched1 = new ArrayList<>();
         List<EObject> unmatched2 = new ArrayList<>();
         for (Map.Entry<String, EObject> entry : sig1.entrySet()) {
@@ -461,6 +621,7 @@ public class ModelComparator {
             }
         }
         
+        // Positional comparison for remaining
         int minSize = Math.min(unmatched1.size(), unmatched2.size());
         for (int i = 0; i < minSize; i++) {
             if (shouldStop(differences, maxDifferences)) return;
@@ -476,6 +637,7 @@ public class ModelComparator {
             EList<EObject> list1 = (EList<EObject>) val1;
             EList<EObject> list2 = (EList<EObject>) val2;
             
+            // Use set comparison for references (order-independent)
             Set<String> refs1 = list1.stream()
                     .map(ModelComparator::getObjectIdentifier)
                     .collect(Collectors.toSet());
@@ -509,6 +671,9 @@ public class ModelComparator {
         }
     }
 
+    /**
+     * Maps elements by a unique identifier (name, id, or uuid attribute).
+     */
     private static Map<String, EObject> mapByIdentifier(EList<EObject> list) {
         Map<String, EObject> map = new LinkedHashMap<>();
         for (EObject obj : list) {
@@ -520,6 +685,9 @@ public class ModelComparator {
         return map;
     }
 
+    /**
+     * Groups elements by their type signature (class name).
+     */
     private static Map<String, List<EObject>> groupByTypeSignature(EList<EObject> list) {
         Map<String, List<EObject>> map = new LinkedHashMap<>();
         for (EObject obj : list) {
@@ -529,7 +697,11 @@ public class ModelComparator {
         return map;
     }
 
+    /**
+     * Gets a unique identifier for an object (tries name, id, uuid, source attributes).
+     */
     private static String getIdentifier(EObject obj) {
+        // For EAnnotation, use 'source' attribute as identifier
         if (obj instanceof EAnnotation) {
             String source = ((EAnnotation) obj).getSource();
             if (source != null) {
@@ -537,21 +709,25 @@ public class ModelComparator {
             }
         }
         
+        // Try 'name' attribute
         String name = getAttributeValue(obj, "name");
         if (name != null) {
             return obj.eClass().getName() + ":" + name;
         }
         
+        // Try 'id' attribute
         String id = getAttributeValue(obj, "id");
         if (id != null) {
             return obj.eClass().getName() + "#" + id;
         }
         
+        // Try 'uuid' attribute
         String uuid = getAttributeValue(obj, "uuid");
         if (uuid != null) {
             return obj.eClass().getName() + "@" + uuid;
         }
         
+        // Try 'source' attribute (for annotation-like elements)
         String source = getAttributeValue(obj, "source");
         if (source != null) {
             return obj.eClass().getName() + ":" + source;
@@ -569,17 +745,51 @@ public class ModelComparator {
         return null;
     }
 
+    /**
+     * Creates a content signature for an object based on its key attributes.
+     * For objects without standard identifiers, includes all attributes and single-valued references.
+     */
     private static String getContentSignature(EObject obj) {
         StringBuilder sb = new StringBuilder();
         sb.append(obj.eClass().getName());
-        
+
+        // First try common identifier attributes
         for (String attr : Arrays.asList("name", "id", "uuid", "sqlName", "logicalFilePath")) {
             String val = getAttributeValue(obj, attr);
             if (val != null) {
                 sb.append("|").append(attr).append("=").append(val);
             }
         }
-        
+
+        // If no identifier found, include all attributes and single-valued references
+        // to create a unique content-based signature
+        if (sb.toString().equals(obj.eClass().getName())) {
+            // Include all attribute values
+            for (EStructuralFeature feature : obj.eClass().getEAllStructuralFeatures()) {
+                if (feature.isDerived() || feature.isTransient()) {
+                    continue;
+                }
+                if (feature instanceof EAttribute) {
+                    Object value = obj.eGet(feature);
+                    if (value != null) {
+                        sb.append("|").append(feature.getName()).append("=").append(value);
+                    }
+                } else if (feature instanceof EReference) {
+                    EReference ref = (EReference) feature;
+                    if (!ref.isMany() && !ref.isContainment()) {
+                        // Single-valued non-containment reference
+                        EObject refTarget = (EObject) obj.eGet(ref);
+                        if (refTarget != null) {
+                            String refId = getIdentifier(refTarget);
+                            if (refId != null) {
+                                sb.append("|").append(feature.getName()).append("=").append(refId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return sb.toString();
     }
 
@@ -596,6 +806,9 @@ public class ModelComparator {
 
     // ==================== Difference Classes ====================
 
+    /**
+     * Abstract base class for all difference types.
+     */
     public abstract static class Difference {
         protected final String path;
 
@@ -603,10 +816,16 @@ public class ModelComparator {
             this.path = path;
         }
 
+        /**
+         * Gets the path where this difference occurred.
+         */
         public String getPath() {
             return path;
         }
 
+        /**
+         * Gets a human-readable description of this difference.
+         */
         public abstract String describe();
 
         @Override
@@ -615,6 +834,9 @@ public class ModelComparator {
         }
     }
 
+    /**
+     * Indicates an element is missing from the actual model.
+     */
     public static class MissingElement extends Difference {
         private final String elementDescription;
 
@@ -633,6 +855,9 @@ public class ModelComparator {
         }
     }
 
+    /**
+     * Indicates an unexpected element in the actual model.
+     */
     public static class ExtraElement extends Difference {
         private final String elementDescription;
 
@@ -651,6 +876,9 @@ public class ModelComparator {
         }
     }
 
+    /**
+     * Indicates a value mismatch between expected and actual.
+     */
     public static class ValueMismatch extends Difference {
         private final String expectedValue;
         private final String actualValue;
@@ -675,6 +903,9 @@ public class ModelComparator {
         }
     }
 
+    /**
+     * Indicates a type mismatch between expected and actual elements.
+     */
     public static class TypeMismatch extends Difference {
         private final String expectedType;
         private final String actualType;
@@ -701,6 +932,9 @@ public class ModelComparator {
 
     // ==================== ComparisonResult ====================
 
+    /**
+     * Result of a model comparison, containing all differences found.
+     */
     public static class ComparisonResult {
         private final List<Difference> differences;
         private final int maxDifferences;
@@ -712,6 +946,9 @@ public class ModelComparator {
             this.truncated = maxDifferences > 0 && this.differences.size() >= maxDifferences;
         }
 
+        /**
+         * Legacy constructor for backwards compatibility.
+         */
         public ComparisonResult(List<String> differences) {
             this.differences = differences != null 
                     ? differences.stream().map(s -> new ValueMismatch("", s, "")).collect(Collectors.toList())
@@ -720,18 +957,30 @@ public class ModelComparator {
             this.truncated = false;
         }
 
+        /**
+         * Returns true if the compared models are equivalent.
+         */
         public boolean isEquivalent() {
             return differences.isEmpty();
         }
 
+        /**
+         * Returns true if the difference list was truncated due to max limit.
+         */
         public boolean isTruncated() {
             return truncated;
         }
 
+        /**
+         * Gets the number of differences found.
+         */
         public int getDifferenceCount() {
             return differences.size();
         }
 
+        /**
+         * Gets a summary of the comparison result.
+         */
         public String getSummary() {
             if (differences.isEmpty()) {
                 return "Models are equivalent";
@@ -756,6 +1005,9 @@ public class ModelComparator {
             return sb.toString();
         }
 
+        /**
+         * Returns a formatted string of all differences found (legacy method).
+         */
         public String getDifferences() {
             if (differences.isEmpty()) {
                 return "No differences";
@@ -765,6 +1017,9 @@ public class ModelComparator {
                     .collect(Collectors.joining("\n"));
         }
 
+        /**
+         * Returns a detailed report with summary and all differences.
+         */
         public String getDetailedReport() {
             if (differences.isEmpty()) {
                 return "No differences - models are equivalent";
@@ -785,10 +1040,16 @@ public class ModelComparator {
             return sb.toString();
         }
 
+        /**
+         * Returns the list of differences.
+         */
         public List<Difference> getDifferenceList() {
             return Collections.unmodifiableList(differences);
         }
 
+        /**
+         * Gets differences filtered by type.
+         */
         public <T extends Difference> List<T> getDifferencesOfType(Class<T> type) {
             return differences.stream()
                     .filter(type::isInstance)

@@ -23,7 +23,7 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.perf;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
-import hu.blackbelt.judo.tatami.rdbms2liquibase.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 import hu.blackbelt.judo.tatami.test.RealisticRdbmsModelGenerator;
 import lombok.extern.slf4j.Slf4j;

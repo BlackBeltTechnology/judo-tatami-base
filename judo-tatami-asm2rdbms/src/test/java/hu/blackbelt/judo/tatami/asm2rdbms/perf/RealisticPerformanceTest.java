@@ -23,7 +23,7 @@ package hu.blackbelt.judo.tatami.asm2rdbms.perf;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms;
-import hu.blackbelt.judo.tatami.asm2rdbms.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.RealisticAsmModelGenerator;

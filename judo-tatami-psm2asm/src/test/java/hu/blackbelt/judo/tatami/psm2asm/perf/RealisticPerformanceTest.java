@@ -24,7 +24,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
-import hu.blackbelt.judo.tatami.psm2asm.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.psm2asm.Psm2AsmWork;
 import hu.blackbelt.judo.tatami.test.RealisticPsmModelGenerator;
 import lombok.extern.slf4j.Slf4j;
