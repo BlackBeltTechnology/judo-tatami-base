@@ -246,6 +246,184 @@ mvn test -Dtest=Psm2AsmDualTransformationTest -Djudo.test.comparison.mode=STRICT
 mvn test -Djudo.test.comparison.enabled=false
 ```
 
+## Zeta Transformation Implementation
+
+The project includes a high-performance Zeta-based transformation engine alongside the original ETL engine. Zeta transformations are implemented in Java and provide significant performance improvements (30-45x faster than ETL).
+
+### Architecture
+
+Each transformation module that supports Zeta has this structure:
+```
+judo-tatami-<source>2<target>/
+├── src/main/java/hu/blackbelt/judo/tatami/<source>2<target>/
+│   ├── <Source>2<Target>Work.java           # Main work class (supports both engines)
+│   └── zeta/
+│       ├── <Source>2<Target>ZetaTransformation.java  # Main Zeta transformation
+│       ├── <Source>2<Target>RuleNames.java           # Rule name constants
+│       ├── <Source>2<Target>Helper.java              # Helper utilities
+│       └── rules/                                     # Rule implementations
+│           ├── NamespaceRules.java
+│           ├── DataRules.java
+│           ├── TransferObjectRules.java
+│           ├── OperationRules.java
+│           ├── DerivedRules.java
+│           └── StaticRules.java
+```
+
+### Rule Implementation Pattern
+
+Zeta rules use annotations to define transformations:
+
+```java
+@TransformRule(name = "CreateMappedTransferObject", description = "Transform MappedTransferObjectType to EClass")
+@Transform(type = MappedTransferObjectType.class)
+@To(type = EClass.class)
+@Greedy
+public TransformFunction<MappedTransferObjectType, EClass> createMappedTransferObject() {
+    return (s, ctx) -> {
+        // Guard condition - return null to skip
+        if (!guardCondition(s)) {
+            return null;
+        }
+        
+        // Create target element
+        EClass t = ctx.createTarget(EClass.class);
+        setId(t, "(psm/" + getId(s) + ")/MappedTransferObject");
+        t.setName(s.getName());
+        
+        // Add to container
+        EPackage pkg = ctx.equivalent(s.eContainer(), EPackage.class);
+        pkg.getEClassifiers().add(t);
+        
+        // Add annotations inline (consolidate related rules)
+        EAnnotation annotation = createAnnotation(
+                "(psm/" + getId(s) + ")/TypeAnnotation",
+                getAnnotationUri("transferObjectType"));
+        addAnnotationDetail(annotation, "value", "true");
+        t.getEAnnotations().add(annotation);
+        
+        return t;
+    };
+}
+```
+
+### Key Patterns
+
+1. **Guards**: Return `null` from the transform function to skip elements that don't match the guard condition
+2. **Inline consolidation**: Combine multiple related ETL rules into a single Zeta rule for efficiency
+3. **ID convention**: Use `(psm/{sourceId})/{RuleName}` pattern for traceability
+4. **Helper methods**: Use static imports from `*Helper.java` for common operations
+
+### Common Issues and Solutions
+
+#### Missing Classifiers (e.g., "46 classifiers missing")
+
+**Symptom**: Zeta output has fewer classifiers than ETL output.
+
+**Diagnosis**: 
+1. Run comparison test to identify which classifiers are missing
+2. Check package names - often missing in generated packages like `_generated_navigations`
+3. Compare ETL rules in `static.etl`, `transferObject.etl`, etc.
+
+**Solution**: Ensure all source types from ETL are covered in Zeta:
+- `StaticData` → covered by `StaticRules.java`
+- `StaticNavigation` → must also be covered (often overlooked!)
+- Check for `@Greedy` rules that transform base types
+
+**Example**: The `_generated_navigations` package contains `StaticNavigation` elements that need the following rules:
+- `CreateUnmappedTransferObjectForStaticNavigation`
+- `CreateStaticNavigationQueryAnnotation`
+- `CreateStaticQueryNavigation`
+- `CreateNavigationReferenceBindingForStaticNavigation`
+- `CreateTransferObjectRelationParameterizedAnnotationForStaticNavigation`
+
+#### Missing Annotations
+
+**Symptom**: Model comparison shows missing annotations like `unmappedDefaultOnly`, `eExceptions`.
+
+**Common causes**:
+1. Guard condition too restrictive
+2. Missing rule for specific annotation type
+3. Expression/parameter type lookup returning null
+
+**Diagnosis**: Check the ETL rule guards and ensure Zeta implementation matches exactly.
+
+#### Missing eExceptions on Operations
+
+**Symptom**: Bound operations have empty `eExceptions` list in Zeta output.
+
+**Cause**: The faults-to-exceptions loop from ETL's `CreateOperation` abstract rule was not ported.
+
+**Solution**: Add fault handling in operation creation rules:
+```java
+// Add faults as exceptions (from CreateOperation abstract rule in ETL)
+for (var fault : s.getFaults()) {
+    if (fault.getType() != null) {
+        EClass faultType = ctx.equivalent(fault.getType(), EClass.class);
+        if (faultType != null) {
+            t.getEExceptions().add(faultType);
+        }
+    }
+}
+```
+
+#### Annotations with Complex Guard Conditions
+
+**Symptom**: Annotations like `unmappedDefaultOnly` missing for attributes/references.
+
+**Cause**: ETL guard conditions navigate through entity's `defaultRepresentation` to check for bindings with `defaultValue`.
+
+**Solution**: For annotations that depend on related transfer objects:
+```java
+@TransformRule(name = "AddUnmappedDefaultOnlyAttributeAnnotation")
+@Transform(type = Attribute.class)
+@To(type = EAnnotation.class)
+@Greedy
+public TransformFunction<Attribute, EAnnotation> addUnmappedDefaultOnlyAttributeAnnotation() {
+    return (s, ctx) -> {
+        // Guard: container must be EntityType with defaultRepresentation
+        if (!(s.eContainer() instanceof EntityType entity) ||
+            entity.getDefaultRepresentation() == null) {
+            return null;
+        }
+
+        // Guard: must have binding with defaultValue in defaultRepresentation
+        boolean hasBindingWithDefault = entity.getDefaultRepresentation().getAttributes().stream()
+                .anyMatch(a -> a.getBinding() == s && a.getDefaultValue() != null);
+        if (!hasBindingWithDefault) {
+            return null;
+        }
+
+        // Create annotation...
+    };
+}
+```
+
+**Key insight**: When porting ETL guards that use `exists()` or similar collection operations, translate to Java streams with `anyMatch()`, `filter()`, or `findFirst()`.
+
+### Performance Testing
+
+Performance tests use the RackInspect real-world model:
+
+```bash
+# Run performance tests
+mvn test -pl judo-tatami-psm2asm -Dtest=RackInspectPerformanceTest -Pperformance
+
+# Run all performance tests
+mvn test -Pperformance -Dgroups=performance
+```
+
+Expected results:
+- **Psm2Asm**: ~30-45x faster than ETL
+- **Rdbms2Liquibase**: ~40-50x faster than ETL
+
+### Adding New Zeta Rules
+
+1. Add rule name constant to `*RuleNames.java`
+2. Implement rule in appropriate `*Rules.java` class
+3. Register the rules class in transformation initialization
+4. Run comparison tests to verify equivalence
+
 ## Important Notes
 
 1. **ETL files are the source of truth** for transformation logic
@@ -254,3 +432,4 @@ mvn test -Djudo.test.comparison.enabled=false
 4. **Transformation traces** allow mapping between source and target elements
 5. **Validation modules** use Java WorkClass pattern (not EVL)
 6. **Model comparison** uses `ModelComparator` with configurable modes and detailed reporting
+7. **Zeta rules must cover all source types** - check both main types and subtypes (e.g., StaticData AND StaticNavigation)

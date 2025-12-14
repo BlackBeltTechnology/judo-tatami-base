@@ -183,6 +183,16 @@ public class OperationRules {
                 }
             }
             
+            // Add faults as exceptions (from CreateOperation abstract rule in ETL)
+            for (var fault : s.getFaults()) {
+                if (fault.getType() != null) {
+                    EClass faultType = ctx.equivalent(fault.getType(), EClass.class);
+                    if (faultType != null) {
+                        t.getEExceptions().add(faultType);
+                    }
+                }
+            }
+            
             // Add to owning entity class
             EntityType owner = getEntityType(s);
             if (owner != null) {
