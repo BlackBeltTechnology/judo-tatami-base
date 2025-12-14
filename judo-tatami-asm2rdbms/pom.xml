@@ -211,5 +211,13 @@
 			<groupId>hu.blackbelt.judo.zeta</groupId>
 			<artifactId>hu.blackbelt.judo.zeta.common</artifactId>
 		</dependency>
+
+		<!-- Test utilities -->
+		<dependency>
+			<groupId>hu.blackbelt.judo.tatami</groupId>
+			<artifactId>judo-tatami-test-utils</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

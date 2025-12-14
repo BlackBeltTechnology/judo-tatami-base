@@ -26,6 +26,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
 import hu.blackbelt.judo.meta.psm.namespace.Package;
+import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
@@ -409,6 +410,116 @@ public class DataRules {
             addAnnotationDetail(annotation, "maximumValue", String.valueOf(maxValue));
         }
         addAnnotationDetail(annotation, "cyclic", String.valueOf(sequence.isCyclic()));
+    }
+
+    // =========================================================================
+    // UNMAPPED DEFAULT ONLY ANNOTATION RULES
+    // =========================================================================
+
+    /**
+     * rule AddUnmappedDefaultOnlyAttributeAnnotation
+     *     transform s : JUDOPSM!Attribute
+     *     to t : ASM!EAnnotation
+     *     guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() 
+     *            and s.eContainer.defaultRepresentation.attributes.exists(
+     *                a | a.binding == s and a.defaultValue.isDefined())
+     * 
+     * Adds unmappedDefaultOnly annotation to attributes that have default values
+     * in the entity's default transfer object representation.
+     */
+    @TransformRule(name = "AddUnmappedDefaultOnlyAttributeAnnotation", 
+                   description = "Add unmappedDefaultOnly annotation for attributes with default values")
+    @Transform(type = Attribute.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<Attribute, EAnnotation> addUnmappedDefaultOnlyAttributeAnnotation() {
+        return (s, ctx) -> {
+            // Guard: entity container with defaultRepresentation having transfer attribute 
+            // with this attribute as binding and a default value
+            EObject container = s.eContainer();
+            if (!(container instanceof EntityType)) {
+                return null;
+            }
+            EntityType entity = (EntityType) container;
+            MappedTransferObjectType defaultRep = entity.getDefaultRepresentation();
+            if (defaultRep == null) {
+                return null;
+            }
+            
+            // Check if any transfer attribute binds to this attribute and has defaultValue
+            boolean hasDefaultValue = defaultRep.getAttributes().stream()
+                    .anyMatch(a -> a.getBinding() == s && a.getDefaultValue() != null);
+            if (!hasDefaultValue) {
+                return null;
+            }
+            
+            // Create annotation
+            EAnnotation t = createAnnotation(
+                    "(psm/" + getId(s) + ")/UnmappedDefaultOnlyAttributeAnnotation",
+                    getAnnotationUri("unmappedDefaultOnly"));
+            addAnnotationDetail(t, "value", String.valueOf(s.isUnmappedDefaultOnly()));
+            
+            // Add to the equivalent EAttribute
+            EAttribute attr = ctx.equivalent(s, EAttribute.class);
+            if (attr != null) {
+                attr.getEAnnotations().add(t);
+            }
+            
+            return t;
+        };
+    }
+
+    /**
+     * rule AddUnmappedDefaultOnlyReferenceAnnotation
+     *     transform s : JUDOPSM!AssociationEnd
+     *     to t : ASM!EAnnotation
+     *     guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() 
+     *            and s.eContainer.defaultRepresentation.relations.exists(
+     *                r | r.binding == s and r.defaultValue.isDefined())
+     * 
+     * Adds unmappedDefaultOnly annotation to association ends that have default values
+     * in the entity's default transfer object representation.
+     */
+    @TransformRule(name = "AddUnmappedDefaultOnlyReferenceAnnotation", 
+                   description = "Add unmappedDefaultOnly annotation for references with default values")
+    @Transform(type = AssociationEnd.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<AssociationEnd, EAnnotation> addUnmappedDefaultOnlyReferenceAnnotation() {
+        return (s, ctx) -> {
+            // Guard: entity container with defaultRepresentation having transfer relation 
+            // with this associationEnd as binding and a default value
+            EObject container = s.eContainer();
+            if (!(container instanceof EntityType)) {
+                return null;
+            }
+            EntityType entity = (EntityType) container;
+            MappedTransferObjectType defaultRep = entity.getDefaultRepresentation();
+            if (defaultRep == null) {
+                return null;
+            }
+            
+            // Check if any transfer relation binds to this associationEnd and has defaultValue
+            boolean hasDefaultValue = defaultRep.getRelations().stream()
+                    .anyMatch(r -> r.getBinding() == s && r.getDefaultValue() != null);
+            if (!hasDefaultValue) {
+                return null;
+            }
+            
+            // Create annotation
+            EAnnotation t = createAnnotation(
+                    "(psm/" + getId(s) + ")/UnmappedDefaultOnlyReferenceAnnotation",
+                    getAnnotationUri("unmappedDefaultOnly"));
+            addAnnotationDetail(t, "value", String.valueOf(s.isUnmappedDefaultOnly()));
+            
+            // Add to the equivalent EReference
+            EReference ref = ctx.equivalent(s, EReference.class);
+            if (ref != null) {
+                ref.getEAnnotations().add(t);
+            }
+            
+            return t;
+        };
     }
 
     // =========================================================================

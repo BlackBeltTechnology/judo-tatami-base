@@ -1021,6 +1021,7 @@
                 </property>
             </activation>
             <modules>
+                <module>judo-tatami-test-utils</module>
                 <module>judo-tatami-psm2asm</module>
                 <module>judo-tatami-psm2measure</module>
                 <module>judo-tatami-asm2rdbms</module>
