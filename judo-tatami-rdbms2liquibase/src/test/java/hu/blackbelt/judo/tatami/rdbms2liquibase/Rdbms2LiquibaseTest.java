@@ -54,7 +54,7 @@ import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformat
 import static hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase.Rdbms2LiquibaseParameter.rdbms2LiquibaseParameter;
 import static hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase.executeRdbms2LiquibaseTransformation;
 import static org.junit.jupiter.api.Assertions.fail;
-import hu.blackbelt.judo.tatami.rdbms2liquibase.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import org.junit.jupiter.api.Test;
 
 @Slf4j

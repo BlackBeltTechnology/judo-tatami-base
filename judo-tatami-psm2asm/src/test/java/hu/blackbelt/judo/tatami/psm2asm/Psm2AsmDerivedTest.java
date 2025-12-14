@@ -1,4 +1,5 @@
 package hu.blackbelt.judo.tatami.psm2asm;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 /*-
  * #%L

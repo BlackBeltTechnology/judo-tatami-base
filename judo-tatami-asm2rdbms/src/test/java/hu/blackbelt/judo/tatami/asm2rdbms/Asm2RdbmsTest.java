@@ -48,7 +48,7 @@ import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace.fr
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
 import static org.junit.jupiter.api.Assertions.fail;
-import hu.blackbelt.judo.tatami.asm2rdbms.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 @Slf4j
 public class Asm2RdbmsTest {

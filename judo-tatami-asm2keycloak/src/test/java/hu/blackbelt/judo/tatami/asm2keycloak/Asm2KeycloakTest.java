@@ -33,7 +33,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.model.northwind.Demo;
-import hu.blackbelt.judo.tatami.asm2keycloak.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EObject;
