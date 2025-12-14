@@ -248,3 +248,44 @@ public final class Rdbms2LiquibaseRuleNames {
     // ...
 }
 ```
+
+## ETL to Zeta Rule Mapping
+
+### File Structure Mapping
+
+| ETL File | Zeta Class |
+|----------|------------|
+| `rdbmsToLiquibase.etl` | `Rdbms2LiquibaseZetaTransformation.java` |
+| `rdbmsIncrementalToLiquibase.etl` | `Rdbms2LiquibaseIncrementalZetaTransformation.java` |
+| `liquibase/modules/table.etl` | Inline in main transformation |
+| `liquibase/modules/field.etl` | Inline in main transformation |
+| `liquibase/modules/incremental.etl` | `incremental/IncrementalZetaTransformation.java` |
+| `liquibase/modules/beforeIncremental.etl` | `incremental/BeforeIncrementalZetaTransformation.java` |
+| `liquibase/modules/afterIncremental.etl` | `incremental/AfterIncrementalZetaTransformation.java` |
+
+### Key Rule Mapping
+
+| ETL Rule | Zeta Implementation | Notes |
+|----------|---------------------|-------|
+| `TableToCreateTable` | `transformTableToCreateTable()` | @Lazy @Greedy |
+| `TableToCreateTableChangeSet` | `transformTableToChangeSet()` | @Greedy |
+| `IdentifierFieldToColumn` | `transformIdentifierField()` | Primary key with constraints |
+| `ValueFieldToColumn` | `transformValueField()` | Type-mapped columns |
+| `ForeignKeyToConstraint` | `transformForeignKey()` | FK constraint with cascades |
+| `IndexToCreateIndex` | `transformIndex()` | Index changeset |
+
+### Incremental Transformation Phases
+
+The incremental transformation uses sub-transformations:
+
+| Phase | Class | Description |
+|-------|-------|-------------|
+| Before | `BeforeIncrementalZetaTransformation` | Pre-migration changesets |
+| Data Before | `DataUpdateBeforeZetaTransformation` | Data migration before schema |
+| Schema | `IncrementalZetaTransformation` | Schema modifications |
+| Data After | `DataUpdateAfterZetaTransformation` | Data migration after schema |
+| After | `AfterIncrementalZetaTransformation` | Post-migration changesets |
+| Backup | `DbBackupZetaTransformation` | Backup operations |
+| Checkup | `DbCheckupZetaTransformation` | Validation checks |
+
+For detailed migration guidance, see the [ETL to Zeta Migration Guide](../migration/etl-to-zeta-migration.md).

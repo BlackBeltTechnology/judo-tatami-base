@@ -27,14 +27,12 @@ import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureZetaTransformation;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.EObject;
 import org.slf4j.Logger;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.measure.runtime.MeasureModel.buildMeasureModel;
@@ -102,28 +100,25 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
 
     private Psm2MeasureTransformationTrace executeZetaTransformation(
             PsmModel psmModel, MeasureModel measureModel, Psm2MeasureWorkParameter workParam) {
-        
+
         // Note: Zeta transformation currently does not support useCache or parallel flags
-        // These are ETL-specific optimizations. If trace creation is disabled, we still
-        // execute the transformation but return an empty trace.
+        // These are ETL-specific optimizations.
         if (workParam.useCache || workParam.parallel) {
             log.debug("Zeta transformation ignores useCache and parallel flags (ETL-specific)");
         }
-        
+
         Psm2MeasureZetaTransformation transformation = Psm2MeasureZetaTransformation.builder()
                 .psmModel(psmModel)
                 .measureModel(measureModel)
                 .build();
 
-        Map<EObject, List<EObject>> trace = transformation.execute();
-        
-        // Respect createTrace flag - return empty trace if disabled
-        if (!workParam.createTrace) {
-            trace = java.util.Collections.emptyMap();
-        }
-        
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
         return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
-                .trace(trace)
+                .psmModel(psmModel)
+                .measureModel(measureModel)
+                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
                 .build();
     }
 

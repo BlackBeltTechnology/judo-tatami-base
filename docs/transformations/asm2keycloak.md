@@ -253,3 +253,30 @@ public final class Asm2KeycloakRuleNames {
     public static final String CREATE_KEYCLOAK_CLIENT_CLAIM = "CreateKeycloakClientClaim";
 }
 ```
+
+## ETL to Zeta Rule Mapping
+
+### File Structure Mapping
+
+| ETL File | Zeta Class |
+|----------|------------|
+| `asmToKeycloak.etl` | `Asm2KeycloakZetaTransformation.java` |
+| `keycloak/modules/realm.etl` | Inline in main transformation |
+| `keycloak/modules/client.etl` | Inline in main transformation |
+
+### Key Rule Mapping
+
+| ETL Rule | Zeta Implementation | Notes |
+|----------|---------------------|-------|
+| `CreateRealm` | `@PreTransform createRealms()` | Pre-transformation phase |
+| `CreateKeycloakClient` | `transformActorToClient()` | Guard: isActorType with realm |
+| `CreateKeycloakClientClaim` | `transformAttributeToBinding()` | Claim type mapping |
+
+### Implementation Notes
+
+The ASM to Keycloak transformation has unique patterns:
+- **Pre-transformation phase** - Realms created before rules execute via `@PreTransform`
+- **State management** - `createdRealms` set tracks created realms to avoid duplicates
+- **Claim mapping** - Special handling for EMAIL and USERNAME claim types
+
+For detailed migration guidance, see the [ETL to Zeta Migration Guide](../migration/etl-to-zeta-migration.md).
