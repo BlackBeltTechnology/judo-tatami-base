@@ -177,3 +177,31 @@ public final class Psm2MeasureRuleNames {
     public static final String CREATE_DURATION_UNIT = "CreateDurationUnit";
 }
 ```
+
+## ETL to Zeta Rule Mapping
+
+### File Structure Mapping
+
+| ETL File | Zeta Class |
+|----------|------------|
+| `psmToMeasure.etl` | `Psm2MeasureZetaTransformation.java` |
+| `modules/measure.etl` | Inline in main transformation |
+| `modules/unit.etl` | Inline in main transformation |
+
+### Key Rule Mapping
+
+| ETL Rule | Zeta Implementation | Notes |
+|----------|---------------------|-------|
+| `CreateBaseMeasure` | `transformBaseMeasure()` | Guard: not DerivedMeasure |
+| `CreateDerivedMeasure` | `transformDerivedMeasure()` | Includes base measure terms |
+| `CreateUnit` | `transformUnit()` | Rate dividend/divisor |
+| `CreateDurationUnit` | `transformDurationUnit()` | Duration-specific units |
+
+### Implementation Notes
+
+The PSM to Measure transformation is relatively simple:
+- No complex dependencies between rules
+- No post-processing required
+- Lightweight single-class implementation
+
+For detailed migration guidance, see the [ETL to Zeta Migration Guide](../migration/etl-to-zeta-migration.md).

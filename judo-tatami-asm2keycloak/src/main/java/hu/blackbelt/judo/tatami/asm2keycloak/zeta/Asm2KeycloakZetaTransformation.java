@@ -22,25 +22,36 @@ package hu.blackbelt.judo.tatami.asm2keycloak.zeta;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.keycloak.*;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.tatami.asm2keycloak.zeta.rules.ClientRules;
 import hu.blackbelt.judo.tatami.asm2keycloak.zeta.rules.RealmRules;
+import hu.blackbelt.judo.zeta.common.ExtensionMethodRegistry;
+import hu.blackbelt.judo.zeta.common.ModelProvider;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationExecutor;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationRegistry;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationResult;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.*;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakRuleNames.*;
+import java.util.Collection;
 
 /**
- * ASM to Keycloak transformation orchestrator using Zeta framework.
+ * ASM to Keycloak transformation using Zeta framework's TransformationRegistry and TransformationExecutor.
  * <p>
- * This class orchestrates the transformation by delegating to rule classes:
+ * This class uses the Zeta framework's declarative rule-based transformation approach:
+ * <ul>
+ *   <li>Rules are declared in separate classes with @TransformRule annotations</li>
+ *   <li>TransformationRegistry scans and registers all rules</li>
+ *   <li>TransformationExecutor executes rules in proper order</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Rule classes:
  * <ul>
  *   <li>{@link RealmRules} - realm.etl rules (pre-execution realm creation)</li>
  *   <li>{@link ClientRules} - client.etl rules (CreateKeycloakClient, CreateKeycloakClientClaim)</li>
@@ -52,18 +63,6 @@ public class Asm2KeycloakZetaTransformation {
 
     private final AsmModel asmModel;
     private final KeycloakModel keycloakModel;
-    private final AsmUtils asmUtils;
-    private final KeycloakFactory keycloakFactory;
-
-    // Rule classes
-    private final RealmRules realmRules;
-    private final ClientRules clientRules;
-
-    // Trace map for source to target element mapping
-    private final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
-
-    // Cache for realms by name
-    private final Map<String, Realm> realmCache = new ConcurrentHashMap<>();
 
     @Builder
     public Asm2KeycloakZetaTransformation(
@@ -71,151 +70,124 @@ public class Asm2KeycloakZetaTransformation {
             @NonNull KeycloakModel keycloakModel) {
         this.asmModel = asmModel;
         this.keycloakModel = keycloakModel;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        this.keycloakFactory = KeycloakFactory.eINSTANCE;
-
-        // Initialize rule classes with dependencies
-        this.realmRules = new RealmRules(
-                keycloakFactory,
-                asmUtils,
-                this::addRealmToModel,
-                this::addRealmTrace
-        );
-        this.clientRules = new ClientRules(
-                keycloakFactory,
-                asmUtils,
-                realmCache::get,
-                this::getEquivalent
-        );
     }
 
     /**
-     * Execute the transformation.
+     * Execute the transformation using TransformationExecutor.
      *
-     * @return map of source to target element mappings (trace)
+     * @return Zeta TransformationTrace containing source to target element mappings
      */
-    public Map<EObject, List<EObject>> execute() {
+    public TransformationTrace execute() {
         log.info("Starting ASM to Keycloak Zeta transformation");
         long startTime = System.currentTimeMillis();
 
-        // Phase 1: Create realms from actor types (pre block in ETL)
-        realmRules.createRealms();
+        // Create registry and register all rule classes
+        TransformationRegistry registry = createRegistry();
 
-        // Phase 2: Create clients from actor types
-        createClients();
+        // Create transformation context
+        TransformationContext context = createContext(registry);
+
+        // Create executor with sequential execution
+        TransformationExecutor executor = TransformationExecutor.builder()
+                .registry(registry)
+                .context(context)
+                .parallel(false)
+                .build();
+
+        // Execute transformation
+        log.debug("Starting executor.transform()");
+        TransformationResult result = executor.transform();
+        log.debug("Finished executor.transform()");
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("ASM to Keycloak Zeta transformation completed in {}ms", duration);
 
-        return buildTraceResult();
+        // Return native Zeta trace
+        return result.getTrace();
     }
 
-    // =========================================================================
-    // REALM MANAGEMENT
-    // =========================================================================
+    /**
+     * Creates and configures the TransformationRegistry with all rule classes.
+     */
+    private TransformationRegistry createRegistry() {
+        TransformationRegistry registry = new TransformationRegistry();
 
-    private void addRealmToModel(Realm realm) {
-        keycloakModel.getResource().getContents().add(realm);
-        realmCache.put(realm.getRealm(), realm);
+        // Phase 1: Realm rules (pre-execution creates realms)
+        registry.register(RealmRules.class);
+
+        // Phase 2: Client rules (transforms actor types to clients)
+        registry.register(ClientRules.class);
+
+        log.debug("Registered {} rule classes with TransformationRegistry", 2);
+        return registry;
     }
 
-    private void addRealmTrace(EClass sourceActor, Realm realm) {
-        addTrace(sourceActor, CREATE_REALM, realm);
+    /**
+     * Creates and configures the TransformationContext.
+     */
+    private TransformationContext createContext(TransformationRegistry registry) {
+        ResourceSet sourceResourceSet = asmModel.getResourceSet();
+        ResourceSet targetResourceSet = keycloakModel.getResourceSet();
+
+        // Create model provider
+        ModelProvider modelProvider = new Asm2KeycloakModelProvider(asmModel);
+
+        // Create extension method registry
+        ExtensionMethodRegistry extensionRegistry = new ExtensionMethodRegistry();
+
+        // Create context
+        TransformationContext context = new TransformationContext(
+                modelProvider,
+                sourceResourceSet,
+                targetResourceSet,
+                extensionRegistry
+        );
+
+        // Configure context
+        context.setTransformationRegistry(registry);
+
+        // Register resources with aliases
+        context.registerResource("source", sourceResourceSet);
+        context.registerResource("asm", sourceResourceSet);
+        context.registerResource("target", targetResourceSet);
+        context.registerResource("keycloak", targetResourceSet);
+
+        // Store utilities in context attributes for rules to access
+        AsmUtils asmUtils = new AsmUtils(sourceResourceSet);
+        context.setAttribute("asmUtils", asmUtils);
+        context.setAttribute("keycloakResource", keycloakModel.getResource());
+
+        return context;
     }
 
-    // =========================================================================
-    // CLIENT TRANSFORMATION
-    // =========================================================================
+    /**
+     * ModelProvider implementation for ASM to Keycloak transformation.
+     */
+    private static class Asm2KeycloakModelProvider implements ModelProvider {
+        private final AsmModel asmModel;
+        private final AsmUtils asmUtils;
 
-    private void createClients() {
-        log.debug("Creating clients");
-
-        asmUtils.getAllActorTypes().forEach(this::createClientIfApplicable);
-    }
-
-    private void createClientIfApplicable(EClass actorType) {
-        if (!clientRules.isActorWithRealm(actorType)) {
-            return;
+        public Asm2KeycloakModelProvider(AsmModel asmModel) {
+            this.asmModel = asmModel;
+            this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         }
 
-        String realmName = asmUtils.getExtensionAnnotationValue(actorType, "realm", false).get().trim();
-        Realm realm = realmCache.get(realmName);
-        if (realm == null) {
-            log.warn("Realm not found for actor type: {}", actorType.getName());
-            return;
+        @Override
+        public <T extends EObject> Collection<T> getAllContents(ResourceSet resourceSet, Class<T> type) {
+            return asmUtils.all(type).toList();
         }
 
-        log.debug("  Creating client for actor: {}", asmUtils.getClassifierFQName(actorType));
-
-        // Create client
-        Client client = keycloakFactory.createClient();
-        String clientName = asmUtils.getClassifierFQName(actorType).replace(".", "-");
-        client.setName(clientName);
-        client.setClientId(clientName);
-        client.setEnabled(true);
-        client.setDirectAccessGrantsEnabled(true);
-        client.getRedirectUris().add("*");
-        client.setPublicClient(true);
-        client.setBearerOnly(false);
-
-        realm.getClients().add(client);
-        addTrace(actorType, CREATE_KEYCLOAK_CLIENT, client);
-
-        log.debug("Client created: {}", client.getName());
-
-        // Create attribute bindings for each attribute
-        for (EAttribute attr : actorType.getEAttributes()) {
-            createAttributeBinding(attr, client);
-        }
-    }
-
-    private void createAttributeBinding(EAttribute attr, Client client) {
-        log.debug("    Creating attribute binding for: {}", attr.getName());
-
-        AttributeBinding binding = keycloakFactory.createAttributeBinding();
-
-        Optional<String> claimType = asmUtils.getExtensionAnnotationValue(attr, "claim", false);
-
-        if (claimType.isPresent()) {
-            String claim = claimType.get();
-            if ("EMAIL".equals(claim)) {
-                binding.setAttributeName("email");
-            } else if ("USERNAME".equals(claim)) {
-                binding.setAttributeName("username");
-            } else {
-                binding.setAttributeName(attr.getName());
+        @Override
+        public String getName(EObject element) {
+            if (element instanceof org.eclipse.emf.ecore.ENamedElement) {
+                return ((org.eclipse.emf.ecore.ENamedElement) element).getName();
             }
-        } else if ("email".equals(attr.getName())) {
-            binding.setAttributeName("_email");
-        } else if ("username".equals(attr.getName())) {
-            binding.setAttributeName("_username");
-        } else {
-            binding.setAttributeName(attr.getName());
+            return ModelProvider.super.getName(element);
         }
 
-        client.getAttributeBindings().add(binding);
-        addTrace(attr, CREATE_KEYCLOAK_CLIENT_CLAIM, binding);
-    }
-
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    private void addTrace(EObject source, String ruleName, EObject target) {
-        traceMap.computeIfAbsent(source, k -> new ConcurrentHashMap<>())
-                .put(ruleName, target);
-    }
-
-    private EObject getEquivalent(EObject source, String ruleName) {
-        Map<String, EObject> rules = traceMap.get(source);
-        return rules != null ? rules.get(ruleName) : null;
-    }
-
-    private Map<EObject, List<EObject>> buildTraceResult() {
-        Map<EObject, List<EObject>> result = new HashMap<>();
-        for (Map.Entry<EObject, Map<String, EObject>> entry : traceMap.entrySet()) {
-            result.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
+        @Override
+        public String getTypeName(EObject element) {
+            return element.eClass().getName();
         }
-        return result;
     }
 }

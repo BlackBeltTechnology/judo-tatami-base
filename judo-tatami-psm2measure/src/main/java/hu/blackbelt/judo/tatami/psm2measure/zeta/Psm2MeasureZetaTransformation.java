@@ -31,6 +31,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationExecutor;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationRegistry;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationResult;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -75,9 +76,9 @@ public class Psm2MeasureZetaTransformation {
     /**
      * Execute the transformation using TransformationExecutor.
      *
-     * @return map of source to target element mappings (trace)
+     * @return Zeta TransformationTrace containing source to target element mappings
      */
-    public Map<EObject, List<EObject>> execute() {
+    public TransformationTrace execute() {
         log.info("Starting PSM to Measure Zeta transformation");
         long startTime = System.currentTimeMillis();
 
@@ -104,8 +105,8 @@ public class Psm2MeasureZetaTransformation {
         long duration = System.currentTimeMillis() - startTime;
         log.info("PSM to Measure Zeta transformation completed in {}ms", duration);
 
-        // Build trace from context's element resolution cache
-        return buildTraceResult(context);
+        // Return native Zeta trace
+        return result.getTrace();
     }
 
     /**
@@ -162,16 +163,6 @@ public class Psm2MeasureZetaTransformation {
         context.setAttribute("measureResource", measureModel.getResource());
 
         return context;
-    }
-
-    /**
-     * Builds the trace result from the transformation context.
-     */
-    private Map<EObject, List<EObject>> buildTraceResult(TransformationContext context) {
-        Map<EObject, List<EObject>> result = new HashMap<>();
-        // The TransformationContext's ElementResolutionCache contains the mappings
-        // For now, return empty map - the actual trace is maintained by the context
-        return result;
     }
 
     /**

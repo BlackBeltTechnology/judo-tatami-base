@@ -31,6 +31,8 @@ import hu.blackbelt.judo.meta.rdbmsNameMapping.NameMappings;
 import hu.blackbelt.judo.meta.rdbmsRules.Rule;
 import hu.blackbelt.judo.meta.rdbmsRules.Rules;
 import hu.blackbelt.judo.tatami.asm2rdbms.AbbreviateUtils;
+import hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -164,9 +166,9 @@ public class Asm2RdbmsZetaTransformation {
     /**
      * Execute the transformation.
      *
-     * @return map of source to target element mappings (trace)
+     * @return Zeta TransformationTrace containing source to target element mappings
      */
-    public Map<EObject, List<EObject>> execute() {
+    public TransformationTrace execute() {
         log.info("Starting ASM to RDBMS Zeta transformation with dialect: {}", dialect);
         long startTime = System.currentTimeMillis();
 
@@ -188,7 +190,7 @@ public class Asm2RdbmsZetaTransformation {
         long duration = System.currentTimeMillis() - startTime;
         log.info("ASM to RDBMS Zeta transformation completed in {}ms", duration);
 
-        return buildTraceResult();
+        return buildZetaTrace();
     }
 
     // =========================================================================
@@ -949,11 +951,19 @@ public class Asm2RdbmsZetaTransformation {
         return rules != null ? rules.get(ruleName) : null;
     }
 
-    private Map<EObject, List<EObject>> buildTraceResult() {
-        Map<EObject, List<EObject>> result = new HashMap<>();
+    /**
+     * Build native Zeta TransformationTrace from internal trace map.
+     */
+    private TransformationTrace buildZetaTrace() {
+        ElementResolutionCache cache = new ElementResolutionCache();
         for (Map.Entry<EObject, Map<String, EObject>> entry : traceMap.entrySet()) {
-            result.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
+            EObject source = entry.getKey();
+            for (Map.Entry<String, EObject> targetEntry : entry.getValue().entrySet()) {
+                String ruleName = targetEntry.getKey();
+                EObject target = targetEntry.getValue();
+                cache.addMapping(source, ruleName, target, true);
+            }
         }
-        return result;
+        return new TransformationTrace(cache);
     }
 }

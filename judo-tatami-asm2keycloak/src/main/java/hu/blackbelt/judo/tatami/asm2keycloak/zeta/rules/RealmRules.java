@@ -25,15 +25,13 @@ import hu.blackbelt.judo.meta.keycloak.KeycloakFactory;
 import hu.blackbelt.judo.meta.keycloak.Realm;
 import hu.blackbelt.judo.zeta.annotation.PreExecution;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.resource.Resource;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * Realm transformation rules from realm.etl.
@@ -43,17 +41,18 @@ import java.util.function.Consumer;
  * </p>
  */
 @Slf4j
-@RequiredArgsConstructor
+@hu.blackbelt.judo.zeta.annotation.TransformationContext(source = org.eclipse.emf.ecore.EClass.class, target = hu.blackbelt.judo.meta.keycloak.Realm.class)
 public class RealmRules {
 
-    private final KeycloakFactory keycloakFactory;
-    private final AsmUtils asmUtils;
-    private final Consumer<Realm> realmConsumer;
-    private final BiConsumer<EClass, Realm> traceConsumer;
+    /**
+     * Default constructor required for TransformationRegistry.
+     */
+    public RealmRules() {
+    }
 
     /**
      * Pre-execution hook that creates realms before transformation rules run.
-     * 
+     *
      * ETL equivalent (realm.etl pre block):
      * <pre>
      * pre {
@@ -76,14 +75,12 @@ public class RealmRules {
      */
     @PreExecution
     public void createRealmsPreHook(TransformationContext ctx) {
-        createRealms();
-    }
-
-    /**
-     * Create realms from unique realm names in actor types.
-     */
-    public void createRealms() {
         log.debug("Creating realms");
+
+        // Get dependencies from context
+        AsmUtils asmUtils = (AsmUtils) ctx.getAttribute("asmUtils");
+        Resource keycloakResource = (Resource) ctx.getAttribute("keycloakResource");
+        KeycloakFactory keycloakFactory = KeycloakFactory.eINSTANCE;
 
         // Collect actor types grouped by realm name (first actor for each realm is the source for tracing)
         Map<String, EClass> realmToFirstActor = new LinkedHashMap<>();
@@ -97,11 +94,12 @@ public class RealmRules {
 
         // Create realm for each unique name
         for (Map.Entry<String, EClass> entry : realmToFirstActor.entrySet()) {
-            createRealm(entry.getKey(), entry.getValue());
+            createRealm(ctx, keycloakFactory, keycloakResource, entry.getKey(), entry.getValue());
         }
     }
 
-    private void createRealm(String realmName, EClass sourceActor) {
+    private void createRealm(TransformationContext ctx, KeycloakFactory keycloakFactory,
+                             Resource keycloakResource, String realmName, EClass sourceActor) {
         log.debug("  Creating realm: {} (from actor: {})", realmName, sourceActor.getName());
 
         Realm realm = keycloakFactory.createRealm();
@@ -110,8 +108,8 @@ public class RealmRules {
         realm.setEnabled(true);
         realm.setLoginWithEmailAllowed(true);
 
-        realmConsumer.accept(realm);
-        traceConsumer.accept(sourceActor, realm);
+        // Add to target resource
+        keycloakResource.getContents().add(realm);
 
         log.debug("Realm created: {}", realm.getRealm());
     }

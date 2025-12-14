@@ -40,6 +40,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -64,8 +65,11 @@ public class Psm2AsmTransformationTrace implements TransformationTrace {
     @Getter
     AsmModel asmModel;
 
-    @NonNull
+    // ETL trace (null when Zeta used)
     Map<EObject, List<EObject>> trace;
+
+    // Zeta trace (null when ETL used)
+    hu.blackbelt.judo.zeta.transformation.core.TransformationTrace zetaTrace;
 
     @Override
     public List<Class> getSourceModelTypes() {
@@ -135,7 +139,24 @@ public class Psm2AsmTransformationTrace implements TransformationTrace {
 
     @Override
     public Map<EObject, List<EObject>> getTransformationTrace() {
-        return trace;
+        // Return ETL trace or empty map for Zeta (backward compatibility)
+        return trace != null ? trace : Collections.emptyMap();
+    }
+
+    /**
+     * Get the Zeta transformation trace.
+     * @return the Zeta TransformationTrace, or null if ETL was used
+     */
+    public hu.blackbelt.judo.zeta.transformation.core.TransformationTrace getZetaTrace() {
+        return zetaTrace;
+    }
+
+    /**
+     * Check if this trace was produced by Zeta transformation.
+     * @return true if Zeta trace is available, false if ETL trace
+     */
+    public boolean isZetaTrace() {
+        return zetaTrace != null;
     }
 
     @Override

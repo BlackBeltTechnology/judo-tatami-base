@@ -109,3 +109,18 @@ Performance benchmarks compare execution times:
 | PSM to ASM | TBD | TBD | 10,000 elements |
 | ASM to RDBMS | TBD | TBD | 10,000 elements |
 | RDBMS to Liquibase | TBD | TBD | 10,000 elements |
+
+## Migration Documentation
+
+For guidance on migrating ETL transformations to Zeta, see the [Migration Documentation](../migration/README.md):
+
+| Document | Description |
+|----------|-------------|
+| [ETL vs Zeta Comparison](../migration/etl-zeta-comparison.md) | Side-by-side syntax comparison, pattern mapping |
+| [Migration Guide](../migration/etl-to-zeta-migration.md) | Step-by-step migration process, common pitfalls |
+| [Dual-Engine Testing](../migration/dual-engine-testing.md) | Testing framework, ModelComparator usage |
+
+Each module documentation also includes an "ETL to Zeta Rule Mapping" section with:
+- File structure mapping (ETL files to Zeta classes)
+- Key rule mapping (ETL rules to Zeta methods)
+- Implementation notes specific to that module

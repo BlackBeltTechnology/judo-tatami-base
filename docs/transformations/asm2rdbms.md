@@ -212,3 +212,46 @@ public final class Asm2RdbmsRuleNames {
     // ...
 }
 ```
+
+## ETL to Zeta Rule Mapping
+
+### File Structure Mapping
+
+| ETL File | Zeta Class |
+|----------|------------|
+| `asmToRdbms.etl` | `Asm2RdbmsZetaTransformation.java` |
+| `modules/package.etl` | Inline in main transformation |
+| `modules/class.etl` | Inline in main transformation |
+| `modules/attribute.etl` | Inline in main transformation |
+| `modules/reference.etl` | Inline in main transformation |
+| `excelToTypeMapping.etl` | Type mapping loaded programmatically |
+| `excelToRules.etl` | Rules applied programmatically |
+| `excelToNameMapping.etl` | Name mapping loaded programmatically |
+
+### Key Rule Mapping
+
+| ETL Rule | Zeta Implementation | Notes |
+|----------|---------------------|-------|
+| `rootPackegeToModel` | Phase 1: Package transformation | Model created first |
+| `rootPackegeToConfiguration` | Phase 1: Package transformation | Configuration with dialect |
+| `EClassToRdbmsTable` | Phase 2: Class transformation | Includes system fields |
+| `EClassToTableIdField` | Phase 2: Class transformation | UUID primary key |
+| `EClassToTableTypeField` | Phase 2: Class transformation | Discriminator field |
+| `EAttributeToTableValueField` | Phase 3: Attribute transformation | Type-mapped value fields |
+| `EAttributeToIndex` | Phase 3: Attribute transformation | Identifier indexes |
+| `EReferenceToRdbmsTableForeignKey` | Phase 4: Reference transformation | Foreign key creation |
+| `EReferenceToRdbmsJunctionTable` | Phase 4: Reference transformation | Many-to-many handling |
+
+### Transformation Phases
+
+The Zeta implementation executes in 5 phases:
+
+| Phase | Description |
+|-------|-------------|
+| Phase 1 | Package transformation (model, configuration) |
+| Phase 2 | Class transformation (tables, system fields) |
+| Phase 3 | Attribute transformation (value fields, indexes) |
+| Phase 4 | Reference transformation (foreign keys, junction tables) |
+| Phase 5 | Post-processing (name mapping, validation) |
+
+For detailed migration guidance, see the [ETL to Zeta Migration Guide](../migration/etl-to-zeta-migration.md).

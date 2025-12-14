@@ -27,14 +27,12 @@ import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.EObject;
 import org.slf4j.Logger;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.buildRdbmsModel;
@@ -149,7 +147,7 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
 
     private Asm2RdbmsTransformationTrace executeZetaTransformation(
             AsmModel asmModel, RdbmsModel rdbmsModel, Asm2RdbmsWorkParameter workParameter) {
-        
+
         Asm2RdbmsZetaTransformation transformation = Asm2RdbmsZetaTransformation.builder()
                 .asmModel(asmModel)
                 .rdbmsModel(rdbmsModel)
@@ -166,10 +164,13 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
                 .createSimpleName(workParameter.createSimpleName)
                 .build();
 
-        Map<EObject, List<EObject>> trace = transformation.execute();
-        
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
         return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
-                .trace(trace)
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
                 .build();
     }
 

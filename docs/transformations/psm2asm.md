@@ -195,3 +195,47 @@ public final class Psm2AsmRuleNames {
     // ...
 }
 ```
+
+## ETL to Zeta Rule Mapping
+
+### File Structure Mapping
+
+| ETL File | Zeta Class |
+|----------|------------|
+| `psmToAsm.etl` | `Psm2AsmZetaTransformation.java` |
+| `modules/namespace.etl` | `rules/NamespaceRules.java` |
+| `modules/type.etl` | `rules/TypeRules.java` |
+| `modules/data.etl` | `rules/DataRules.java` |
+| `modules/derived.etl` | `rules/DerivedRules.java` |
+| `modules/operation.etl` | `rules/OperationRules.java` |
+| `modules/transferObject.etl` | `rules/TransferObjectRules.java` |
+| `modules/actor.etl` | `rules/ActorRules.java` |
+| `modules/static.etl` | `rules/StaticRules.java` |
+| `utils/_importUtils.eol` | `Psm2AsmHelper.java` |
+
+### Key Rule Mapping
+
+| ETL Rule | Zeta Method | Notes |
+|----------|-------------|-------|
+| `CreateEnumeration` | `TypeRules.createEnumeration()` | @Greedy |
+| `CreateStringType` | `TypeRules.createStringType()` | @Greedy |
+| `CreateIntegerType` | `TypeRules.createIntegerType()` | @Greedy, @Guard(isIntegerGuard) |
+| `CreateDecimalType` | `TypeRules.createDecimalType()` | @Greedy, @Guard(isDecimalGuard) |
+| `CreateEntityClass` | `DataRules.createEntityClass()` | Multi-output: entity + reference class |
+| `CreateAttribute` | `DataRules.createAttribute()` | |
+| `CreateAssociationEndRelation` | `DataRules.createAssociationEndRelation()` | EOpposite set in post-processing |
+| `ModelToPackage` | `NamespaceRules.modelToPackage()` | Root packages added in post-processing |
+
+### Post-Processing Operations
+
+Operations moved from ETL `post {}` block to Zeta `postProcess()`:
+
+| Operation | Reason |
+|-----------|--------|
+| Add root packages to resource | Containment must be set after package creation |
+| Set EOpposite references | Avoids recursive update issues |
+| Set TransferObjectRelation targets | Target classes may not exist during rule execution |
+| Set Reference class inheritance | All classes must exist first |
+| Enrich with annotations | Final model enrichment |
+
+For detailed migration guidance, see the [ETL to Zeta Migration Guide](../migration/etl-to-zeta-migration.md).

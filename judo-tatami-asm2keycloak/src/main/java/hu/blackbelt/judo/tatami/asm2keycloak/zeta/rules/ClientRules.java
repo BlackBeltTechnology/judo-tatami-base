@@ -25,20 +25,18 @@ import hu.blackbelt.judo.meta.keycloak.AttributeBinding;
 import hu.blackbelt.judo.meta.keycloak.Client;
 import hu.blackbelt.judo.meta.keycloak.KeycloakFactory;
 import hu.blackbelt.judo.meta.keycloak.Realm;
-import hu.blackbelt.judo.zeta.annotation.Guard;
 import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
-import lombok.RequiredArgsConstructor;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
 
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakRuleNames.*;
 
@@ -52,18 +50,19 @@ import static hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakRuleNames.*
  * </ul>
  */
 @Slf4j
-@RequiredArgsConstructor
+@hu.blackbelt.judo.zeta.annotation.TransformationContext(source = org.eclipse.emf.ecore.EClass.class, target = hu.blackbelt.judo.meta.keycloak.Client.class)
 public class ClientRules {
 
-    private final KeycloakFactory keycloakFactory;
-    private final AsmUtils asmUtils;
-    private final Function<String, Realm> realmResolver;
-    private final BiFunction<EObject, String, EObject> traceResolver;
+    /**
+     * Default constructor required for TransformationRegistry.
+     */
+    public ClientRules() {
+    }
 
     /**
-     * Guard for CreateKeycloakClient: isActorType(s) and has non-empty realm annotation
+     * Check if EClass is an actor type with a realm annotation.
      */
-    public boolean isActorWithRealm(EClass eClass) {
+    private boolean isActorWithRealm(AsmUtils asmUtils, EClass eClass) {
         if (!asmUtils.isActorType(eClass)) {
             return false;
         }
@@ -72,14 +71,15 @@ public class ClientRules {
     }
 
     /**
-     * Guard for CreateKeycloakClientClaim: container is actor with realm
+     * Find realm by name from the target resource.
      */
-    public boolean isAttributeOfActorWithRealm(EAttribute attr) {
-        EObject container = attr.eContainer();
-        if (!(container instanceof EClass)) {
-            return false;
-        }
-        return isActorWithRealm((EClass) container);
+    private Realm findRealmByName(Resource keycloakResource, String realmName) {
+        return keycloakResource.getContents().stream()
+                .filter(Realm.class::isInstance)
+                .map(Realm.class::cast)
+                .filter(r -> realmName.equals(r.getRealm()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -88,13 +88,22 @@ public class ClientRules {
      *     to t : KEYCLOAK!Client
      */
     @TransformRule(name = CREATE_KEYCLOAK_CLIENT, description = "Transform ASM actor type to Keycloak Client")
-    @Guard(method = "isActorWithRealm")
     @Transform(type = EClass.class)
     @To(type = Client.class)
     public TransformFunction<EClass, Client> createKeycloakClient() {
         return (s, ctx) -> {
+            // Get dependencies from context
+            AsmUtils asmUtils = (AsmUtils) ctx.getAttribute("asmUtils");
+            Resource keycloakResource = (Resource) ctx.getAttribute("keycloakResource");
+            KeycloakFactory keycloakFactory = KeycloakFactory.eINSTANCE;
+
+            // Guard: isActorType(s) and has non-empty realm annotation
+            if (!isActorWithRealm(asmUtils, s)) {
+                return null;
+            }
+
             String realmName = asmUtils.getExtensionAnnotationValue(s, "realm", false).get().trim();
-            Realm realm = realmResolver.apply(realmName);
+            Realm realm = findRealmByName(keycloakResource, realmName);
             if (realm == null) {
                 log.warn("Realm not found for actor type: {}", s.getName());
                 return null;
@@ -123,11 +132,24 @@ public class ClientRules {
      *     to t : KEYCLOAK!AttributeBinding
      */
     @TransformRule(name = CREATE_KEYCLOAK_CLIENT_CLAIM, description = "Transform ASM actor attribute to Keycloak AttributeBinding")
-    @Guard(method = "isAttributeOfActorWithRealm")
     @Transform(type = EAttribute.class)
     @To(type = AttributeBinding.class)
     public TransformFunction<EAttribute, AttributeBinding> createKeycloakClientClaim() {
         return (s, ctx) -> {
+            // Get dependencies from context
+            AsmUtils asmUtils = (AsmUtils) ctx.getAttribute("asmUtils");
+            KeycloakFactory keycloakFactory = KeycloakFactory.eINSTANCE;
+
+            // Guard: container is actor with realm
+            EObject container = s.eContainer();
+            if (!(container instanceof EClass)) {
+                return null;
+            }
+            EClass actorType = (EClass) container;
+            if (!isActorWithRealm(asmUtils, actorType)) {
+                return null;
+            }
+
             AttributeBinding t = keycloakFactory.createAttributeBinding();
 
             // Determine attribute name based on claim annotation
@@ -151,8 +173,7 @@ public class ClientRules {
             }
 
             // Get the equivalent client for the container actor type
-            EClass actorType = (EClass) s.eContainer();
-            Client client = (Client) traceResolver.apply(actorType, CREATE_KEYCLOAK_CLIENT);
+            Client client = ctx.equivalent(actorType, Client.class);
             if (client != null) {
                 client.getAttributeBindings().add(t);
             }

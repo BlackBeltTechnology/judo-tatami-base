@@ -30,12 +30,11 @@ import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.EObject;
 import org.slf4j.Logger;
 
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
+
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.buildAsmModel;
@@ -103,19 +102,20 @@ public class Psm2AsmWork extends AbstractTransformationWork {
 
     private Psm2AsmTransformationTrace executeZetaTransformation(
             PsmModel psmModel, AsmModel asmModel, Psm2AsmWorkParameter workParam) {
-        
+
         Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
                 .asmModel(asmModel)
                 .modelName(psmModel.getName())
                 .build();
 
-        Map<EObject, List<EObject>> trace = transformation.execute();
-        
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
         return Psm2AsmTransformationTrace.psm2AsmTransformationTraceBuilder()
                 .psmModel(psmModel)
                 .asmModel(asmModel)
-                .trace(trace)
+                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
                 .build();
     }
 

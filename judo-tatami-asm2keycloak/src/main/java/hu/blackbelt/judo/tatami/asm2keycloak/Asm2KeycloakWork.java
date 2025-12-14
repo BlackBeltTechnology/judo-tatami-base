@@ -27,14 +27,12 @@ import hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakZetaTransformation
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.EObject;
 import org.slf4j.Logger;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel.buildKeycloakModel;
@@ -102,16 +100,19 @@ public class Asm2KeycloakWork extends AbstractTransformationWork {
 
     private Asm2KeycloakTransformationTrace executeZetaTransformation(
             AsmModel asmModel, KeycloakModel keycloakModel, Asm2KeycloakWorkParameter workParam) {
-        
+
         Asm2KeycloakZetaTransformation transformation = Asm2KeycloakZetaTransformation.builder()
                 .asmModel(asmModel)
                 .keycloakModel(keycloakModel)
                 .build();
 
-        Map<EObject, List<EObject>> trace = transformation.execute();
-        
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
         return Asm2KeycloakTransformationTrace.asm2KeycloakTransformationTraceBuilder()
-                .trace(trace)
+                .asmModel(asmModel)
+                .keycloakModel(keycloakModel)
+                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
                 .build();
     }
 
