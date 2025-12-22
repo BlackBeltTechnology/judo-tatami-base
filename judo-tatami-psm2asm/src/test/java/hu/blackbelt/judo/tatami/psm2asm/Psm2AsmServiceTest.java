@@ -1,4 +1,5 @@
 package hu.blackbelt.judo.tatami.psm2asm;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 /*-
  * #%L
@@ -41,6 +42,10 @@ import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.model.northwind.Demo;
 
 import java.io.File;
 import java.util.Optional;
@@ -64,6 +69,7 @@ import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformat
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class Psm2AsmServiceTest {
@@ -103,7 +109,13 @@ public class Psm2AsmServiceTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName) throws Exception {
+    private void transform(final String testName, final TransformationType transformationType) throws Exception {
+        transform(testName, transformationType, null);
+    }
+
+    private void transform(final String testName, final TransformationType transformationType, AsmModel targetAsmModel) throws Exception {
+        AsmModel targetModel = targetAsmModel != null ? targetAsmModel : asmModel;
+        
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model")).build());
 
@@ -111,20 +123,80 @@ public class Psm2AsmServiceTest {
         try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
 
+            if (transformationType == TransformationType.ZETA) {
+                log.info("Running Zeta transformation for test: {}", testName);
+                Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                        .psmModel(psmModel)
+                        .asmModel(targetModel)
+                        .modelName(MODEL_NAME)
+                        .build();
+                transformation.execute();
+            } else {
+                log.info("Running ETL transformation for test: {}", testName);
+                executePsm2AsmTransformation(psm2AsmParameter()
+                        .psmModel(psmModel)
+                        .asmModel(targetModel)
+                        .log(bufferedLog)
+                        .scriptUri(calculatePsm2AsmTransformationScriptURI()));
+            }
+        }
+
+        assertTrue(targetModel.isValid());
+        targetModel.saveAsmModel(asmSaveArgumentsBuilder()
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model")).build());
+    }
+
+    /**
+     * Runs both ETL and Zeta transformations and compares their outputs.
+     * This should be called at the end of parameterized tests to verify equivalence.
+     */
+    private void compareTransformations(final String testName) throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Run the opposite transformation for comparison
+        AsmModel comparisonModel = buildAsmModel().build();
+        
+        // Determine which transformation we already ran and run the other
+        // We need to run both and compare, so we run ETL fresh
+        AsmModel etlModel = buildAsmModel().build();
+        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             executePsm2AsmTransformation(psm2AsmParameter()
                     .psmModel(psmModel)
-                    .asmModel(asmModel)
+                    .asmModel(etlModel)
                     .log(bufferedLog)
                     .scriptUri(calculatePsm2AsmTransformationScriptURI()));
         }
 
-        assertTrue(asmModel.isValid());
-        asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-asm.model")).build());
+        // Run Zeta fresh - use psmModel.getName() to match what ETL uses
+        AsmModel zetaModel = buildAsmModel().build();
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaModel)
+                .modelName(psmModel.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlModel.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaModel.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
+        } else {
+            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
+            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
+        }
     }
 
-    @Test
-    void testTransferObject() throws Exception {
+    @ParameterizedTest(name = "testTransferObject with {0}")
+    @EnumSource(TransformationType.class)
+    void testTransferObject(TransformationType transformationType) throws Exception {
 
         StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).build();
         NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
@@ -223,7 +295,7 @@ public class Psm2AsmServiceTest {
 
         psmModel.addContent(model);
 
-        transform("testTransferObject");
+        transform("testTransferObject", transformationType);
 
         final EPackage asmModel = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(model.getName()))
                 .findAny().get();
@@ -479,10 +551,14 @@ public class Psm2AsmServiceTest {
         assertTrue(asmTR3Annotation.getDetails().get("create").equals(String.valueOf(tr3.isEmbeddedCreate())));
         assertTrue(asmTR3Annotation.getDetails().get("update").equals(String.valueOf(tr3.isEmbeddedUpdate())));
         assertTrue(asmTR3Annotation.getDetails().get("delete").equals(String.valueOf(tr3.isEmbeddedDelete())));
+
+        // Compare ETL and Zeta outputs
+        compareTransformations("testTransferObject");
     }
 
-    @Test
-    void testOperation() throws Exception {
+    @ParameterizedTest(name = "testOperation with {0}")
+    @EnumSource(TransformationType.class)
+    void testOperation(TransformationType transformationType) throws Exception {
 
         EntityType p = newEntityTypeBuilder().withName("p").withAbstract_(true).build();
         EntityType e1 = newEntityTypeBuilder().withName("e1").build();
@@ -573,7 +649,7 @@ public class Psm2AsmServiceTest {
 
         psmModel.addContent(model);
 
-        transform("testOperation");
+        transform("testOperation", transformationType);
 
         final EClass asmE1 = asmUtils.all(EClass.class).filter(c -> c.getName().equals(e1.getName())).findAny().get();
         final EClass asmT1 = asmUtils.all(EClass.class).filter(c -> c.getName().equals(t1.getName())).findAny().get();
@@ -712,6 +788,8 @@ public class Psm2AsmServiceTest {
         assertTrue(asmUnboundInitAnnotation3.getDetails().containsKey("value"));
         assertTrue(asmUnboundInitAnnotation3.getDetails().get("value").equals(String.valueOf(true)));
 
+        // Compare ETL and Zeta outputs
+        compareTransformations("testOperation");
     }
 
     /*
@@ -763,4 +841,46 @@ public class Psm2AsmServiceTest {
         assertFalse(orderDefault.get().getEPackage().equals(orderEntity.get().getEPackage()));
     }
     */
+
+    /**
+     * Test that compares ETL and Zeta transformation outputs for equivalence.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Run ETL transformation
+        PsmModel psmModelEtl = new Demo().fullDemo();
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModelEtl)
+                .asmModel(etlResult));
+
+        // Run Zeta transformation
+        PsmModel psmModelZeta = new Demo().fullDemo();
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModelZeta)
+                .asmModel(zetaResult)
+                .modelName(psmModelZeta.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
+    }
 }

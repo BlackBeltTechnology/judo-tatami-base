@@ -119,9 +119,31 @@
 			<artifactId>judo-tatami-psm2asm</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Zeta Framework -->
+		<dependency>
+			<groupId>hu.blackbelt.judo.zeta</groupId>
+			<artifactId>hu.blackbelt.judo.zeta.annotations</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>hu.blackbelt.judo.zeta</groupId>
+			<artifactId>hu.blackbelt.judo.zeta.transformation-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>hu.blackbelt.judo.zeta</groupId>
+			<artifactId>hu.blackbelt.judo.zeta.common</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>hu.blackbelt.judo.meta</groupId>
 			<artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
+		</dependency>
+
+		<!-- Test utilities -->
+		<dependency>
+			<groupId>hu.blackbelt.judo.tatami</groupId>
+			<artifactId>judo-tatami-test-utils</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>
