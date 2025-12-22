@@ -11,19 +11,27 @@ The dual-engine testing framework enables:
 
 ## Components
 
-### TransformationType Enum
+### TransformationMode Enum
+
+The `TransformationMode` enum from `judo-tatami-core` is used for dual-engine testing:
 
 ```java
-public enum TransformationType {
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+
+public enum TransformationMode {
     /** Use Epsilon ETL transformation engine. */
     ETL,
 
     /** Use Zeta Java transformation engine. */
-    ZETA
+    ZETA;
+
+    public boolean isZeta() {
+        return this == ZETA;
+    }
 }
 ```
 
-Location: `src/test/java/hu/blackbelt/judo/tatami/<module>/TransformationType.java`
+Location: `judo-tatami-core/src/main/java/hu/blackbelt/judo/tatami/core/TransformationMode.java`
 
 ### ModelComparator
 
@@ -43,14 +51,14 @@ Location: `judo-tatami-test-utils/src/main/java/hu/blackbelt/judo/tatami/test/`
 
 ```java
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testTransformation(TransformationType transformationType) throws Exception {
+@EnumSource(TransformationMode.class)
+void testTransformation(TransformationMode transformationMode) throws Exception {
     // Setup source model
     PsmModel psmModel = createTestModel();
 
-    // Execute transformation based on type
+    // Execute transformation based on mode
     AsmModel result;
-    if (transformationType == TransformationType.ZETA) {
+    if (transformationMode.isZeta()) {
         result = runZetaTransformation(psmModel);
     } else {
         result = runEtlTransformation(psmModel);
@@ -66,14 +74,12 @@ void testTransformation(TransformationType transformationType) throws Exception 
 
 ```java
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testWithWorkClass(TransformationType transformationType) throws Exception {
+@EnumSource(TransformationMode.class)
+void testWithWorkClass(TransformationMode transformationMode) throws Exception {
     TransformationContext context = new TransformationContext("TestModel");
     context.put(psmModel);
     context.put(Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter()
-            .transformationMode(transformationType == TransformationType.ZETA
-                ? TransformationMode.ZETA
-                : TransformationMode.ETL)
+            .transformationMode(transformationMode)
             .createTrace(true)
             .build());
 
@@ -215,14 +221,15 @@ mvn test -Pperformance
 
 ```
 src/test/java/hu/blackbelt/judo/tatami/<module>/
-├── TransformationType.java           # Enum for parameterized tests
-├── <Module>Test.java                 # Main transformation tests
+├── <Module>Test.java                 # Main transformation tests (uses TransformationMode from judo-tatami-core)
 ├── <Module>WorkTest.java             # Work class tests
 ├── <SpecificFeature>Test.java        # Feature-specific tests
 └── perf/
     ├── RealisticPerformanceTest.java # Realistic model performance
     └── <Module>PerformanceTest.java  # Module-specific performance
 ```
+
+Note: Tests use `TransformationMode` from `hu.blackbelt.judo.tatami.core.TransformationMode` instead of module-local enums.
 
 ## Equivalence Test Pattern
 
@@ -295,8 +302,8 @@ void setup() {
 
 ```java
 @ParameterizedTest(name = "{0}: Entity with inheritance")
-@EnumSource(TransformationType.class)
-void testEntityInheritance(TransformationType type) { ... }
+@EnumSource(TransformationMode.class)
+void testEntityInheritance(TransformationMode mode) { ... }
 ```
 
 ### 4. Report Differences Clearly

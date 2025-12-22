@@ -26,7 +26,7 @@
 
 ## Phase 4: Testing Framework Documentation
 
-- [ ] Document TransformationType enum pattern
+- [ ] Document TransformationMode enum pattern (from judo-tatami-core)
 - [ ] Document parameterized test setup
 - [ ] Document ModelComparator usage and configuration
 - [ ] Document performance testing framework

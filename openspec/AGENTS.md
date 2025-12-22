@@ -123,9 +123,13 @@ public class Psm2AsmTransformation {
 For dual ETL/Zeta testing:
 ```java
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testTransformation(TransformationType type) {
-    // Run transformation with specified type
+@EnumSource(TransformationMode.class)
+void testTransformation(TransformationMode mode) {
+    if (mode.isZeta()) {
+        // Run Zeta transformation
+    } else {
+        // Run ETL transformation
+    }
     // Compare results
 }
 ```

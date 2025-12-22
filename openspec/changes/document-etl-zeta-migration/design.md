@@ -294,14 +294,22 @@ public static String getId(EObject obj) {
 
 ## Testing Framework Design
 
-### 1. TransformationType Enum Pattern
+### 1. TransformationMode Enum Pattern
+
+The `TransformationMode` enum is provided by `judo-tatami-core` for dual-engine testing:
 
 ```java
-public enum TransformationType {
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+
+public enum TransformationMode {
     /** Use Epsilon ETL transformation engine. */
     ETL,
     /** Use Zeta Java transformation engine. */
-    ZETA
+    ZETA;
+
+    public boolean isZeta() {
+        return this == ZETA;
+    }
 }
 ```
 
@@ -309,14 +317,14 @@ public enum TransformationType {
 
 ```java
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testTransformation(TransformationType transformationType) throws Exception {
+@EnumSource(TransformationMode.class)
+void testTransformation(TransformationMode transformationMode) throws Exception {
     // Setup source model
     PsmModel psmModel = createTestModel();
 
-    // Execute transformation based on type
+    // Execute transformation based on mode
     AsmModel result;
-    if (transformationType == TransformationType.ZETA) {
+    if (transformationMode.isZeta()) {
         result = runZetaTransformation(psmModel);
     } else {
         result = runEtlTransformation(psmModel);
@@ -389,8 +397,8 @@ if (!result.isEquivalent()) {
    - Handle containment additions
 
 5. **Create/update tests**
-   - Add `TransformationType.java` enum
-   - Update tests to use `@EnumSource(TransformationType.class)`
+   - Import `TransformationMode` from `judo-tatami-core`
+   - Update tests to use `@EnumSource(TransformationMode.class)`
    - Add model comparison assertions
 
 6. **Add performance tests**

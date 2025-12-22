@@ -22,6 +22,7 @@ package hu.blackbelt.judo.tatami.psm2asm;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
@@ -108,9 +109,9 @@ public abstract class AbstractDualTransformationTest {
      * Subclasses can override this to add custom assertions.
      *
      * @param result the transformation result
-     * @param transformationType the type of transformation that was run
+     * @param transformationMode the mode of transformation that was run
      */
-    protected void verifyResult(AsmModel result, TransformationType transformationType) {
+    protected void verifyResult(AsmModel result, TransformationMode transformationMode) {
         assertNotNull(result, "Transformation result should not be null");
         assertNotNull(result.getResourceSet(), "Result resource set should not be null");
     }
@@ -128,13 +129,14 @@ public abstract class AbstractDualTransformationTest {
     /**
      * Stores the transformation result for later comparison.
      *
-     * @param type the transformation type
+     * @param mode the transformation mode
      * @param result the transformation result
      */
-    protected void storeTransformationResult(TransformationType type, AsmModel result) {
-        switch (type) {
-            case ETL -> etlResult = result;
-            case ZETA -> zetaResult = result;
+    protected void storeTransformationResult(TransformationMode mode, AsmModel result) {
+        if (mode.isZeta()) {
+            zetaResult = result;
+        } else {
+            etlResult = result;
         }
     }
 
@@ -171,23 +173,20 @@ public abstract class AbstractDualTransformationTest {
     /**
      * Parameterized test that runs the transformation with both ETL and Zeta engines.
      *
-     * @param type the transformation type to use
+     * @param mode the transformation mode to use
      * @throws Exception if transformation fails
      */
     @ParameterizedTest(name = "Transformation with {0}")
-    @EnumSource(TransformationType.class)
-    void testTransformation(TransformationType type) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testTransformation(TransformationMode mode) throws Exception {
         PsmModel source = createSourceModel();
         assertNotNull(source, "Source model should not be null");
         assertTrue(source.isValid(), "Source model should be valid");
 
-        AsmModel result = switch (type) {
-            case ETL -> runEtlTransformation(source);
-            case ZETA -> runZetaTransformation(source);
-        };
+        AsmModel result = mode.isZeta() ? runZetaTransformation(source) : runEtlTransformation(source);
 
-        storeTransformationResult(type, result);
-        verifyResult(result, type);
+        storeTransformationResult(mode, result);
+        verifyResult(result, mode);
     }
 
     /**

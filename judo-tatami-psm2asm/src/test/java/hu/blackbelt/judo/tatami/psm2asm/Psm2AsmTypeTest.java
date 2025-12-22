@@ -31,6 +31,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.hamcrest.core.IsNull;
@@ -93,9 +94,9 @@ public class Psm2AsmTypeTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName, final TransformationType transformationType) throws Exception {
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-psm.model"))
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationMode + "-psm.model"))
                 .build());
 
         assertTrue(psmModel.isValid());
@@ -103,7 +104,7 @@ public class Psm2AsmTypeTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation for test: {}", testName);
             Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
@@ -120,7 +121,7 @@ public class Psm2AsmTypeTest {
 
         assertTrue(asmModel.isValid());
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationType + "-asm.model"))
+                .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-" + transformationMode + "-asm.model"))
                 .build());
     }
 
@@ -165,8 +166,8 @@ public class Psm2AsmTypeTest {
     }
 
     @ParameterizedTest(name = "testType with {0}")
-    @EnumSource(TransformationType.class)
-    void testType(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testType(TransformationMode transformationMode) throws Exception {
 
     	
     	EnumerationMember a = newEnumerationMemberBuilder().withName("a").withOrdinal(1).build();
@@ -211,7 +212,7 @@ public class Psm2AsmTypeTest {
 
         psmModel.addContent(model);
 
-        transform("testType", transformationType);
+        transform("testType", transformationMode);
 
         final EPackage asmTestModel = asmUtils.all(EPackage.class).filter(p -> p.getName().equals(TEST_MODEL_NAME)).findAny().get();
         final Optional<EEnum> asmEnum = asmUtils.all(EEnum.class).filter(e -> e.getName().equals(enumType.getName())).findAny();

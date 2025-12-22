@@ -181,23 +181,23 @@ public class TypeMismatch extends Difference { ... }
 
 ```java
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testTransformation(TransformationType type) {
+@EnumSource(TransformationMode.class)
+void testTransformation(TransformationMode mode) {
     // Run transformation
-    AsmModel result = transform(psmModel, type);
-    
+    AsmModel result = transform(psmModel, mode);
+
     // Store result for comparison
-    storeResult(type, result);
-    
+    storeResult(mode, result);
+
     // Basic validation
     assertTrue(result.isValid());
 }
 
 @Test
 void testEtlZetaEquivalence() {
-    AsmModel etlResult = getStoredResult(TransformationType.ETL);
-    AsmModel zetaResult = getStoredResult(TransformationType.ZETA);
-    
+    AsmModel etlResult = getStoredResult(TransformationMode.ETL);
+    AsmModel zetaResult = getStoredResult(TransformationMode.ZETA);
+
     EnhancedModelComparator.assertEquivalent(
         etlResult.getResource(),
         zetaResult.getResource(),

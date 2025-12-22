@@ -37,6 +37,7 @@ import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.service.*;
 import hu.blackbelt.judo.meta.psm.type.Primitive;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,8 +104,8 @@ public class Psm2AsmInheritanceTest {
                 .build();
     }
 
-    private void transform(final String testName, final TransformationType transformationType) throws Exception {
-        if (transformationType == TransformationType.ZETA) {
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation for test: {}", testName);
             Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
@@ -120,7 +121,7 @@ public class Psm2AsmInheritanceTest {
         }
 
         asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, testName + "-" + transformationType + "-" + INHERITANCE_ASM_MODEL))));
+                .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, testName + "-" + transformationMode + "-" + INHERITANCE_ASM_MODEL))));
     }
 
     /**
@@ -164,8 +165,8 @@ public class Psm2AsmInheritanceTest {
     }
 
     @ParameterizedTest(name = "testInheritance with {0}")
-    @EnumSource(TransformationType.class)
-    public void testInheritance(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testInheritance(TransformationMode transformationMode) throws Exception {
         log.info("testInheritance~~~~~~~~~~~~~~~~~~~~");
         Primitive string = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         EntityType personEntity = newEntityTypeBuilder().withName("Person")
@@ -287,7 +288,7 @@ public class Psm2AsmInheritanceTest {
                 .build();
         psmModel.addContent(model);
 
-        transform("testInheritance", transformationType);
+        transform("testInheritance", transformationMode);
 
         final Optional<EClass> asmEmployeeTransferObject = allAsm(EClass.class).filter(clazz -> employeeTransferObject.getName().equals(clazz.getName())).findAny();
         assertTrue(asmEmployeeTransferObject.isPresent());

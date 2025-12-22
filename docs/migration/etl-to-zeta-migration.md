@@ -534,7 +534,7 @@ t.setName(s.getName());
 - [ ] Migrated actor rules
 - [ ] Converted lazy rules to helpers
 - [ ] Implemented post-processing
-- [ ] Set up TransformationType enum
+- [ ] Import TransformationMode from judo-tatami-core
 - [ ] Created parameterized tests
 - [ ] Verified ETL-Zeta output equivalence
 - [ ] Added performance tests

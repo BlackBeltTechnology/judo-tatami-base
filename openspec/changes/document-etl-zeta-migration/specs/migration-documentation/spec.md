@@ -71,7 +71,7 @@ The documentation SHALL provide testing framework documentation at `docs/migrati
 Given a developer wants to test both ETL and Zeta engines
 When they consult the testing documentation
 Then they find:
-- TransformationType enum definition
+- TransformationMode enum from judo-tatami-core
 - Parameterized test setup with @EnumSource
 - Model comparison assertion patterns
 - Configuration options

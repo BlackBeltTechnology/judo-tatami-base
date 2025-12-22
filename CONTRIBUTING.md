@@ -108,9 +108,13 @@ Tests should use the dual transformation testing framework:
 
 ```java
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testMyTransformation(TransformationType type) {
-    // Test runs with both ETL and Zeta engines
+@EnumSource(TransformationMode.class)
+void testMyTransformation(TransformationMode mode) {
+    if (mode.isZeta()) {
+        // Run Zeta transformation
+    } else {
+        // Run ETL transformation
+    }
 }
 ```
 

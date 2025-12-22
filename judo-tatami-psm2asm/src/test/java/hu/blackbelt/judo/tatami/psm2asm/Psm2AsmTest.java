@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 
 import java.io.File;
@@ -81,12 +82,12 @@ public class Psm2AsmTest {
     }
 
     @ParameterizedTest(name = "testPsm2AsmTransformation with {0}")
-    @EnumSource(TransformationType.class)
-    public void testPsm2AsmTransformation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testPsm2AsmTransformation(TransformationMode transformationMode) throws Exception {
 
         // Make transformation which returns the trace with the serialized URI's
         Psm2AsmTransformationTrace psm2AsmTransformationTrace;
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation");
             Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)

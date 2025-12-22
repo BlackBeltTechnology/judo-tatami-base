@@ -24,6 +24,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 import liquibase.Liquibase;
 import liquibase.database.Database;
@@ -100,10 +101,10 @@ public class Rdbms2LiquibaseTest {
     }
 
     @ParameterizedTest(name = "testRdbms2LiquibaseTransformation with {0}")
-    @EnumSource(TransformationType.class)
-    public void testRdbms2LiquibaseTransformation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testRdbms2LiquibaseTransformation(TransformationMode transformationMode) throws Exception {
 
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation");
             Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
                     .rdbmsModel(rdbmsModel)
