@@ -77,13 +77,13 @@ All existing transformation tests MUST be converted to parameterized tests that 
 
 #### Scenario: Test runs with ETL engine
 Given an existing transformation test
-When executed with TransformationType.ETL parameter
+When executed with TransformationMode.ETL parameter
 Then the test uses the ETL transformation engine
 And all assertions pass
 
 #### Scenario: Test runs with Zeta engine
 Given an existing transformation test
-When executed with TransformationType.ZETA parameter
+When executed with TransformationMode.ZETA parameter
 Then the test uses the Zeta transformation engine
 And all assertions pass
 

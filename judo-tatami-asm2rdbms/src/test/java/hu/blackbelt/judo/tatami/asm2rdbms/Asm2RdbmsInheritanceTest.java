@@ -25,6 +25,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.RdbmsIdentifierField;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
@@ -82,8 +83,8 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "Test Basic Inheritance with {0}")
-    @EnumSource(TransformationType.class)
-    public void testBasicInheritance(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testBasicInheritance(TransformationMode transformationMode) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -106,7 +107,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(apple);
         addExtensionAnnotation(apple, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testBasicInheritance", transformationType);
+        executeTransformation("testBasicInheritance", transformationMode);
 
         final String RDBMS_TABLE_FRUIT = "TestEpackage.fruit";
         final String RDBMS_TABLE_APPLE = "TestEpackage.apple";
@@ -166,8 +167,8 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "Test Inheritance With Two Parents with {0}")
-    @EnumSource(TransformationType.class)
-    public void testInheritanceWithTwoParents(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testInheritanceWithTwoParents(TransformationMode transformationMode) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -196,7 +197,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(tomato);
         addExtensionAnnotation(tomato, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testInheritanceWithTwoParents", transformationType);
+        executeTransformation("testInheritanceWithTwoParents", transformationMode);
 
         // setup asm model and transform
         ////////////////////////////////////////////////////////////
@@ -275,8 +276,8 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "Test Indirect Inheritance with {0}")
-    @EnumSource(TransformationType.class)
-    public void testIndirectInheritance(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testIndirectInheritance(TransformationMode transformationMode) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -306,7 +307,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(ev);
         addExtensionAnnotation(ev, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testIndirectInheritance", transformationType);
+        executeTransformation("testIndirectInheritance", transformationMode);
 
         // setup asm model and transform
         ////////////////////////////////////////////////////////////
@@ -391,8 +392,8 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "Test Diamond Inheritance with {0}")
-    @EnumSource(TransformationType.class)
-    public void testDiamondInheritance(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testDiamondInheritance(TransformationMode transformationMode) throws Exception {
         ///////////////////
         // setup asm model
         final EPackage ePackage = newEPackageBuilder()
@@ -426,7 +427,7 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         ePackage.getEClassifiers().add(C);
         addExtensionAnnotation(C, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
-        executeTransformation("testDiamondInheritance", transformationType);
+        executeTransformation("testDiamondInheritance", transformationMode);
 
         // setup asm model and transform
         ////////////////////////////////////////////////////////////

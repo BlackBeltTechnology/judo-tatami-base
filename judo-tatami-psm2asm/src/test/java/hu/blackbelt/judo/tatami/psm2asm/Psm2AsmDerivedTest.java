@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 
 import java.io.File;
 import java.util.List;
@@ -94,7 +95,7 @@ public class Psm2AsmDerivedTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName, final TransformationType transformationType) throws Exception {
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model")).build());
 
@@ -104,7 +105,7 @@ public class Psm2AsmDerivedTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI(), List.of(), null);
         }
 
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation for test: {}", testName);
             Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
@@ -166,8 +167,8 @@ public class Psm2AsmDerivedTest {
     }
 
     @ParameterizedTest(name = "testDerived with {0}")
-    @EnumSource(TransformationType.class)
-    void testDerived(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testDerived(TransformationMode transformationMode) throws Exception {
 
         StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).build();
         NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
@@ -217,7 +218,7 @@ public class Psm2AsmDerivedTest {
 
         psmModel.addContent(model);
 
-        transform("testDerived", transformationType);
+        transform("testDerived", transformationMode);
 
         final EClass asmEntity1 = asmUtils.all(EClass.class).filter(c -> c.getName().equals(entity1.getName()))
                 .findAny().get();
@@ -386,8 +387,8 @@ public class Psm2AsmDerivedTest {
     }
 
     @ParameterizedTest(name = "testDerivedInUnmappedTransferObjectTypes with {0}")
-    @EnumSource(TransformationType.class)
-    void testDerivedInUnmappedTransferObjectTypes(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testDerivedInUnmappedTransferObjectTypes(TransformationMode transformationMode) throws Exception {
 
         Package defaultTo = newPackageBuilder().withName("_default_transferobjecttypes").build();
         Package genNav = newPackageBuilder().withName("_generated_navigations").build();
@@ -441,7 +442,7 @@ public class Psm2AsmDerivedTest {
 
         psmModel.addContent(model);
 
-        transform("testDerivedMixin", transformationType);
+        transform("testDerivedMixin", transformationMode);
 
         final EClass asmUnmapped = asmUtils.all(EClass.class).filter(c -> c.getName().equals(unmapped.getName()))
                 .findAny().get();

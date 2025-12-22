@@ -30,7 +30,7 @@ The judo-tatami-base project has successfully implemented dual transformation en
    - Performance considerations
 
 3. **Testing Strategy Guide** (`docs/migration/dual-engine-testing.md`)
-   - Parameterized test pattern with TransformationType enum
+   - Parameterized test pattern with TransformationMode enum (from judo-tatami-core)
    - ModelComparator usage and configuration
    - Performance test framework
    - Equivalence verification patterns

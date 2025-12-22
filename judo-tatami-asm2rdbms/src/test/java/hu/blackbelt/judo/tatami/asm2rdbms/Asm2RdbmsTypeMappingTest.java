@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.RdbmsField;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
@@ -97,9 +98,9 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "testNumericTypes with {0}")
-    @EnumSource(TransformationType.class)
+    @EnumSource(TransformationMode.class)
     @DisplayName("Test Numeric Types")
-    public void testNumericTypes(TransformationType transformationType) throws Exception {
+    public void testNumericTypes(TransformationMode transformationMode) throws Exception {
         final EcorePackage ecore = EcorePackage.eINSTANCE;
 
         final EPackage ePackage = newEPackageBuilder()
@@ -225,7 +226,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
         addExtensionAnnotation(eClass, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
         // transform previously created asm model to rdbms model
-        executeTransformation("testNumericTypes", transformationType);
+        executeTransformation("testNumericTypes", transformationMode);
 
         // check eclass -> tables
         final String RDBMS_TABLE_NAME = "TestEpackage.TestNumericTypesClass";
@@ -351,9 +352,9 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "testStringlikeTypes with {0}")
-    @EnumSource(TransformationType.class)
+    @EnumSource(TransformationMode.class)
     @DisplayName("Test String-like Types")
-    public void testStringlikeTypes(TransformationType transformationType) throws Exception {
+    public void testStringlikeTypes(TransformationMode transformationMode) throws Exception {
         final EcorePackage ecore = EcorePackage.eINSTANCE;
 
         final EPackage ePackage = newEPackageBuilder()
@@ -399,7 +400,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
         addExtensionAnnotation(eClass, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
         // transform previously created asm model to rdbms model
-        executeTransformation("testStringlikeTypes", transformationType);
+        executeTransformation("testStringlikeTypes", transformationMode);
 
         // check eclass -> tables
         final String RDBMS_TABLE_NAME = "TestEpackage.TestStringlikeTypesClass";
@@ -441,9 +442,9 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "testDateTypes with {0}")
-    @EnumSource(TransformationType.class)
+    @EnumSource(TransformationMode.class)
     @DisplayName("Test Date Types")
-    public void testDateTypes(TransformationType transformationType) throws Exception {
+    public void testDateTypes(TransformationMode transformationMode) throws Exception {
         final EcorePackage ecore = EcorePackage.eINSTANCE;
 
         final EPackage ePackage = newEPackageBuilder()
@@ -546,7 +547,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
         addExtensionAnnotation(eClass, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
         // transform previously created asm model to rdbms model
-        executeTransformation("testDateTypes", transformationType);
+        executeTransformation("testDateTypes", transformationMode);
 
         // check eclass -> tables
         final String RDBMS_TABLE_NAME = "TestEpackage.TestDateTypesClass";
@@ -666,9 +667,9 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
     }
 
     @ParameterizedTest(name = "testBooleanTypes with {0}")
-    @EnumSource(TransformationType.class)
+    @EnumSource(TransformationMode.class)
     @DisplayName("Test Boolean Types")
-    public void testBooleanTypes(TransformationType transformationType) throws Exception {
+    public void testBooleanTypes(TransformationMode transformationMode) throws Exception {
         final EcorePackage ecore = EcorePackage.eINSTANCE;
 
         final EPackage ePackage = newEPackageBuilder()
@@ -702,7 +703,7 @@ public class Asm2RdbmsTypeMappingTest extends Asm2RdbmsMappingTestBase {
         addExtensionAnnotation(eClass, ENTITY_ANNOTATION, VALUE_ANNOTATION);
 
         // transform previously created asm model to rdbms model
-        executeTransformation("testBooleanTypes", transformationType);
+        executeTransformation("testBooleanTypes", transformationMode);
 
         // check eclass -> tables
         final String RDBMS_TABLE_NAME = "TestEpackage.TestBooleanTypesClass";

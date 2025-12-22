@@ -23,6 +23,7 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
@@ -83,12 +84,12 @@ public class Asm2RdbmsTest {
     }
 
     @ParameterizedTest(name = "testAsm2RdbmsTransformation with {0}")
-    @EnumSource(TransformationType.class)
-    public void testAsm2RdbmsTransformation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testAsm2RdbmsTransformation(TransformationMode transformationMode) throws Exception {
 
         Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace;
-        
-        if (transformationType == TransformationType.ZETA) {
+
+        if (transformationMode.isZeta()) {
             // Load mapping model for Zeta transformation
             String dialect = "hsqldb";
             java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();

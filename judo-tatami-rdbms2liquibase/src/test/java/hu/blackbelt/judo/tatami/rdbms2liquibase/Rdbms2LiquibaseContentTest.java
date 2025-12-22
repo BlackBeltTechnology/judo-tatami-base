@@ -28,6 +28,7 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsJunctionTable;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.RdbmsValidationException;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
@@ -134,8 +135,8 @@ public class Rdbms2LiquibaseContentTest {
     }
 
     @ParameterizedTest(name = "testContents with {0}")
-    @EnumSource(TransformationType.class)
-    public void testContents(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testContents(TransformationMode transformationMode) throws Exception {
         /////////////////////
         // setup rdbms model
 
@@ -210,7 +211,7 @@ public class Rdbms2LiquibaseContentTest {
                     rdbmsSaveArgumentsBuilder()
                             .file(new File(TARGET_TEST_CLASSES, format("testContents-%s-rdbms.model", rdbmsModel.getName())))
                             .build());
-            if (transformationType == TransformationType.ZETA) {
+            if (transformationMode.isZeta()) {
                 Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
                         .rdbmsModel(rdbmsModel)
                         .liquibaseModel(liquibaseModel)

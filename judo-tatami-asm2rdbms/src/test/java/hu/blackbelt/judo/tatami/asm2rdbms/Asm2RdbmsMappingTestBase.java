@@ -27,6 +27,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel.AsmValidationException;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.RdbmsValidationException;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsUtils;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,13 +91,13 @@ public class Asm2RdbmsMappingTestBase {
     }
 
     protected void executeTransformation(final String testName) {
-        executeTransformation(testName, TransformationType.ETL);
+        executeTransformation(testName, TransformationMode.ETL);
     }
 
-    protected void executeTransformation(final String testName, final TransformationType transformationType) {
+    protected void executeTransformation(final String testName, final TransformationMode transformationMode) {
         Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = null;
         try {
-            if (transformationType == TransformationType.ZETA) {
+            if (transformationMode.isZeta()) {
                 // Load mapping model (contains TypeMappings) - same as ETL version does
                 String dialect = "hsqldb";
                 java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();

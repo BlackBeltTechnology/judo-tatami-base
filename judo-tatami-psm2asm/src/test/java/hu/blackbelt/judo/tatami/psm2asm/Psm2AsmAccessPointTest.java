@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 
 import java.io.File;
 import java.util.Arrays;
@@ -94,7 +95,7 @@ public class Psm2AsmAccessPointTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName, final TransformationType transformationType) throws Exception {
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model"))
                 .build());
@@ -104,7 +105,7 @@ public class Psm2AsmAccessPointTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation for test: {}", testName);
             Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
@@ -166,8 +167,8 @@ public class Psm2AsmAccessPointTest {
     }
 
     @ParameterizedTest(name = "testEntityTypeAsAccessPoint with {0}")
-    @EnumSource(TransformationType.class)
-    void testEntityTypeAsAccessPoint(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testEntityTypeAsAccessPoint(TransformationMode transformationMode) throws Exception {
         final StringType stringType = newStringTypeBuilder()
                 .withName("String")
                 .withMaxLength(255)
@@ -253,7 +254,7 @@ public class Psm2AsmAccessPointTest {
 
         psmModel.addContent(model);
 
-        transform("testEntityTypeAsAccessPoint", transformationType);
+        transform("testEntityTypeAsAccessPoint", transformationMode);
 
         final Optional<EClass> ap = asmUtils.all(EClass.class).filter(c -> "Entity".equals(c.getName()) && asmUtils.isMappedTransferObjectType(c)).findAny();
         assertThat(ap.isPresent(), equalTo(Boolean.TRUE));
@@ -265,8 +266,8 @@ public class Psm2AsmAccessPointTest {
     }
 
     @ParameterizedTest(name = "testAccessPoint with {0}")
-    @EnumSource(TransformationType.class)
-    void testAccessPoint(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testAccessPoint(TransformationMode transformationMode) throws Exception {
 
         UnmappedTransferObjectType opGroup = newUnmappedTransferObjectTypeBuilder().withName("operationGroup").build();
         TransferObjectRelation eService = newTransferObjectRelationBuilder().withName("eService")
@@ -315,7 +316,7 @@ public class Psm2AsmAccessPointTest {
 
         psmModel.addContent(model);
 
-        transform("testAccessPoint", transformationType);
+        transform("testAccessPoint", transformationMode);
 
         final Optional<EClass> asmAP = asmUtils.all(EClass.class).filter(c -> c.getName().equals(accessPoint.getName())).findAny();
         assertTrue(asmAP.isPresent());

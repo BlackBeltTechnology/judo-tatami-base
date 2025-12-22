@@ -32,6 +32,7 @@ import hu.blackbelt.judo.meta.psm.data.EntityType;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.*;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import lombok.extern.slf4j.Slf4j;
@@ -74,11 +75,11 @@ public class Asm2KeycloakTest {
     KeycloakModel keycloakModel;
 
     @ParameterizedTest(name = "testAsm2KeycloakTransformation with {0}")
-    @EnumSource(TransformationType.class)
-    public void testAsm2KeycloakTransformation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testAsm2KeycloakTransformation(TransformationMode transformationMode) throws Exception {
         final PsmModel psmModel = new Demo().fullDemo();
 
-        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel, transformationType);
+        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel, transformationMode);
 
         // Printing trace (only for ETL which has trace)
         if (resolvedTrace != null) {
@@ -91,8 +92,8 @@ public class Asm2KeycloakTest {
     }
 
     @ParameterizedTest(name = "testRealmCreation with {0}")
-    @EnumSource(TransformationType.class)
-    public void testRealmCreation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testRealmCreation(TransformationMode transformationMode) throws Exception {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
@@ -239,7 +240,7 @@ public class Asm2KeycloakTest {
                 .build();
         psmModel.getResource().getContents().add(model);
 
-        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel, transformationType);
+        final Map<EObject, List<EObject>> resolvedTrace = transform(psmModel, transformationMode);
         final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         final KeycloakUtils keycloakUtils = new KeycloakUtils(keycloakModel.getResourceSet());
@@ -257,7 +258,7 @@ public class Asm2KeycloakTest {
         }
     }
 
-    private Map<EObject, List<EObject>> transform(final PsmModel psmModel, final TransformationType transformationType) throws Exception {
+    private Map<EObject, List<EObject>> transform(final PsmModel psmModel, final TransformationMode transformationMode) throws Exception {
         // Create empty ASM model
         asmModel = AsmModel.buildAsmModel()
                 .build();
@@ -273,7 +274,7 @@ public class Asm2KeycloakTest {
 
         Map<EObject, List<EObject>> resolvedTrace = null;
 
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation");
             Asm2KeycloakZetaTransformation transformation = Asm2KeycloakZetaTransformation.builder()
                     .asmModel(asmModel)

@@ -78,13 +78,17 @@ Rule names are defined as constants in `*RuleNames.java` files to ensure consist
 Transformation tests use parameterized testing to verify both ETL and Zeta implementations:
 
 ```java
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+
 @ParameterizedTest
-@EnumSource(TransformationType.class)
-void testTransformation(TransformationType type) {
-    AsmModel result = switch(type) {
-        case ETL -> runEtlTransformation(source);
-        case ZETA -> runZetaTransformation(source);
-    };
+@EnumSource(TransformationMode.class)
+void testTransformation(TransformationMode mode) {
+    AsmModel result;
+    if (mode.isZeta()) {
+        result = runZetaTransformation(source);
+    } else {
+        result = runEtlTransformation(source);
+    }
     verifyResult(result);
 }
 ```

@@ -208,7 +208,7 @@ The following modules already have well-organized code with clear ETL section co
 - [x] ASM2KEYCLOAK: Dual transformation tests pass
 
 ### 8.4 ETL-Zeta Equivalence Tests
-All tests with `@EnumSource(TransformationType.class)` now have dedicated equivalence tests that compare ETL and Zeta outputs:
+All tests with `@EnumSource(TransformationMode.class)` now have dedicated equivalence tests that compare ETL and Zeta outputs:
 
 **PSM2ASM Equivalence Tests:**
 - [x] Psm2AsmTypeTest.testEtlAndZetaEquivalence

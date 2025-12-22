@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 
 import java.io.File;
 import java.util.List;
@@ -74,7 +75,7 @@ public class OperationTest {
                 .build();
     }
 
-    private void transform(final String testName, final TransformationType transformationType) throws Exception {
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, getClass().getName() + "-" + testName + "-psm.model"))
                 .build());
@@ -83,7 +84,7 @@ public class OperationTest {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
         }
 
-        if (transformationType == TransformationType.ZETA) {
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation for test: {}", testName);
             Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                     .psmModel(psmModel)
@@ -144,8 +145,8 @@ public class OperationTest {
     }
 
     @ParameterizedTest(name = "testInitializerAnnotation with {0}")
-    @EnumSource(TransformationType.class)
-    void testInitializerAnnotation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testInitializerAnnotation(TransformationMode transformationMode) throws Exception {
         final Model model = newModelBuilder()
                 .withName("Model")
                 .withElements(newUnmappedTransferObjectTypeBuilder()
@@ -170,7 +171,7 @@ public class OperationTest {
 
         psmModel.addContent(model);
 
-        transform("testInitializerAnnotation", transformationType);
+        transform("testInitializerAnnotation", transformationMode);
 
         final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 

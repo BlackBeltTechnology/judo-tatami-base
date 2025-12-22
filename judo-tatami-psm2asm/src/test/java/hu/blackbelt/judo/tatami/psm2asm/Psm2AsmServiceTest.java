@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 
 import java.io.File;
@@ -109,11 +110,11 @@ public class Psm2AsmServiceTest {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
-    private void transform(final String testName, final TransformationType transformationType) throws Exception {
-        transform(testName, transformationType, null);
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
+        transform(testName, transformationMode, null);
     }
 
-    private void transform(final String testName, final TransformationType transformationType, AsmModel targetAsmModel) throws Exception {
+    private void transform(final String testName, final TransformationMode transformationMode, AsmModel targetAsmModel) throws Exception {
         AsmModel targetModel = targetAsmModel != null ? targetAsmModel : asmModel;
         
         psmModel.savePsmModel(PsmModel.SaveArguments.psmSaveArgumentsBuilder()
@@ -123,7 +124,7 @@ public class Psm2AsmServiceTest {
         try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
             validatePsm(bufferedLog, psmModel, calculatePsmValidationScriptURI());
 
-            if (transformationType == TransformationType.ZETA) {
+            if (transformationMode.isZeta()) {
                 log.info("Running Zeta transformation for test: {}", testName);
                 Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                         .psmModel(psmModel)
@@ -195,8 +196,8 @@ public class Psm2AsmServiceTest {
     }
 
     @ParameterizedTest(name = "testTransferObject with {0}")
-    @EnumSource(TransformationType.class)
-    void testTransferObject(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testTransferObject(TransformationMode transformationMode) throws Exception {
 
         StringType strType = newStringTypeBuilder().withName("string").withMaxLength(256).build();
         NumericType intType = newNumericTypeBuilder().withName("int").withPrecision(6).withScale(0).build();
@@ -295,7 +296,7 @@ public class Psm2AsmServiceTest {
 
         psmModel.addContent(model);
 
-        transform("testTransferObject", transformationType);
+        transform("testTransferObject", transformationMode);
 
         final EPackage asmModel = asmUtils.all(EPackage.class).filter(c -> c.getName().equals(model.getName()))
                 .findAny().get();
@@ -557,8 +558,8 @@ public class Psm2AsmServiceTest {
     }
 
     @ParameterizedTest(name = "testOperation with {0}")
-    @EnumSource(TransformationType.class)
-    void testOperation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    void testOperation(TransformationMode transformationMode) throws Exception {
 
         EntityType p = newEntityTypeBuilder().withName("p").withAbstract_(true).build();
         EntityType e1 = newEntityTypeBuilder().withName("e1").build();
@@ -649,7 +650,7 @@ public class Psm2AsmServiceTest {
 
         psmModel.addContent(model);
 
-        transform("testOperation", transformationType);
+        transform("testOperation", transformationMode);
 
         final EClass asmE1 = asmUtils.all(EClass.class).filter(c -> c.getName().equals(e1.getName())).findAny().get();
         final EClass asmT1 = asmUtils.all(EClass.class).filter(c -> c.getName().equals(t1.getName())).findAny().get();

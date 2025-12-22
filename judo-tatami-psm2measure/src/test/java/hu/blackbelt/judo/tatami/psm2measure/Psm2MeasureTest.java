@@ -22,6 +22,7 @@ package hu.blackbelt.judo.tatami.psm2measure;
 
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
@@ -66,11 +67,11 @@ public class Psm2MeasureTest {
 
 
     @ParameterizedTest(name = "testPsm2MeasureTransformation with {0}")
-    @EnumSource(TransformationType.class)
-    public void testPsm2MeasureTransformation(TransformationType transformationType) throws Exception {
+    @EnumSource(TransformationMode.class)
+    public void testPsm2MeasureTransformation(TransformationMode transformationMode) throws Exception {
         Psm2MeasureTransformationTrace psm2MeasureTransformationTrace;
-        
-        if (transformationType == TransformationType.ZETA) {
+
+        if (transformationMode.isZeta()) {
             log.info("Running Zeta transformation");
             Psm2MeasureZetaTransformation transformation = Psm2MeasureZetaTransformation.builder()
                     .psmModel(psmModel)
