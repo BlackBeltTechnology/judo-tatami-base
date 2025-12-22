@@ -20,15 +20,16 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
  * #L%
  */
 
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 import java.net.URI;
 import java.util.Optional;
@@ -49,6 +50,13 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
         Boolean parallel = true;
         @Builder.Default
         Boolean useCache = true;
+        
+        /**
+         * The transformation engine to use. Defaults to ZETA.
+         * Set to ETL for backward compatibility or debugging.
+         */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
     final URI transformationScriptRoot;
@@ -94,10 +102,33 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
                         .build());
         putLiquibaseModel(getTransformationContext(), liquibaseModel, dialect);
 
-
         Rdbms2LiquibaseWorkParameter workParam = getTransformationContext().getByClass(Rdbms2LiquibaseWorkParameter.class)
                 .orElseGet(() -> Rdbms2LiquibaseWorkParameter.rdbms2LiquibaseWorkParameter().build());
 
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing RDBMS to Liquibase transformation using Zeta engine for dialect: {}", dialect);
+            executeZetaTransformation(rdbmsModel, liquibaseModel, workParam);
+        } else {
+            log.info("Executing RDBMS to Liquibase transformation using ETL engine for dialect: {}", dialect);
+            executeEtlTransformation(rdbmsModel, liquibaseModel, workParam);
+        }
+    }
+
+    private void executeZetaTransformation(
+            RdbmsModel rdbmsModel, LiquibaseModel liquibaseModel, Rdbms2LiquibaseWorkParameter workParam) {
+        
+        Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
+                .rdbmsModel(rdbmsModel)
+                .liquibaseModel(liquibaseModel)
+                .dialect(dialect)
+                .build();
+
+        transformation.execute();
+    }
+
+    private void executeEtlTransformation(
+            RdbmsModel rdbmsModel, LiquibaseModel liquibaseModel, Rdbms2LiquibaseWorkParameter workParam) throws Exception {
+        
         try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
             Rdbms2Liquibase.executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.rdbms2LiquibaseParameter()
                     .rdbmsModel(rdbmsModel)
@@ -110,5 +141,4 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
                     .dialect(dialect));
         }
     }
-
 }
