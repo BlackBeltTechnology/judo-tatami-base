@@ -38,6 +38,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Derived property transformation rules from derived.etl.
@@ -148,7 +149,7 @@ public class DerivedRules {
      *         guard: s.dataType.isKindOf(Primitive)
      *     }
      */
-    @TransformRule(name = "CreateDataPropertyForDerivedAttribute", description = "Transform DataProperty to derived EAttribute")
+    @TransformRule(name = CREATE_DATA_PROPERTY_FOR_DERIVED_ATTRIBUTE, description = "Transform DataProperty to derived EAttribute")
     @Guard(method = "isPrimitiveDataProperty")
     @Transform(type = DataProperty.class)
     @To(type = EAttribute.class)
@@ -188,7 +189,7 @@ public class DerivedRules {
      *         guard: s.dataType.isKindOf(StringType)
      *     }
      */
-    @TransformRule(name = "AddStringPrimitiveAccessorConstraints", description = "Add string constraints for derived attribute")
+    @TransformRule(name = ADD_STRING_PRIMITIVE_ACCESSOR_CONSTRAINTS, description = "Add string constraints for derived attribute")
     @Guard(method = "isStringPrimitiveAccessor")
     @Transform(type = DataProperty.class)
     @To(type = EAnnotation.class)
@@ -222,7 +223,7 @@ public class DerivedRules {
      *         guard: s.dataType.isKindOf(NumericType)
      *     }
      */
-    @TransformRule(name = "AddNumericPrimitiveAccessorConstraints", description = "Add numeric constraints for derived attribute")
+    @TransformRule(name = ADD_NUMERIC_PRIMITIVE_ACCESSOR_CONSTRAINTS, description = "Add numeric constraints for derived attribute")
     @Guard(method = "isNumericPrimitiveAccessor")
     @Transform(type = DataProperty.class)
     @To(type = EAnnotation.class)
@@ -266,7 +267,7 @@ public class DerivedRules {
      *         guard: not s.isKindOf(JUDOPSM!StaticData) and s.dataType.isKindOf(JUDOPSM!CustomType)
      *     }
      */
-    @TransformRule(name = "AddCustomPrimitiveAccessorConstraints", description = "Add custom type constraints for derived attribute")
+    @TransformRule(name = ADD_CUSTOM_PRIMITIVE_ACCESSOR_CONSTRAINTS, description = "Add custom type constraints for derived attribute")
     @Guard(method = "isCustomTypePrimitiveAccessor")
     @Transform(type = DataProperty.class)
     @To(type = EAnnotation.class)
@@ -298,7 +299,7 @@ public class DerivedRules {
      *         guard: s.getterExpression.isDefined()
      *     }
      */
-    @TransformRule(name = "AddPrimitiveAccessorExpressionAnnotation", description = "Add getter/setter expression annotation")
+    @TransformRule(name = CREATE_PRIMITIVE_ACCESSOR_EXPRESSION_ANNOTATION, description = "Add getter/setter expression annotation")
     @Guard(method = "hasGetterExpression")
     @Transform(type = DataProperty.class)
     @To(type = EAnnotation.class)
@@ -344,7 +345,7 @@ public class DerivedRules {
      *         guard: s.documentation.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateDocumentationAnnotationForDataProperty", description = "Add documentation annotation")
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_DATA_PROPERTY, description = "Add documentation annotation")
     @Guard(method = "hasDocumentation")
     @Transform(type = DataProperty.class)
     @To(type = EAnnotation.class)
@@ -374,7 +375,7 @@ public class DerivedRules {
      *     transform s : JUDOPSM!NavigationProperty
      *     to t : ASM!EReference
      */
-    @TransformRule(name = "CreateNavigationPropertyForDerivedReference", description = "Transform NavigationProperty to derived EReference")
+    @TransformRule(name = CREATE_NAVIGATION_PROPERTY, description = "Transform NavigationProperty to derived EReference")
     @Transform(type = NavigationProperty.class)
     @To(type = EReference.class)
     public TransformFunction<NavigationProperty, EReference> createNavigationPropertyForDerivedReference() {
@@ -419,7 +420,7 @@ public class DerivedRules {
      *         guard: s.getterExpression.isDefined()
      *     }
      */
-    @TransformRule(name = "AddReferenceAccessorExpressionAnnotation", description = "Add getter/setter expression for navigation")
+    @TransformRule(name = CREATE_REFERENCE_ACCESSOR_EXPRESSION_ANNOTATION, description = "Add getter/setter expression for navigation")
     @Guard(method = "hasReferenceGetterExpression")
     @Transform(type = NavigationProperty.class)
     @To(type = EAnnotation.class)
@@ -458,39 +459,4 @@ public class DerivedRules {
         };
     }
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    /**
-     * Gets the owning EntityType for an element.
-     */
-    private EntityType getEntityType(EObject element) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof EntityType) {
-                return (EntityType) container;
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
-
-    /**
-     * Gets the fully qualified name of an EClassifier.
-     */
-    private String getClassifierFQName(EClassifier classifier) {
-        if (classifier == null) return null;
-        StringBuilder sb = new StringBuilder();
-        EPackage pkg = classifier.getEPackage();
-        while (pkg != null) {
-            if (sb.length() > 0) {
-                sb.insert(0, ".");
-            }
-            sb.insert(0, pkg.getName());
-            pkg = pkg.getESuperPackage();
-        }
-        sb.append(".").append(classifier.getName());
-        return sb.toString();
-    }
 }

@@ -31,6 +31,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Operation transformation rules from operation.etl.
@@ -56,17 +57,6 @@ public class OperationRules {
     // =========================================================================
 
     /**
-     * Guard: element has documentation
-     */
-    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
-            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
-            return doc != null && !doc.isEmpty();
-        }
-        return false;
-    }
-
-    /**
      * Guard: bound operation has input parameter
      */
     public boolean hasInput(EObject source, TransformationContext ctx) {
@@ -82,16 +72,6 @@ public class OperationRules {
     public boolean hasOutput(EObject source, TransformationContext ctx) {
         if (source instanceof BoundOperation) {
             return ((BoundOperation) source).getOutput() != null;
-        }
-        return false;
-    }
-
-    /**
-     * Guard: transfer operation has input parameter
-     */
-    public boolean hasTransferInput(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            return ((TransferOperation) source).getInput() != null;
         }
         return false;
     }
@@ -160,7 +140,7 @@ public class OperationRules {
      *     to t : ASM!EOperation
      *     extends CreateOperation
      */
-    @TransformRule(name = "CreateBoundOperation", description = "Transform BoundOperation to EOperation")
+    @TransformRule(name = CREATE_BOUND_OPERATION, description = "Transform BoundOperation to EOperation")
     @Transform(type = BoundOperation.class)
     @To(type = EOperation.class)
     public TransformFunction<BoundOperation, EOperation> createBoundOperation() {
@@ -213,7 +193,7 @@ public class OperationRules {
      * 
      * Note: ETL uses "bound" annotation URI, not "boundOperation"
      */
-    @TransformRule(name = "CreateBoundOperationAnnotation", description = "Add bound annotation to BoundOperation")
+    @TransformRule(name = CREATE_BOUND_OPERATION_ANNOTATION, description = "Add bound annotation to BoundOperation")
     @Transform(type = BoundOperation.class)
     @To(type = EAnnotation.class)
     public TransformFunction<BoundOperation, EAnnotation> createBoundOperationAnnotation() {
@@ -238,7 +218,7 @@ public class OperationRules {
      *     transform s : JUDOPSM!BoundOperation
      *     to t : ASM!EAnnotation
      */
-    @TransformRule(name = "CreateInstanceRepresentationOfBoundOperation", description = "Add instanceRepresentation annotation")
+    @TransformRule(name = CREATE_INSTANCE_REPRESENTATION_OF_BOUND_OPERATION, description = "Add instanceRepresentation annotation")
     @Transform(type = BoundOperation.class)
     @To(type = EAnnotation.class)
     public TransformFunction<BoundOperation, EAnnotation> createInstanceRepresentationOfBoundOperation() {
@@ -272,7 +252,7 @@ public class OperationRules {
      *         guard: s.abstract
      *     }
      */
-    @TransformRule(name = "CreateAbstractBoundOperationAnnotation", description = "Add abstract annotation")
+    @TransformRule(name = CREATE_ABSTRACT_ANNOTATION_FOR_BOUND_OPERATION, description = "Add abstract annotation")
     @Guard(method = "isAbstractOperation")
     @Transform(type = BoundOperation.class)
     @To(type = EAnnotation.class)
@@ -302,7 +282,7 @@ public class OperationRules {
      * 
      * ETL applies CreateOutputParameterName to OperationDeclaration which includes BoundOperation.
      */
-    @TransformRule(name = "CreateOutputParameterNameForBoundOperation", description = "Add outputParameterName annotation for BoundOperation")
+    @TransformRule(name = CREATE_OUTPUT_PARAMETER_NAME_FOR_BOUND_OPERATION, description = "Add outputParameterName annotation for BoundOperation")
     @Guard(method = "hasOutput")
     @Transform(type = BoundOperation.class)
     @To(type = EAnnotation.class)
@@ -330,7 +310,7 @@ public class OperationRules {
      *         guard: s.implementation.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateCustomImplementationAnnotationOnBoundOperation", description = "Add customImplementation annotation to BoundOperation")
+    @TransformRule(name = CREATE_CUSTOM_IMPLEMENTATION_ANNOTATION_ON_BOUND_OPERATION, description = "Add customImplementation annotation to BoundOperation")
     @Guard(method = "hasBoundOperationImplementation")
     @Transform(type = BoundOperation.class)
     @To(type = EAnnotation.class)
@@ -372,7 +352,7 @@ public class OperationRules {
      *         guard: s.implementation.isDefined() and s.implementation.body.isDefined() and s.implementation.body.trim() <> ""
      *     }
      */
-    @TransformRule(name = "CreateScriptBodyAnnotationForBoundOperation", description = "Add script annotation to BoundOperation")
+    @TransformRule(name = CREATE_SCRIPT_BODY_ANNOTATION_FOR_BOUND_OPERATION, description = "Add script annotation to BoundOperation")
     @Guard(method = "hasBoundOperationScriptBody")
     @Transform(type = BoundOperation.class)
     @To(type = EAnnotation.class)
@@ -400,7 +380,7 @@ public class OperationRules {
      *         guard: s.input.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateBoundOperationInputParameter", description = "Create input parameter for bound operation")
+    @TransformRule(name = CREATE_BOUND_OPERATION_INPUT_PARAMETER, description = "Create input parameter for bound operation")
     @Guard(method = "hasInput")
     @Transform(type = BoundOperation.class)
     @To(type = EParameter.class)
@@ -443,7 +423,7 @@ public class OperationRules {
      *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EOperation
      */
-    @TransformRule(name = "CreateBoundTransferOperation", description = "Transform BoundTransferOperation to EOperation")
+    @TransformRule(name = CREATE_BOUND_TRANSFER_OPERATION, description = "Transform BoundTransferOperation to EOperation")
     @Transform(type = BoundTransferOperation.class)
     @To(type = EOperation.class)
     public TransformFunction<BoundTransferOperation, EOperation> createBoundTransferOperation() {
@@ -509,7 +489,7 @@ public class OperationRules {
      *     transform s : JUDOPSM!UnboundOperation
      *     to t : ASM!EOperation
      */
-    @TransformRule(name = "CreateUnboundOperation", description = "Transform UnboundOperation to EOperation")
+    @TransformRule(name = CREATE_UNBOUND_OPERATION, description = "Transform UnboundOperation to EOperation")
     @Transform(type = UnboundOperation.class)
     @To(type = EOperation.class)
     public TransformFunction<UnboundOperation, EOperation> createUnboundOperation() {
@@ -552,7 +532,7 @@ public class OperationRules {
      *         guard: s.behaviour.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateTransferOperationBehaviourAnnotation", description = "Add behaviour annotation")
+    @TransformRule(name = CREATE_TRANSFER_OPERATION_BEHAVIOUR_ANNOTATION, description = "Add behaviour annotation")
     @Greedy
     @Guard(method = "hasBehaviour")
     @Transform(type = TransferOperation.class)
@@ -715,7 +695,7 @@ public class OperationRules {
      * 
      * Transforms a Parameter (that is an input) to EParameter.
      */
-    @TransformRule(name = "CreateInputParameter", description = "Create input parameter from Parameter")
+    @TransformRule(name = CREATE_INPUT_PARAMETER, description = "Create input parameter from Parameter")
     @Greedy
     @Guard(method = "isInputParameter")
     @Transform(type = Parameter.class)
@@ -785,7 +765,7 @@ public class OperationRules {
      *         guard: s.implementation.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateStatefulAnnotationOnOperation", description = "Add stateful annotation with implementation")
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_ON_OPERATION, description = "Add stateful annotation with implementation")
     @Greedy
     @Guard(method = "hasImplementation")
     @Transform(type = TransferOperation.class)
@@ -814,7 +794,7 @@ public class OperationRules {
      *         guard: not s.implementation.isDefined() and not s.behaviour.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateStatefulAnnotationDefault", description = "Add default stateful annotation")
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_DEFAULT, description = "Add default stateful annotation")
     @Greedy
     @Guard(method = "hasNoImplementationAndNoBehaviour")
     @Transform(type = TransferOperation.class)
@@ -843,7 +823,7 @@ public class OperationRules {
      *         guard: s.implementation.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateCustomImplementationAnnotation", description = "Add customImplementation annotation")
+    @TransformRule(name = CREATE_CUSTOM_IMPLEMENTATION_ANNOTATION, description = "Add customImplementation annotation")
     @Greedy
     @Guard(method = "hasImplementation")
     @Transform(type = TransferOperation.class)
@@ -892,7 +872,7 @@ public class OperationRules {
      *         guard: s.initializer
      *     }
      */
-    @TransformRule(name = "CreateInitializerAnnotation", description = "Add initializer annotation to UnboundOperation")
+    @TransformRule(name = CREATE_INITIALIZER_ANNOTATION, description = "Add initializer annotation to UnboundOperation")
     @Guard(method = "isInitializer")
     @Transform(type = UnboundOperation.class)
     @To(type = EAnnotation.class)
@@ -934,7 +914,7 @@ public class OperationRules {
      *         guard: s.implementation.isDefined() and s.implementation.body.isDefined() and s.implementation.body.trim() <> ""
      *     }
      */
-    @TransformRule(name = "CreateScriptBodyAnnotationForUnboundOperation", description = "Add script annotation to UnboundOperation")
+    @TransformRule(name = CREATE_SCRIPT_BODY_ANNOTATION_FOR_UNBOUND_OPERATION, description = "Add script annotation to UnboundOperation")
     @Guard(method = "hasUnboundOperationScriptBody")
     @Transform(type = UnboundOperation.class)
     @To(type = EAnnotation.class)
@@ -967,7 +947,7 @@ public class OperationRules {
      * Both rules fire for UnboundOperation, creating 2 customImplementation annotations.
      * We replicate this behavior for compatibility.
      */
-    @TransformRule(name = "CreateCustomImplementationAnnotationOnUnboundOperation", description = "Add customImplementation annotation to UnboundOperation")
+    @TransformRule(name = CREATE_CUSTOM_IMPLEMENTATION_ANNOTATION_ON_UNBOUND_OPERATION, description = "Add customImplementation annotation to UnboundOperation")
     @Guard(method = "hasUnboundOperationImplementation")
     @Transform(type = UnboundOperation.class)
     @To(type = EAnnotation.class)
@@ -995,7 +975,7 @@ public class OperationRules {
      *         guard: s.output.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateOutputParameterName", description = "Add outputParameterName annotation")
+    @TransformRule(name = CREATE_OUTPUT_PARAMETER_NAME, description = "Add outputParameterName annotation")
     @Greedy
     @Guard(method = "hasTransferOutput")
     @Transform(type = TransferOperation.class)
@@ -1024,7 +1004,7 @@ public class OperationRules {
      * 
      * Adds permissions annotation with update/delete flags.
      */
-    @TransformRule(name = "CreateOperationPermissions", description = "Add permissions annotation to transfer operation")
+    @TransformRule(name = CREATE_OPERATION_PERMISSIONS, description = "Add permissions annotation to transfer operation")
     @Greedy
     @Transform(type = TransferOperation.class)
     @To(type = EAnnotation.class)
@@ -1053,7 +1033,7 @@ public class OperationRules {
      * 
      * Adds immutable annotation to transfer operations.
      */
-    @TransformRule(name = "CreateImmutableFlagForTransferOperation", description = "Add immutable annotation to transfer operation")
+    @TransformRule(name = CREATE_IMMUTABLE_FLAG_FOR_TRANSFER_OPERATION, description = "Add immutable annotation to transfer operation")
     @Greedy
     @Transform(type = TransferOperation.class)
     @To(type = EAnnotation.class)
@@ -1081,7 +1061,7 @@ public class OperationRules {
      * 
      * Adds bound annotation indicating whether operation is bound or unbound.
      */
-    @TransformRule(name = "CreateBoundAnnotationForTransferOperation", description = "Add bound annotation to transfer operation")
+    @TransformRule(name = CREATE_BOUND_ANNOTATION_FOR_TRANSFER_OPERATION, description = "Add bound annotation to transfer operation")
     @Greedy
     @Transform(type = TransferOperation.class)
     @To(type = EAnnotation.class)
@@ -1113,7 +1093,7 @@ public class OperationRules {
      * 
      * Adds stateful annotation based on behaviour type.
      */
-    @TransformRule(name = "CreateStatefulAnnotationWithBehaviour", description = "Add stateful annotation based on behaviour")
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_WITH_BEHAVIOUR, description = "Add stateful annotation based on behaviour")
     @Greedy
     @Guard(method = "hasNoImplementationButHasBehaviour")
     @Transform(type = TransferOperation.class)
@@ -1170,43 +1150,6 @@ public class OperationRules {
     // =========================================================================
 
     /**
-     * Gets the owning EntityType for an element.
-     */
-    private EntityType getEntityType(EObject element) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof EntityType) {
-                return (EntityType) container;
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
-
-    /**
-     * Gets the fully qualified name of an EClassifier.
-     */
-    private String getClassifierFQName(EClassifier classifier) {
-        if (classifier == null) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        EPackage pkg = classifier.getEPackage();
-        while (pkg != null) {
-            if (sb.length() > 0) {
-                sb.insert(0, ".");
-            }
-            sb.insert(0, pkg.getName());
-            pkg = pkg.getESuperPackage();
-        }
-        if (sb.length() > 0) {
-            sb.append(".");
-        }
-        sb.append(classifier.getName());
-        return sb.toString();
-    }
-    
-    /**
      * Gets the fully qualified name of an EReference.
      */
     private String getReferenceFQName(EReference reference) {
@@ -1219,7 +1162,7 @@ public class OperationRules {
         }
         return reference.getName();
     }
-    
+
     /**
      * Gets the fully qualified name of an EOperation.
      */
@@ -1233,7 +1176,7 @@ public class OperationRules {
         }
         return operation.getName();
     }
-    
+
     /**
      * Gets the fully qualified name of an EAttribute.
      */

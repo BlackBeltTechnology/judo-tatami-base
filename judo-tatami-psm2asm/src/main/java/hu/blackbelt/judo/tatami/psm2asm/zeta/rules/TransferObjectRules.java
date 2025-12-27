@@ -44,6 +44,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Transfer object transformation rules from service.etl.
@@ -81,32 +82,11 @@ public class TransferObjectRules {
     }
 
     /**
-     * Guard: element has documentation
-     */
-    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
-            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
-            return doc != null && !doc.isEmpty();
-        }
-        return false;
-    }
-
-    /**
      * Guard: mapped transfer object has entity type
      */
     public boolean hasEntityType(EObject source, TransformationContext ctx) {
         if (source instanceof MappedTransferObjectType) {
             return ((MappedTransferObjectType) source).getEntityType() != null;
-        }
-        return false;
-    }
-
-    /**
-     * Guard: transfer relation is embedded
-     */
-    public boolean isEmbeddedRelation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectRelation) {
-            return ((TransferObjectRelation) source).isEmbedded();
         }
         return false;
     }
@@ -121,26 +101,6 @@ public class TransferObjectRules {
             Object binding = attr.getBinding();
             // Exclude StaticData bindings - they don't get binding annotation
             return binding != null && !(binding instanceof StaticData);
-        }
-        return false;
-    }
-
-    /**
-     * Guard: transfer relation has binding
-     */
-    public boolean hasRelationBinding(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectRelation) {
-            return ((TransferObjectRelation) source).getBinding() != null;
-        }
-        return false;
-    }
-
-    /**
-     * Guard: transfer relation has a target type
-     */
-    public boolean hasTargetType(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectRelation) {
-            return ((TransferObjectRelation) source).getTarget() != null;
         }
         return false;
     }
@@ -289,7 +249,7 @@ public class TransferObjectRules {
      *     transform s : JUDOPSM!MappedTransferObjectType
      *     to t : ASM!EClass
      */
-    @TransformRule(name = "CreateMappedTransferObjectTypeClass", description = "Transform MappedTransferObjectType to EClass")
+    @TransformRule(name = CREATE_MAPPED_TRANSFER_OBJECT_TYPE_CLASS, description = "Transform MappedTransferObjectType to EClass")
     @Transform(type = MappedTransferObjectType.class)
     @To(type = EClass.class)
     public TransformFunction<MappedTransferObjectType, EClass> createMappedTransferObjectTypeClass() {
@@ -313,7 +273,7 @@ public class TransferObjectRules {
      *     transform s : JUDOPSM!MappedTransferObjectType
      *     to t : ASM!EAnnotation
      */
-    @TransformRule(name = "CreateMappedTransferObjectAnnotation", description = "Add mappedEntityType annotation")
+    @TransformRule(name = CREATE_MAPPED_ENTITY_TYPE_ANNOTATION_ON_MAPPED_TRANSFER_OBJECT, description = "Add mappedEntityType annotation")
     @Guard(method = "hasEntityType")
     @Transform(type = MappedTransferObjectType.class)
     @To(type = EAnnotation.class)
@@ -339,7 +299,7 @@ public class TransferObjectRules {
      *     transform s : JUDOPSM!UnmappedTransferObjectType
      *     to t : ASM!EClass
      */
-    @TransformRule(name = "CreateUnmappedTransferObjectTypeClass", description = "Transform UnmappedTransferObjectType to EClass")
+    @TransformRule(name = CREATE_UNMAPPED_TRANSFER_OBJECT_TYPE_CLASS, description = "Transform UnmappedTransferObjectType to EClass")
     @Transform(type = UnmappedTransferObjectType.class)
     @To(type = EClass.class)
     public TransformFunction<UnmappedTransferObjectType, EClass> createUnmappedTransferObjectTypeClass() {
@@ -363,7 +323,7 @@ public class TransferObjectRules {
      *     transform s : JUDOPSM!TransferObjectType
      *     to t : ASM!EAnnotation
      */
-    @TransformRule(name = "CreateTransferObjectTypeAnnotation", description = "Add transferObjectType annotation")
+    @TransformRule(name = CREATE_TRANSFER_OBJECT_TYPE_ANNOTATION_CLASS, description = "Add transferObjectType annotation")
     @Greedy
     @Transform(type = TransferObjectType.class)
     @To(type = EAnnotation.class)
@@ -393,7 +353,7 @@ public class TransferObjectRules {
      * 
      * Adds an "actor" annotation to transfer object types that reference an ActorType.
      */
-    @TransformRule(name = "CreateActorAnnotation", description = "Add actor annotation to transfer objects referencing an actor")
+    @TransformRule(name = CREATE_ACTOR_ANNOTATION, description = "Add actor annotation to transfer objects referencing an actor")
     @Greedy
     @Guard(method = "hasActorType")
     @Transform(type = TransferObjectType.class)
@@ -433,7 +393,7 @@ public class TransferObjectRules {
      * 
      * Adds getRangeInput annotation if this transfer object type is used as input for GET_RANGE operation.
      */
-    @TransformRule(name = "CreateGetRangeInputAnnotation", description = "Add getRangeInput annotation for GET_RANGE input types")
+    @TransformRule(name = CREATE_GET_RANGE_INPUT_ANNOTATION, description = "Add getRangeInput annotation for GET_RANGE input types")
     @Greedy
     @Guard(method = "isGetRangeInputType")
     @Transform(type = TransferObjectType.class)
@@ -466,7 +426,7 @@ public class TransferObjectRules {
      *         guard: s.dataType.isKindOf(Primitive)
      *     }
      */
-    @TransformRule(name = "CreateTransferAttribute", description = "Transform TransferAttribute to EAttribute")
+    @TransformRule(name = CREATE_TRANSFER_ATTRIBUTE, description = "Transform TransferAttribute to EAttribute")
     @Guard(method = "isPrimitiveTransferAttribute")
     @Transform(type = TransferAttribute.class)
     @To(type = EAttribute.class)
@@ -517,7 +477,7 @@ public class TransferObjectRules {
      *         guard: s.binding.isDefined()
      *     }
      */
-    @TransformRule(name = "AddTransferAttributeBindingAnnotation", description = "Add binding annotation to transfer attribute")
+    @TransformRule(name = CREATE_TRANSFER_OBJECT_ATTRIBUTE_BINDING_ANNOTATION, description = "Add binding annotation to transfer attribute")
     @Guard(method = "hasBinding")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -548,7 +508,7 @@ public class TransferObjectRules {
      *         guard: s.binding.isUndefined()
      *     }
      */
-    @TransformRule(name = "AddTransientAnnotationToTransferAttribute", description = "Add transient annotation to unbound transfer attribute")
+    @TransformRule(name = ADD_TRANSIENT_ANNOTATION_TO_TRANSFER_ATTRIBUTE, description = "Add transient annotation to unbound transfer attribute")
     @Guard(method = "hasNoBinding")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -578,7 +538,7 @@ public class TransferObjectRules {
      *         guard: s.dataType.isKindOf(JUDOPSM!StringType)
      *     }
      */
-    @TransformRule(name = "AddStringTransferAttributeConstraints", description = "Add string constraints for transfer attribute")
+    @TransformRule(name = ADD_STRING_TRANSFER_ATTRIBUTE_CONSTRAINTS, description = "Add string constraints for transfer attribute")
     @Guard(method = "isStringTransferAttribute")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -614,7 +574,7 @@ public class TransferObjectRules {
      *         guard: s.dataType.isKindOf(JUDOPSM!CustomType)
      *     }
      */
-    @TransformRule(name = "AddCustomTransferAttributeConstraints", description = "Add custom type constraints for transfer attribute")
+    @TransformRule(name = ADD_CUSTOM_TRANSFER_ATTRIBUTE_CONSTRAINTS, description = "Add custom type constraints for transfer attribute")
     @Guard(method = "isCustomTypeTransferAttribute")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -646,7 +606,7 @@ public class TransferObjectRules {
      *         guard: s.dataType.isKindOf(JUDOPSM!NumericType) and not s.dataType.isKindOf(JUDOPSM!MeasuredType)
      *     }
      */
-    @TransformRule(name = "AddNumericTransferAttributeConstraints", description = "Add numeric constraints for transfer attribute")
+    @TransformRule(name = ADD_NUMERIC_TRANSFER_ATTRIBUTE_CONSTRAINTS, description = "Add numeric constraints for transfer attribute")
     @Guard(method = "isNumericTransferAttribute")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -679,7 +639,7 @@ public class TransferObjectRules {
      *         guard: s.dataType.isKindOf(JUDOPSM!MeasuredType)
      *     }
      */
-    @TransformRule(name = "AddMeasuredTransferAttributeConstraints", description = "Add measured constraints for transfer attribute")
+    @TransformRule(name = ADD_MEASURED_TRANSFER_ATTRIBUTE_CONSTRAINTS, description = "Add measured constraints for transfer attribute")
     @Guard(method = "isMeasuredTransferAttribute")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -724,7 +684,7 @@ public class TransferObjectRules {
      * 
      * Creates expression annotation for derived attributes with PrimitiveAccessor or StaticData binding.
      */
-    @TransformRule(name = "CreateDataReferenceBinding", description = "Add expression annotation for data bindings")
+    @TransformRule(name = CREATE_DATA_REFERENCE_BINDING, description = "Add expression annotation for data bindings")
     @Guard(method = "hasDataBinding")
     @Transform(type = TransferAttribute.class)
     @To(type = EAnnotation.class)
@@ -820,7 +780,7 @@ public class TransferObjectRules {
      * Note: Annotations (binding, embedded) are created inline to avoid recursive update
      * issues that would occur if separate annotation rules called ctx.equivalent(s, EReference.class).
      */
-    @TransformRule(name = "CreateTransferObjectRelation", description = "Transform TransferObjectRelation to EReference")
+    @TransformRule(name = CREATE_TRANSFER_OBJECT_RELATION, description = "Transform TransferObjectRelation to EReference")
     @Transform(type = TransferObjectRelation.class)
     @To(type = EReference.class)
     public TransformFunction<TransferObjectRelation, EReference> createTransferObjectRelation() {
@@ -923,7 +883,7 @@ public class TransferObjectRules {
      *         t.details.add({key="value", value="true"});
      *     }
      */
-    @TransformRule(name = "CreateTransferObjectRelationAccessAnnotation", description = "Add access annotation to access relations")
+    @TransformRule(name = CREATE_TRANSFER_OBJECT_RELATION_ACCESS_ANNOTATION, description = "Add access annotation to access relations")
     @Guard(method = "isAccessRelation")
     @Transform(type = TransferObjectRelation.class)
     @To(type = EAnnotation.class)
@@ -952,7 +912,7 @@ public class TransferObjectRules {
      * 
      * Adds permissions annotation with create/update/delete flags for embedded relations.
      */
-    @TransformRule(name = "CreateTransferObjectRelationPermissions", description = "Add permissions annotation to transfer relations")
+    @TransformRule(name = CREATE_TRANSFER_OBJECT_RELATION_PERMISSIONS, description = "Add permissions annotation to transfer relations")
     @Greedy
     @Transform(type = TransferObjectRelation.class)
     @To(type = EAnnotation.class)
@@ -984,7 +944,7 @@ public class TransferObjectRules {
      *              (s.eContainer().isKindOf(MappedTransferObjectType) and s.binding.isKindOf(StaticNavigation)))
      *     }
      */
-    @TransformRule(name = "CreateNavigationReferenceBinding", description = "Add expression annotation for navigation bindings")
+    @TransformRule(name = CREATE_NAVIGATION_REFERENCE_BINDING, description = "Add expression annotation for navigation bindings")
     @Guard(method = "hasNavigationBinding")
     @Transform(type = TransferObjectRelation.class)
     @To(type = EAnnotation.class)
@@ -1070,7 +1030,7 @@ public class TransferObjectRules {
      * the Zeta framework doesn't guarantee that parent reference classes exist
      * when child reference classes are created.
      */
-    @TransformRule(name = "CreateReferenceClassForEntityType", description = "Create reference holder class for EntityType")
+    @TransformRule(name = CREATE_REFERENCE_CLASS_FOR_ENTITY_TYPE, description = "Create reference holder class for EntityType")
     @Transform(type = EntityType.class)
     @To(type = EClass.class)
     public TransformFunction<EntityType, EClass> createReferenceClassForEntityType() {
@@ -1116,46 +1076,4 @@ public class TransferObjectRules {
     // Note: Reference class inheritance (SetupReferenceClassInheritance) is handled in post-processing
     // in Psm2AsmZetaTransformation.postProcess() to ensure all reference classes exist first.
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    /**
-     * Gets the container package for an element by walking up the container hierarchy
-     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
-     */
-    private EPackage getContainerPackage(EObject element, TransformationContext ctx) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof Namespace) {
-                if (container instanceof Model) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                } else if (container instanceof Package) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                }
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
-
-    /**
-     * Gets the fully qualified name for an EClassifier (package.name format).
-     */
-    private String getClassifierFQName(EClassifier classifier) {
-        if (classifier == null) {
-            return null;
-        }
-        EPackage pkg = classifier.getEPackage();
-        if (pkg != null) {
-            return pkg.getName() + "." + classifier.getName();
-        }
-        return classifier.getName();
-    }
 }

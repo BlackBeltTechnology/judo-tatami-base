@@ -342,7 +342,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
             Column column = liquibaseFactory.createColumn();
             column.setName(field.getSqlName());
             column.setRemarks(field.getUuid());
-            column.setType(toFieldDefinition(field));
+            column.setType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
 
             // Add constraints for primary key or mandatory fields
             if (field == table.getPrimaryKey() || field.isMandatory()) {
@@ -425,7 +425,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
 
         AddColumnDef addColumnDef = liquibaseFactory.createAddColumnDef();
         addColumnDef.setName(field.getSqlName());
-        addColumnDef.setType(toFieldDefinition(field));
+        addColumnDef.setType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
         addColumnDef.setRemarks(field.getUuid());
 
         // Add constraints for primary key or mandatory fields
@@ -464,7 +464,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         ModifyDataType modifyDataType = liquibaseFactory.createModifyDataType();
         modifyDataType.setTableName(tableOp.getTable().getSqlName());
         modifyDataType.setColumnName(field.getSqlName());
-        modifyDataType.setNewDataType(toFieldDefinition(field));
+        modifyDataType.setNewDataType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
 
         ChangeSet changeSet = getOrCreateChangeSet("incremental", incrementalChangeLog,
                 "modify-data-types-in-" + tableOp.getTable().getSqlName() + "-" + context, "modify-data-types");
@@ -473,7 +473,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         addTrace(op, MODIFY_DATA_TYPES, modifyDataType);
         log.debug("ModifyDataType added: {} ({}) ==> {} -> {}", 
                 modifyDataType.getColumnName(), modifyDataType.getTableName(),
-                toFieldDefinition(previousField), toFieldDefinition(field));
+                Rdbms2LiquibaseHelper.toFieldDefinition(previousField), Rdbms2LiquibaseHelper.toFieldDefinition(field));
     }
 
     // =========================================================================
@@ -1162,7 +1162,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     }
 
     private void transformPostCheckBackupTable(RdbmsTableOperation op, RdbmsTable table, String ruleName) {
-        String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+        String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
         log.debug("  Transform post-check backup table: {}", abbreviatedName);
 
         TableExists tableExists = liquibaseFactory.createTableExists();
@@ -1175,7 +1175,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     }
 
     private void transformDeleteBackupTable(RdbmsTableOperation op, RdbmsTable table, String ruleName) {
-        String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+        String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
         log.debug("  Transform delete backup table: {}", abbreviatedName);
 
         DropTable dropTable = liquibaseFactory.createDropTable();
@@ -1192,29 +1192,6 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     // =========================================================================
     // HELPER METHODS
     // =========================================================================
-
-    private String toFieldDefinition(RdbmsField field) {
-        if (field.getRdbmsTypeName() != null) {
-            StringBuilder typedef = new StringBuilder(field.getRdbmsTypeName().toUpperCase());
-            if (field.getPrecision() > 0) {
-                typedef.append("(").append(field.getPrecision());
-                if (field.getScale() > 0) {
-                    typedef.append(", ").append(field.getScale());
-                }
-                typedef.append(")");
-            } else if (field.getSize() > 0) {
-                typedef.append("(").append(field.getSize()).append(")");
-            }
-            return typedef.toString();
-        }
-        return "";
-    }
-
-    private String abbreviate(String str, int maxLength) {
-        if (str == null) return "";
-        if (str.length() <= maxLength) return str;
-        return str.substring(0, maxLength);
-    }
 
     private ChangeSet getOrCreateChangeSet(String modelName, databaseChangeLog changeLog, String id, String logicalFilePath) {
         Map<String, ChangeSet> cache = changeSetCaches.get(modelName);
@@ -1284,7 +1261,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
                 Column column = liquibaseFactory.createColumn();
                 column.setName(field.getSqlName());
                 column.setRemarks(field.getUuid());
-                column.setType(toFieldDefinition(field));
+                column.setType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
 
                 if (field == table.getPrimaryKey() || field.isMandatory()) {
                     Constraints constraint = liquibaseFactory.createConstraints();
@@ -1380,7 +1357,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
 
             AddColumnDef addColumnDef = liquibaseFactory.createAddColumnDef();
             addColumnDef.setName(field.getSqlName());
-            addColumnDef.setType(toFieldDefinition(field));
+            addColumnDef.setType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
             addColumnDef.setRemarks(field.getUuid());
 
             if (field == table.getPrimaryKey() || field.isMandatory()) {
@@ -1420,7 +1397,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
             ModifyDataType modifyDataType = liquibaseFactory.createModifyDataType();
             modifyDataType.setTableName(tableOp.getTable().getSqlName());
             modifyDataType.setColumnName(op.getField().getSqlName());
-            modifyDataType.setNewDataType(toFieldDefinition(op.getField()));
+            modifyDataType.setNewDataType(Rdbms2LiquibaseHelper.toFieldDefinition(op.getField()));
 
             ChangeSet changeSet = getOrCreateChangeSet("incremental", incrementalChangeLog,
                     "modify-data-types-in-" + tableOp.getTable().getSqlName() + "-" + context, "modify-data-types");
@@ -2251,7 +2228,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         return (op, ctx) -> {
             RdbmsTable table = op instanceof RdbmsModifyTableOperation ? 
                     ((RdbmsModifyTableOperation) op).getPreviousTable() : op.getTable();
-            String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+            String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
             TableExists tableExists = liquibaseFactory.createTableExists();
             tableExists.setTableName(backupTableNamePrefix + "_" + abbreviatedName);
@@ -2269,7 +2246,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     public TransformFunction<RdbmsDeleteTableOperation, TableExists> postCheckBackupDeletedTablesRule() {
         return (op, ctx) -> {
             RdbmsTable table = op.getTable();
-            String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+            String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
             TableExists tableExists = liquibaseFactory.createTableExists();
             tableExists.setTableName(backupTableNamePrefix + "_" + abbreviatedName);
@@ -2287,7 +2264,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     public TransformFunction<RdbmsModifyTableOperation, TableExists> postCheckBackupModifiedTablesRule() {
         return (op, ctx) -> {
             RdbmsTable table = op.getPreviousTable();
-            String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+            String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
             TableExists tableExists = liquibaseFactory.createTableExists();
             tableExists.setTableName(backupTableNamePrefix + "_" + abbreviatedName);
@@ -2306,7 +2283,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         return (op, ctx) -> {
             RdbmsTable table = op instanceof RdbmsModifyTableOperation ? 
                     ((RdbmsModifyTableOperation) op).getPreviousTable() : op.getTable();
-            String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+            String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
             DropTable dropTable = liquibaseFactory.createDropTable();
             dropTable.setTableName(backupTableNamePrefix + "_" + abbreviatedName);
@@ -2326,7 +2303,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     public TransformFunction<RdbmsDeleteTableOperation, DropTable> deleteBackupDeletedTablesRule() {
         return (op, ctx) -> {
             RdbmsTable table = op.getTable();
-            String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+            String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
             DropTable dropTable = liquibaseFactory.createDropTable();
             dropTable.setTableName(backupTableNamePrefix + "_" + abbreviatedName);
@@ -2346,7 +2323,7 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     public TransformFunction<RdbmsModifyTableOperation, DropTable> deleteBackupModifiedTablesRule() {
         return (op, ctx) -> {
             RdbmsTable table = op.getPreviousTable();
-            String abbreviatedName = abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
+            String abbreviatedName = Rdbms2LiquibaseHelper.abbreviate(table.getSqlName(), tableNameMaxSize - backupTableNamePrefix.length() - 1).toUpperCase();
 
             DropTable dropTable = liquibaseFactory.createDropTable();
             dropTable.setTableName(backupTableNamePrefix + "_" + abbreviatedName);

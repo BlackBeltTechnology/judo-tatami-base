@@ -34,6 +34,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Data transformation rules from data.etl.
@@ -84,7 +85,7 @@ public class DataRules {
      * 
      * Note: All entity annotations are created inline to avoid recursive update issues.
      */
-    @TransformRule(name = "CreateEntityClass", description = "Transform EntityType to EClass")
+    @TransformRule(name = CREATE_ENTITY_CLASS, description = "Transform EntityType to EClass")
     @Transform(type = EntityType.class)
     @To(type = EClass.class)
     public TransformFunction<EntityType, EClass> createEntityClass() {
@@ -150,7 +151,7 @@ public class DataRules {
      * 
      * Note: All attribute annotations are created inline to avoid recursive update issues.
      */
-    @TransformRule(name = "CreateAttribute", description = "Transform Attribute to EAttribute")
+    @TransformRule(name = CREATE_ATTRIBUTE, description = "Transform Attribute to EAttribute")
     @Guard(method = "isPrimitiveAttribute")
     @Transform(type = Attribute.class)
     @To(type = EAttribute.class)
@@ -251,7 +252,7 @@ public class DataRules {
      * Note: All relation annotations are created inline to avoid recursive update issues.
      * EOpposite is set in post-processing to avoid bidirectional recursion.
      */
-    @TransformRule(name = "CreateAssociationEndRelation", description = "Transform AssociationEnd to EReference")
+    @TransformRule(name = CREATE_ASSOCIATION_END_RELATION, description = "Transform AssociationEnd to EReference")
     @Transform(type = AssociationEnd.class)
     @To(type = EReference.class)
     public TransformFunction<AssociationEnd, EReference> createAssociationEndRelation() {
@@ -304,7 +305,7 @@ public class DataRules {
      *     transform s : JUDOPSM!Containment
      *     to t : ASM!EReference
      */
-    @TransformRule(name = "CreateContainmentRelation", description = "Transform Containment to EReference with containment=true")
+    @TransformRule(name = CREATE_CONTAINMENT_RELATION, description = "Transform Containment to EReference with containment=true")
     @Transform(type = Containment.class)
     @To(type = EReference.class)
     public TransformFunction<Containment, EReference> createContainmentRelation() {
@@ -345,7 +346,7 @@ public class DataRules {
      * Create sequence annotation for NamespaceSequence.
      * Adds a sequence annotation to the container package.
      */
-    @TransformRule(name = "CreateNamespaceSequence")
+    @TransformRule(name = CREATE_NAMESPACE_SEQUENCE)
     @Transform(type = NamespaceSequence.class)
     @To(type = EAnnotation.class)
     @Greedy
@@ -372,7 +373,7 @@ public class DataRules {
      * Create sequence annotation for EntitySequence.
      * Adds a sequence annotation to the owning entity class.
      */
-    @TransformRule(name = "CreateEntitySequence")
+    @TransformRule(name = CREATE_ENTITY_SEQUENCE)
     @Transform(type = EntitySequence.class)
     @To(type = EAnnotation.class)
     @Greedy
@@ -427,7 +428,7 @@ public class DataRules {
      * Adds unmappedDefaultOnly annotation to attributes that have default values
      * in the entity's default transfer object representation.
      */
-    @TransformRule(name = "AddUnmappedDefaultOnlyAttributeAnnotation", 
+    @TransformRule(name = ADD_UNMAPPED_DEFAULT_ONLY_ATTRIBUTE_ANNOTATION,
                    description = "Add unmappedDefaultOnly annotation for attributes with default values")
     @Transform(type = Attribute.class)
     @To(type = EAnnotation.class)
@@ -480,7 +481,7 @@ public class DataRules {
      * Adds unmappedDefaultOnly annotation to association ends that have default values
      * in the entity's default transfer object representation.
      */
-    @TransformRule(name = "AddUnmappedDefaultOnlyReferenceAnnotation", 
+    @TransformRule(name = ADD_UNMAPPED_DEFAULT_ONLY_REFERENCE_ANNOTATION,
                    description = "Add unmappedDefaultOnly annotation for references with default values")
     @Transform(type = AssociationEnd.class)
     @To(type = EAnnotation.class)
@@ -522,46 +523,4 @@ public class DataRules {
         };
     }
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    /**
-     * Gets the owning EntityType for an element.
-     */
-    private EntityType getEntityType(EObject element) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof EntityType) {
-                return (EntityType) container;
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
-
-    /**
-     * Gets the container package for an element by walking up the container hierarchy
-     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
-     */
-    private EPackage getContainerPackage(EObject element, TransformationContext ctx) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof Namespace) {
-                if (container instanceof Model) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                } else if (container instanceof Package) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                }
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
 }

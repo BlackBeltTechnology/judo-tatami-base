@@ -21,13 +21,17 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta;
  */
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.psm.data.EntityType;
 import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EAnnotation;
+import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EModelElement;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EcoreFactory;
 
 import java.util.Map;
@@ -350,6 +354,83 @@ public final class Psm2AsmHelper {
             return str;
         }
         return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    // =========================================================================
+    // CONTAINER NAVIGATION METHODS
+    // =========================================================================
+
+    /**
+     * Gets the container package for an element by walking up the container hierarchy
+     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
+     * <p>
+     * This method is used across multiple rule classes to find the target package
+     * for newly created ASM elements.
+     * </p>
+     *
+     * @param element the source PSM element
+     * @param ctx     the transformation context for equivalent lookups
+     * @return the equivalent EPackage, or null if not found
+     */
+    public static EPackage getContainerPackage(EObject element, TransformationContext ctx) {
+        EObject container = element.eContainer();
+        while (container != null) {
+            if (container instanceof Namespace) {
+                EPackage pkg = ctx.equivalent(container, EPackage.class);
+                if (pkg != null) {
+                    return pkg;
+                }
+            }
+            container = container.eContainer();
+        }
+        return null;
+    }
+
+    /**
+     * Gets the owning EntityType for an element by walking up the container hierarchy.
+     * <p>
+     * This method is used to find the parent entity for attributes, relations,
+     * operations, and other entity members.
+     * </p>
+     *
+     * @param element the element to find the owning entity for
+     * @return the owning EntityType, or null if the element is not contained in an entity
+     */
+    public static EntityType getEntityType(EObject element) {
+        EObject container = element.eContainer();
+        while (container != null) {
+            if (container instanceof EntityType) {
+                return (EntityType) container;
+            }
+            container = container.eContainer();
+        }
+        return null;
+    }
+
+    /**
+     * Gets the fully qualified name of an EClassifier by traversing its package hierarchy.
+     * <p>
+     * The result is in the format "rootPackage.subPackage.ClassName".
+     * </p>
+     *
+     * @param classifier the classifier to get the FQN for
+     * @return the fully qualified name, or null if classifier is null
+     */
+    public static String getClassifierFQName(EClassifier classifier) {
+        if (classifier == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        EPackage pkg = classifier.getEPackage();
+        while (pkg != null) {
+            if (sb.length() > 0) {
+                sb.insert(0, ".");
+            }
+            sb.insert(0, pkg.getName());
+            pkg = pkg.getESuperPackage();
+        }
+        sb.append(".").append(classifier.getName());
+        return sb.toString();
     }
 
     // =========================================================================

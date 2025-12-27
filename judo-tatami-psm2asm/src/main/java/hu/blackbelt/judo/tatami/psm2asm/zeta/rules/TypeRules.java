@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Type transformation rules from type.etl.
@@ -76,7 +77,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!EnumerationType
      *     to t : ASM!EEnum
      */
-    @TransformRule(name = "CreateEnumeration", description = "Transform EnumerationType to EEnum")
+    @TransformRule(name = CREATE_ENUMERATION, description = "Transform EnumerationType to EEnum")
     @Greedy
     @Transform(type = EnumerationType.class)
     @To(type = EEnum.class)
@@ -99,7 +100,7 @@ public class TypeRules {
             }
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -118,7 +119,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!StringType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateStringType", description = "Transform StringType to EDataType")
+    @TransformRule(name = CREATE_STRING_TYPE, description = "Transform StringType to EDataType")
     @Greedy
     @Transform(type = StringType.class)
     @To(type = EDataType.class)
@@ -130,7 +131,7 @@ public class TypeRules {
             t.setInstanceClassName("java.lang.String");
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -173,7 +174,7 @@ public class TypeRules {
      *         guard: s.isInteger()
      *     }
      */
-    @TransformRule(name = "CreateIntegerType", description = "Transform NumericType (integer) to EDataType")
+    @TransformRule(name = CREATE_INTEGER_TYPE, description = "Transform NumericType (integer) to EDataType")
     @Greedy
     @Guard(method = "isIntegerGuard")
     @Transform(type = NumericType.class)
@@ -186,7 +187,7 @@ public class TypeRules {
             t.setInstanceClassName(getIntegerClassName(s));
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -203,7 +204,7 @@ public class TypeRules {
      *         guard: s.isDecimal()
      *     }
      */
-    @TransformRule(name = "CreateDecimalType", description = "Transform NumericType (decimal) to EDataType")
+    @TransformRule(name = CREATE_DECIMAL_TYPE, description = "Transform NumericType (decimal) to EDataType")
     @Greedy
     @Guard(method = "isDecimalGuard")
     @Transform(type = NumericType.class)
@@ -216,7 +217,7 @@ public class TypeRules {
             t.setInstanceClassName(getDecimalClassName(s));
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -230,7 +231,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!MeasuredType
      *     to t : ASM!EAnnotation
      */
-    @TransformRule(name = "CreateMeasuredAnnotationOfIntegerType", description = "Add measured annotation to numeric types")
+    @TransformRule(name = CREATE_MEASURED_ANNOTATION_OF_INTEGER_TYPE, description = "Add measured annotation to numeric types")
     @Transform(type = MeasuredType.class)
     @To(type = EAnnotation.class)
     public TransformFunction<MeasuredType, EAnnotation> createMeasuredAnnotationOfIntegerType() {
@@ -270,7 +271,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!BooleanType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateBooleanType", description = "Transform BooleanType to EDataType")
+    @TransformRule(name = CREATE_BOOLEAN_TYPE, description = "Transform BooleanType to EDataType")
     @Greedy
     @Transform(type = BooleanType.class)
     @To(type = EDataType.class)
@@ -282,7 +283,7 @@ public class TypeRules {
             t.setInstanceClassName("java.lang.Boolean");
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -301,7 +302,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!BinaryType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateBinaryType", description = "Transform BinaryType to EDataType")
+    @TransformRule(name = CREATE_BINARY_TYPE, description = "Transform BinaryType to EDataType")
     @Greedy
     @Transform(type = BinaryType.class)
     @To(type = EDataType.class)
@@ -328,7 +329,7 @@ public class TypeRules {
             t.getEAnnotations().add(a);
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -347,7 +348,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!DateType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateDateType", description = "Transform DateType to EDataType")
+    @TransformRule(name = CREATE_DATE_TYPE, description = "Transform DateType to EDataType")
     @Greedy
     @Transform(type = DateType.class)
     @To(type = EDataType.class)
@@ -359,7 +360,7 @@ public class TypeRules {
             t.setInstanceClassName("java.time.LocalDate");
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -374,7 +375,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!TimestampType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateTimestampType", description = "Transform TimestampType to EDataType")
+    @TransformRule(name = CREATE_TIMESTAMP_TYPE, description = "Transform TimestampType to EDataType")
     @Greedy
     @Transform(type = TimestampType.class)
     @To(type = EDataType.class)
@@ -386,7 +387,7 @@ public class TypeRules {
             t.setInstanceClassName("java.time.LocalDateTime");
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -401,7 +402,7 @@ public class TypeRules {
      *     transform s : JUDOPSM!TimeType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateTimeType", description = "Transform TimeType to EDataType")
+    @TransformRule(name = CREATE_TIME_TYPE, description = "Transform TimeType to EDataType")
     @Greedy
     @Transform(type = TimeType.class)
     @To(type = EDataType.class)
@@ -413,7 +414,7 @@ public class TypeRules {
             t.setInstanceClassName("java.time.LocalTime");
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
@@ -450,42 +451,12 @@ public class TypeRules {
     // =========================================================================
 
     /**
-     * Gets the container package for an element by walking up the container hierarchy
-     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
-     * 
-     * This is needed because ctx.equivalent(s.eContainer(), EPackage.class) may not work
-     * correctly if the container type doesn't directly map to EPackage (e.g., Model).
-     */
-    private EPackage getContainerPackage(EObject element, TransformationContext ctx) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof Namespace) {
-                // For Model, we need to look up with Model.class as the equivalent type
-                // since Model -> EPackage mapping is stored under Model, not Namespace
-                if (container instanceof Model) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                } else if (container instanceof Package) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                }
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
-
-    /**
      * @greedy
      * rule CreateCustomType
      *     transform s : JUDOPSM!CustomType
      *     to t : ASM!EDataType
      */
-    @TransformRule(name = "CreateCustomType", description = "Transform CustomType to EDataType")
+    @TransformRule(name = CREATE_CUSTOM_TYPE, description = "Transform CustomType to EDataType")
     @Greedy
     @Guard(method = "isCustomTypeGuard")
     @Transform(type = CustomType.class)
@@ -499,7 +470,7 @@ public class TypeRules {
             t.setInstanceClassName("java.lang.Object");
             
             // Add to container package
-            EPackage containerPkg = getContainerPackage(s, ctx);
+            EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }

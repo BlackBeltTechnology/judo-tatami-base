@@ -322,14 +322,14 @@ public class Rdbms2LiquibaseZetaTransformation {
     private Column createColumn(RdbmsField field) {
         Column column = liquibaseFactory.createColumn();
         column.setName(field.getSqlName());
-        column.setType(toFieldDefinition(field));
+        column.setType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
         column.setRemarks(field.getUuid());
         return column;
     }
 
     private void createNotNullConstraint(RdbmsField field, RdbmsTable table) {
         AddNotNullConstraint notNull = liquibaseFactory.createAddNotNullConstraint();
-        notNull.setColumnDataType(toFieldDefinition(field));
+        notNull.setColumnDataType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
         notNull.setColumnName(field.getSqlName());
         notNull.setTableName(table.getSqlName());
 
@@ -430,23 +430,6 @@ public class Rdbms2LiquibaseZetaTransformation {
                 .filter(t -> t.getFields().contains(field))
                 .findFirst()
                 .orElse(null);
-    }
-
-    private String toFieldDefinition(RdbmsField field) {
-        if (field.getRdbmsTypeName() != null) {
-            StringBuilder typedef = new StringBuilder(field.getRdbmsTypeName().toUpperCase());
-            if (field.getPrecision() > 0) {
-                typedef.append("(").append(field.getPrecision());
-                if (field.getScale() > 0) {
-                    typedef.append(", ").append(field.getScale());
-                }
-                typedef.append(")");
-            } else if (field.getSize() > 0) {
-                typedef.append("(").append(field.getSize()).append(")");
-            }
-            return typedef.toString();
-        }
-        return "";
     }
 
     private ChangeSet getOrCreateChangeSet(String id, String logicalFilePath) {
@@ -721,7 +704,7 @@ public class Rdbms2LiquibaseZetaTransformation {
             if (table == null) return null;
 
             AddNotNullConstraint notNull = liquibaseFactory.createAddNotNullConstraint();
-            notNull.setColumnDataType(toFieldDefinition(field));
+            notNull.setColumnDataType(Rdbms2LiquibaseHelper.toFieldDefinition(field));
             notNull.setColumnName(field.getSqlName());
             notNull.setTableName(table.getSqlName());
 

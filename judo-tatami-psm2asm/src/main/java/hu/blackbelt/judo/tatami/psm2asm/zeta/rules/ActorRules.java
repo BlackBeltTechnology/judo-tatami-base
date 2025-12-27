@@ -32,6 +32,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Actor type transformation rules from accesspoint.etl.
@@ -80,14 +81,6 @@ public class ActorRules {
     }
 
     /**
-     * Guard: actor is abstract - not applicable for AbstractActorType interface
-     */
-    public boolean isAbstractActorType(EObject source, TransformationContext ctx) {
-        // AbstractActorType interface doesn't have isAbstract method
-        return false;
-    }
-
-    /**
      * Guard: mapped actor type has transfer object type
      */
     public boolean hasTransferObjectType(EObject source, TransformationContext ctx) {
@@ -106,7 +99,7 @@ public class ActorRules {
      *     transform s : JUDOPSM!ActorType
      *     to t : ASM!EClass
      */
-    @TransformRule(name = "CreateActorTypeClass", description = "Transform ActorType to EClass")
+    @TransformRule(name = CREATE_ACTOR_TYPE_CLASS, description = "Transform ActorType to EClass")
     @Transform(type = ActorType.class)
     @To(type = EClass.class)
     public TransformFunction<ActorType, EClass> createActorTypeClass() {
@@ -134,7 +127,7 @@ public class ActorRules {
      * ETL creates the actor class via CreateMappedTransferObjectTypeClass which only
      * sets up inheritance from transfer object super types, not from entityType.
      */
-    @TransformRule(name = "CreateMappedActorTypeClass", description = "Transform MappedActorType to EClass")
+    @TransformRule(name = CREATE_MAPPED_ACTOR_TYPE_CLASS, description = "Transform MappedActorType to EClass")
     @Transform(type = MappedActorType.class)
     @To(type = EClass.class)
     public TransformFunction<MappedActorType, EClass> createMappedActorTypeClass() {
@@ -169,7 +162,7 @@ public class ActorRules {
      * 
      * ETL includes managed (for MappedActorType) and kind details.
      */
-    @TransformRule(name = "CreateActorTypeAnnotation", description = "Add actorType annotation")
+    @TransformRule(name = CREATE_ACTOR_TYPE_ANNOTATION, description = "Add actorType annotation")
     @Greedy
     @Transform(type = AbstractActorType.class)
     @To(type = EAnnotation.class)
@@ -207,7 +200,7 @@ public class ActorRules {
      *         guard: s.realm.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateRealmAnnotation", description = "Add realm annotation to actor type")
+    @TransformRule(name = CREATE_REALM_TYPE_ANNOTATION, description = "Add realm annotation to actor type")
     @Greedy
     @Guard(method = "hasRealm")
     @Transform(type = AbstractActorType.class)
@@ -236,7 +229,7 @@ public class ActorRules {
      *         guard: s.transferObjectType.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateMappedActorTypeAnnotation", description = "Add mappedTransferObjectType annotation")
+    @TransformRule(name = CREATE_MAPPED_ACTOR_TYPE_ANNOTATION, description = "Add mappedTransferObjectType annotation")
     @Guard(method = "hasTransferObjectType")
     @Transform(type = MappedActorType.class)
     @To(type = EAnnotation.class)
@@ -264,7 +257,7 @@ public class ActorRules {
      *         guard: s.documentation.isDefined()
      *     }
      */
-    @TransformRule(name = "CreateDocumentationAnnotationForActorType", description = "Add documentation annotation to actor")
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_ACTOR_TYPE, description = "Add documentation annotation to actor")
     @Greedy
     @Guard(method = "hasDocumentation")
     @Transform(type = AbstractActorType.class)
@@ -286,32 +279,4 @@ public class ActorRules {
         };
     }
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    /**
-     * Gets the container package for an element by walking up the container hierarchy
-     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
-     */
-    private EPackage getContainerPackage(EObject element, TransformationContext ctx) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof Namespace) {
-                if (container instanceof Model) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                } else if (container instanceof Package) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                }
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
 }
