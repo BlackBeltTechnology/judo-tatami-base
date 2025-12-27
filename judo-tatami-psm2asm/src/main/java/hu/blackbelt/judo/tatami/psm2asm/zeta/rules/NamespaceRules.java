@@ -31,6 +31,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Namespace transformation rules from namespace.etl.
@@ -81,17 +82,6 @@ public class NamespaceRules {
         return false;
     }
 
-    /**
-     * Guard: source has documentation (non-null, non-empty)
-     */
-    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
-            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
-            return doc != null && !doc.isEmpty();
-        }
-        return false;
-    }
-
     // =========================================================================
     // ABSTRACT RULES
     // =========================================================================
@@ -104,7 +94,7 @@ public class NamespaceRules {
      * Base rule for namespace-to-package transformations.
      * Extended by: ModelToPackage, PackageToPackage
      */
-    @TransformRule(name = "NamespaceToPackage", description = "Abstract base rule for namespace to EPackage transformation")
+    @TransformRule(name = NAMESPACE_TO_PACKAGE, description = "Abstract base rule for namespace to EPackage transformation")
     @Abstract
     @Transform(type = Namespace.class)
     @To(type = EPackage.class)
@@ -126,14 +116,14 @@ public class NamespaceRules {
      *     to t : ASM!EPackage
      *     extends NamespaceToPackage
      */
-    @TransformRule(name = "ModelToPackage", description = "Transform Model to root EPackage")
-    @Extends({"NamespaceToPackage"})
+    @TransformRule(name = MODEL_TO_PACKAGE, description = "Transform Model to root EPackage")
+    @Extends({NAMESPACE_TO_PACKAGE})
     @Transform(type = Model.class)
     @To(type = EPackage.class)
     public TransformFunction<Model, EPackage> modelToPackage() {
         return (s, ctx) -> {
             // Execute parent rule
-            EPackage t = ctx.executeParentRule("NamespaceToPackage", s);
+            EPackage t = ctx.executeParentRule(NAMESPACE_TO_PACKAGE, s);
             
             setId(t, "(psm/" + getId(s) + ")/Package");
             
@@ -161,7 +151,7 @@ public class NamespaceRules {
      *         guard: s.version.isDefined()
      *     }
      */
-    @TransformRule(name = "ModelToPackageVersion", description = "Add version annotation to model package")
+    @TransformRule(name = MODEL_TO_PACKAGE_VERSION, description = "Add version annotation to model package")
     @Guard(method = "hasVersion")
     @Transform(type = Model.class)
     @To(type = EAnnotation.class)
@@ -192,14 +182,14 @@ public class NamespaceRules {
      *     to t : ASM!EPackage
      *     extends NamespaceToPackage
      */
-    @TransformRule(name = "PackageToPackage", description = "Transform Package to sub-EPackage")
-    @Extends({"NamespaceToPackage"})
+    @TransformRule(name = PACKAGE_TO_PACKAGE, description = "Transform Package to sub-EPackage")
+    @Extends({NAMESPACE_TO_PACKAGE})
     @Transform(type = Package.class)
     @To(type = EPackage.class)
     public TransformFunction<Package, EPackage> packageToPackage() {
         return (s, ctx) -> {
             // Execute parent rule
-            EPackage t = ctx.executeParentRule("NamespaceToPackage", s);
+            EPackage t = ctx.executeParentRule(NAMESPACE_TO_PACKAGE, s);
             
             setId(t, "(psm/" + getId(s) + ")/Package");
             
@@ -218,32 +208,4 @@ public class NamespaceRules {
         };
     }
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    /**
-     * Gets the container package for an element by walking up the container hierarchy
-     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
-     */
-    private EPackage getContainerPackage(EObject element, TransformationContext ctx) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof Namespace) {
-                if (container instanceof Model) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                } else if (container instanceof Package) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                }
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
 }

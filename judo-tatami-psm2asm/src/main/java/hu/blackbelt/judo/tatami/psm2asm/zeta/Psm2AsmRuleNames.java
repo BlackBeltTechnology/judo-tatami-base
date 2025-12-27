@@ -366,9 +366,15 @@ public final class Psm2AsmRuleNames {
     
     /** Create actor type class. */
     public static final String CREATE_ACTOR_TYPE_CLASS = "CreateActorTypeClass";
-    
+
+    /** Create mapped actor type class. */
+    public static final String CREATE_MAPPED_ACTOR_TYPE_CLASS = "CreateMappedActorTypeClass";
+
     /** Create actor annotation. */
     public static final String CREATE_ACTOR_ANNOTATION = "CreateActorAnnotation";
+
+    /** Create mapped actor type annotation. */
+    public static final String CREATE_MAPPED_ACTOR_TYPE_ANNOTATION = "CreateMappedActorTypeAnnotation";
     
     /** Create actor type annotation. */
     public static final String CREATE_ACTOR_TYPE_ANNOTATION = "CreateActorTypeAnnotation";
@@ -422,9 +428,30 @@ public final class Psm2AsmRuleNames {
     // =====================================================
     // Additional Operation Rules
     // =====================================================
-    
+
     /** Create input parameter. */
     public static final String CREATE_INPUT_PARAMETER = "CreateInputParameter";
+
+    /** Create output parameter name for bound operation. */
+    public static final String CREATE_OUTPUT_PARAMETER_NAME_FOR_BOUND_OPERATION = "CreateOutputParameterNameForBoundOperation";
+
+    /** Create bound operation input parameter. */
+    public static final String CREATE_BOUND_OPERATION_INPUT_PARAMETER = "CreateBoundOperationInputParameter";
+
+    /** Create transfer operation behaviour annotation. */
+    public static final String CREATE_TRANSFER_OPERATION_BEHAVIOUR_ANNOTATION = "CreateTransferOperationBehaviourAnnotation";
+
+    /** Create stateful annotation default. */
+    public static final String CREATE_STATEFUL_ANNOTATION_DEFAULT = "CreateStatefulAnnotationDefault";
+
+    /** Create custom implementation annotation. */
+    public static final String CREATE_CUSTOM_IMPLEMENTATION_ANNOTATION = "CreateCustomImplementationAnnotation";
+
+    /** Create bound annotation for transfer operation. */
+    public static final String CREATE_BOUND_ANNOTATION_FOR_TRANSFER_OPERATION = "CreateBoundAnnotationForTransferOperation";
+
+    /** Create stateful annotation with behaviour. */
+    public static final String CREATE_STATEFUL_ANNOTATION_WITH_BEHAVIOUR = "CreateStatefulAnnotationWithBehaviour";
     
     // =====================================================
     // Documentation Annotation Rules

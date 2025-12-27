@@ -33,6 +33,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
+import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 
 /**
  * Static data and navigation transformation rules from static.etl.
@@ -66,22 +67,6 @@ public class StaticRules {
     }
 
     // =========================================================================
-    // GUARDS
-    // =========================================================================
-
-    /**
-     * Guard: static data has parameterized getter
-     */
-    public boolean hasParameterizedGetter(EObject source, TransformationContext ctx) {
-        if (source instanceof StaticData) {
-            StaticData sd = (StaticData) source;
-            return sd.getGetterExpression() != null && 
-                   sd.getGetterExpression().getParameterType() != null;
-        }
-        return false;
-    }
-
-    // =========================================================================
     // STATIC DATA RULES
     // =========================================================================
 
@@ -90,7 +75,7 @@ public class StaticRules {
      *     transform s : JUDOPSM!StaticData
      *     to t : ASM!EClass
      */
-    @TransformRule(name = "CreateUnmappedTransferObjectForStaticData", description = "Transform StaticData to unmapped transfer object EClass")
+    @TransformRule(name = CREATE_UNMAPPED_TRANSFER_OBJECT_FOR_STATIC_DATA, description = "Transform StaticData to unmapped transfer object EClass")
     @Transform(type = StaticData.class)
     @To(type = EClass.class)
     @Greedy
@@ -191,7 +176,7 @@ public class StaticRules {
      * Creates an EClass for StaticNavigation elements that have a default representation.
      * Also adds transferObjectType and staticQuery annotations, and creates the navigation EReference.
      */
-    @TransformRule(name = "CreateUnmappedTransferObjectForStaticNavigation", description = "Transform StaticNavigation to unmapped transfer object EClass")
+    @TransformRule(name = CREATE_UNMAPPED_TRANSFER_OBJECT_FOR_STATIC_NAVIGATION, description = "Transform StaticNavigation to unmapped transfer object EClass")
     @Transform(type = StaticNavigation.class)
     @To(type = EClass.class)
     @Greedy
@@ -306,50 +291,4 @@ public class StaticRules {
         };
     }
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    /**
-     * Gets the container package for an element by walking up the container hierarchy
-     * to find the nearest Namespace (Model or Package) and looking up its equivalent EPackage.
-     */
-    private EPackage getContainerPackage(EObject element, TransformationContext ctx) {
-        EObject container = element.eContainer();
-        while (container != null) {
-            if (container instanceof Namespace) {
-                if (container instanceof Model) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                } else if (container instanceof Package) {
-                    EPackage pkg = ctx.equivalent(container, EPackage.class);
-                    if (pkg != null) {
-                        return pkg;
-                    }
-                }
-            }
-            container = container.eContainer();
-        }
-        return null;
-    }
-
-    /**
-     * Gets the fully qualified name of an EClassifier.
-     */
-    private String getClassifierFQName(EClassifier classifier) {
-        if (classifier == null) return null;
-        StringBuilder sb = new StringBuilder();
-        EPackage pkg = classifier.getEPackage();
-        while (pkg != null) {
-            if (sb.length() > 0) {
-                sb.insert(0, ".");
-            }
-            sb.insert(0, pkg.getName());
-            pkg = pkg.getESuperPackage();
-        }
-        sb.append(".").append(classifier.getName());
-        return sb.toString();
-    }
 }
