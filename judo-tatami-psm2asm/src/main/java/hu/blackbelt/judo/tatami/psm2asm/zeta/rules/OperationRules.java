@@ -146,7 +146,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EOperation> createBoundOperation() {
         return (s, ctx) -> {
             EOperation t = ctx.createTarget(EOperation.class);
-            setId(t, "(psm/" + getId(s) + ")/BoundOperation");
             t.setName(s.getName());
             
             // Set output type and cardinality (from CreateOperation abstract rule in ETL)
@@ -199,7 +198,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EAnnotation> createBoundOperationAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/BoundOperationAnnotation");
             t.setSource(getAnnotationUri("bound"));
             addAnnotationDetail(t, "value", "true");
             
@@ -224,7 +222,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EAnnotation> createInstanceRepresentationOfBoundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/InstanceRepresentationOfBoundOperation");
             t.setSource(getAnnotationUri("instanceRepresentation"));
             
             // Get the instance representation type
@@ -259,7 +256,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EAnnotation> createAbstractBoundOperationAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/AbstractBoundOperationAnnotation");
             t.setSource(getAnnotationUri("abstract"));
             addAnnotationDetail(t, "value", "true");
             
@@ -289,7 +285,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EAnnotation> createOutputParameterNameForBoundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/OutputParameterName");
             t.setSource(getAnnotationUri("outputParameterName"));
             addAnnotationDetail(t, "value", s.getOutput().getName());
             
@@ -317,7 +312,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EAnnotation> createCustomImplementationAnnotationOnBoundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/CustomImplementationAnnotationOnBoundOperation");
             t.setSource(getAnnotationUri("customImplementation"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
             
@@ -359,7 +353,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EAnnotation> createScriptBodyAnnotationForBoundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ScriptBodyAnnotationForBoundOperation");
             t.setSource(getAnnotationUri("script"));
             addAnnotationDetail(t, "body", s.getImplementation().getBody());
             
@@ -387,7 +380,6 @@ public class OperationRules {
     public TransformFunction<BoundOperation, EParameter> createBoundOperationInputParameter() {
         return (s, ctx) -> {
             EParameter t = ctx.createTarget(EParameter.class);
-            setId(t, "(psm/" + getId(s) + ")/BoundOperationInputParameter");
             t.setName(s.getInput().getName());
             
             // Set type
@@ -429,7 +421,6 @@ public class OperationRules {
     public TransformFunction<BoundTransferOperation, EOperation> createBoundTransferOperation() {
         return (s, ctx) -> {
             EOperation t = ctx.createTarget(EOperation.class);
-            setId(t, "(psm/" + getId(s) + ")/BoundTransferOperation");
             t.setName(s.getName());
             
             // Set output type and cardinality from binding
@@ -495,7 +486,6 @@ public class OperationRules {
     public TransformFunction<UnboundOperation, EOperation> createUnboundOperation() {
         return (s, ctx) -> {
             EOperation t = ctx.createTarget(EOperation.class);
-            setId(t, "(psm/" + getId(s) + ")/UnboundOperation");
             t.setName(s.getName());
             
             // Set output type and cardinality
@@ -540,7 +530,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createTransferOperationBehaviourAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/BehaviourAnnotation");
             t.setSource(getAnnotationUri("behaviour"));
             
             TransferOperationBehaviour behaviour = s.getBehaviour();
@@ -703,7 +692,6 @@ public class OperationRules {
     public TransformFunction<Parameter, EParameter> createInputParameter() {
         return (s, ctx) -> {
             EParameter t = ctx.createTarget(EParameter.class);
-            setId(t, "(psm/" + getId(s) + ")/InputParameter");
             t.setName(s.getName());
             
             // Set type
@@ -773,7 +761,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createStatefulAnnotationOnOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/StatefulAnnotationOnOperation");
             t.setSource(getAnnotationUri("stateful"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isStateful()));
             
@@ -802,7 +789,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createStatefulAnnotationDefault() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/StatefulAnnotationOnOperationWithoutImplementationAndBehaviour");
             t.setSource(getAnnotationUri("stateful"));
             addAnnotationDetail(t, "value", "true");
             
@@ -831,7 +817,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createCustomImplementationAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/CustomImplementationAnnotationOnOperation");
             t.setSource(getAnnotationUri("customImplementation"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
             
@@ -879,7 +864,6 @@ public class OperationRules {
     public TransformFunction<UnboundOperation, EAnnotation> createInitializerAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/InitializerAnnotation");
             t.setSource(getAnnotationUri("initializer"));
             addAnnotationDetail(t, "value", "true");
             
@@ -921,7 +905,6 @@ public class OperationRules {
     public TransformFunction<UnboundOperation, EAnnotation> createScriptBodyAnnotationForUnboundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ScriptBodyAnnotationForUnboundOperation");
             t.setSource(getAnnotationUri("script"));
             addAnnotationDetail(t, "body", s.getImplementation().getBody());
             
@@ -954,7 +937,6 @@ public class OperationRules {
     public TransformFunction<UnboundOperation, EAnnotation> createCustomImplementationAnnotationOnUnboundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/CustomImplementationAnnotationOnUnboundOperation");
             t.setSource(getAnnotationUri("customImplementation"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
             
@@ -983,7 +965,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createOutputParameterName() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/OutputParameterName");
             t.setSource(getAnnotationUri("outputParameterName"));
             addAnnotationDetail(t, "value", s.getOutput().getName());
             
@@ -1011,7 +992,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createOperationPermissions() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/OperationPermissions");
             t.setSource(getAnnotationUri("permissions"));
             addAnnotationDetail(t, "update", String.valueOf(s.isUpdateOnResult()));
             addAnnotationDetail(t, "delete", String.valueOf(s.isDeleteOnResult()));
@@ -1040,7 +1020,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createImmutableFlagForTransferOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ImmutableAnnotationOnOperation");
             t.setSource(getAnnotationUri("immutable"));
             addAnnotationDetail(t, "value", String.valueOf(s.isImmutable()));
             
@@ -1068,7 +1047,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createBoundAnnotationForTransferOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/BoundOperationAnnotation");
             t.setSource(getAnnotationUri("bound"));
             // BoundTransferOperation is bound, UnboundOperation is not
             boolean isBound = s instanceof BoundTransferOperation;
@@ -1101,7 +1079,6 @@ public class OperationRules {
     public TransformFunction<TransferOperation, EAnnotation> createStatefulAnnotationWithBehaviour() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/StatefulAnnotationOnOperationWithBehaviour");
             t.setSource(getAnnotationUri("stateful"));
             
             // Determine stateful value based on behaviour type

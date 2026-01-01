@@ -124,9 +124,7 @@ public class NamespaceRules {
         return (s, ctx) -> {
             // Execute parent rule
             EPackage t = ctx.executeParentRule(NAMESPACE_TO_PACKAGE, s);
-            
-            setId(t, "(psm/" + getId(s) + ")/Package");
-            
+
             // Get namespace configuration from context or use defaults
             String modelName = s.getName();
             String ctxNsURI = ctx.getAttribute("nsURI");
@@ -158,7 +156,6 @@ public class NamespaceRules {
     public TransformFunction<Model, EAnnotation> modelToPackageVersion() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ModelToPackageVersion");
             t.setSource(getAnnotationUri("ModelVersion"));
             addAnnotationDetail(t, "value", s.getVersion());
             
@@ -190,9 +187,7 @@ public class NamespaceRules {
         return (s, ctx) -> {
             // Execute parent rule
             EPackage t = ctx.executeParentRule(NAMESPACE_TO_PACKAGE, s);
-            
-            setId(t, "(psm/" + getId(s) + ")/Package");
-            
+
             // Get parent package - for Package, the parent is always Model or Package
             EPackage parentPkg = getContainerPackage(s, ctx);
             if (parentPkg != null) {

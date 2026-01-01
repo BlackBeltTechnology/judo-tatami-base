@@ -109,22 +109,6 @@ public final class Psm2AsmHelper {
         return String.valueOf(System.identityHashCode(element));
     }
 
-    /**
-     * Set the XMI ID on an element via annotation.
-     * <p>
-     * Note: IDs are not required for functional model equivalence.
-     * ETL transformations do not produce these ID annotations, so this is a no-op
-     * to ensure Zeta produces equivalent output to ETL.
-     * </p>
-     *
-     * @param element the element to set the ID on
-     * @param id      the ID value to set
-     */
-    public static void setId(EObject element, String id) {
-        // No-op: ETL doesn't produce ID annotations, so neither should Zeta
-        // This method is kept for API compatibility but does nothing
-    }
-
     // =========================================================================
     // QUALIFIED NAME METHODS
     // =========================================================================
@@ -244,15 +228,16 @@ public final class Psm2AsmHelper {
     }
 
     /**
-     * Creates an EAnnotation with the given ID and source URI.
+     * Creates an EAnnotation with the given source URI.
+     * Note: The id parameter is kept for API compatibility but is no longer used
+     * since XMI IDs are now handled automatically by the Zeta framework.
      *
-     * @param id     the ID to set on the annotation
+     * @param id     unused (kept for API compatibility)
      * @param source the source URI for the annotation
      * @return the created annotation
      */
     public static EAnnotation createAnnotation(String id, String source) {
         EAnnotation annotation = EcoreFactory.eINSTANCE.createEAnnotation();
-        setId(annotation, id);
         annotation.setSource(source);
         return annotation;
     }

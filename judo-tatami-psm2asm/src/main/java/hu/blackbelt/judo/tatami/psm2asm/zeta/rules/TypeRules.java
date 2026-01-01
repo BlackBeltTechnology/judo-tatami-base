@@ -84,14 +84,12 @@ public class TypeRules {
     public TransformFunction<EnumerationType, EEnum> createEnumeration() {
         return (s, ctx) -> {
             EEnum t = ctx.createTarget(EEnum.class);
-            setId(t, "(psm/" + getId(s) + ")/Enumeration");
             t.setName(s.getName());
             
             // Create enum literals
             int loopCount = 0;
             for (EnumerationMember m : s.getMembers()) {
                 EEnumLiteral l = ctx.create(EEnumLiteral.class);
-                setId(l, getId(t) + "/Literal" + loopCount);
                 l.setValue(m.getOrdinal());
                 l.setLiteral(m.getName());
                 l.setName(m.getName());
@@ -126,16 +124,15 @@ public class TypeRules {
     public TransformFunction<StringType, EDataType> createStringType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/StringType");
             t.setName(s.getName());
             t.setInstanceClassName("java.lang.String");
-            
+
             // Add to container package
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             if (containerPkg != null) {
                 containerPkg.getEClassifiers().add(t);
             }
-            
+
             return t;
         };
     }
@@ -182,7 +179,6 @@ public class TypeRules {
     public TransformFunction<NumericType, EDataType> createIntegerType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/IntegerType");
             t.setName(s.getName());
             t.setInstanceClassName(getIntegerClassName(s));
             
@@ -212,7 +208,6 @@ public class TypeRules {
     public TransformFunction<NumericType, EDataType> createDecimalType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/DecimalType");
             t.setName(s.getName());
             t.setInstanceClassName(getDecimalClassName(s));
             
@@ -237,7 +232,6 @@ public class TypeRules {
     public TransformFunction<MeasuredType, EAnnotation> createMeasuredAnnotationOfIntegerType() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/MeasuredAnnotationOfIntegerType");
             t.setSource(getAnnotationUri("measured"));
             
             // Add unit detail
@@ -278,7 +272,6 @@ public class TypeRules {
     public TransformFunction<BooleanType, EDataType> createBooleanType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/BooleanType");
             t.setName(s.getName());
             t.setInstanceClassName("java.lang.Boolean");
             
@@ -309,13 +302,11 @@ public class TypeRules {
     public TransformFunction<BinaryType, EDataType> createBinaryType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/BinaryType");
             t.setName(s.getName());
             t.setInstanceClassName("byte[]");
             
             // Add constraints annotation
             EAnnotation a = ctx.create(EAnnotation.class);
-            setId(a, "(psm/" + getId(s) + ")/Constraints");
             a.setSource(getAnnotationUri("constraints"));
             
             if (s.getMimeTypes() != null && !s.getMimeTypes().isEmpty()) {
@@ -355,7 +346,6 @@ public class TypeRules {
     public TransformFunction<DateType, EDataType> createDateType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/DateType");
             t.setName(s.getName());
             t.setInstanceClassName("java.time.LocalDate");
             
@@ -382,7 +372,6 @@ public class TypeRules {
     public TransformFunction<TimestampType, EDataType> createTimestampType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/TimestampType");
             t.setName(s.getName());
             t.setInstanceClassName("java.time.LocalDateTime");
             
@@ -409,7 +398,6 @@ public class TypeRules {
     public TransformFunction<TimeType, EDataType> createTimeType() {
         return (s, ctx) -> {
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/TimeType");
             t.setName(s.getName());
             t.setInstanceClassName("java.time.LocalTime");
             
@@ -463,9 +451,7 @@ public class TypeRules {
     @To(type = EDataType.class)
     public TransformFunction<CustomType, EDataType> createCustomType() {
         return (s, ctx) -> {
-            log.info("CreateCustomType: transforming {} (type={})", s.getName(), s.getClass().getSimpleName());
             EDataType t = ctx.createTarget(EDataType.class);
-            setId(t, "(psm/" + getId(s) + ")/CustomType");
             t.setName(s.getName());
             t.setInstanceClassName("java.lang.Object");
             

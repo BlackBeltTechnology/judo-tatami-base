@@ -120,20 +120,21 @@ public class Psm2MeasureTest {
             return;
         }
 
+        // Use the same PSM model for both transformations to ensure matching UUIDs in XMI IDs
+        PsmModel psmModel = new Demo().fullDemo();
+
         // Run ETL transformation
         log.info("Running ETL transformation for equivalence test...");
-        PsmModel psmModelEtl = new Demo().fullDemo();
         MeasureModel etlResult = buildMeasureModel().name(DEMO).build();
         executePsm2MeasureTransformation(psm2MeasureParameter()
-                .psmModel(psmModelEtl)
+                .psmModel(psmModel)
                 .measureModel(etlResult));
 
         // Run Zeta transformation
         log.info("Running Zeta transformation for equivalence test...");
-        PsmModel psmModelZeta = new Demo().fullDemo();
         MeasureModel zetaResult = buildMeasureModel().name(DEMO).build();
         Psm2MeasureZetaTransformation zetaTransformation = Psm2MeasureZetaTransformation.builder()
-                .psmModel(psmModelZeta)
+                .psmModel(psmModel)
                 .measureModel(zetaResult)
                 .build();
         zetaTransformation.execute();

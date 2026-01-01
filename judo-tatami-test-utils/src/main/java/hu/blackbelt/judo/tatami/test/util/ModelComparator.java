@@ -21,8 +21,10 @@ package hu.blackbelt.judo.tatami.test.util;
  */
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.*;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.xmi.XMLResource;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -62,6 +64,7 @@ public class ModelComparator {
     public static final String PROP_COMPARISON_MODE = "judo.test.comparison.mode";
     public static final String PROP_MAX_DIFFERENCES = "judo.test.comparison.maxDifferences";
     public static final String PROP_REPORT_FILE = "judo.test.comparison.reportFile";
+    public static final String PROP_XMI_ID_COMPARISON = "judo.test.comparison.xmiIds";
 
     // Default values
     private static final int DEFAULT_MAX_DIFFERENCES = 50;
@@ -133,11 +136,20 @@ public class ModelComparator {
 
     /**
      * Gets the configured report file path from system property.
-     * 
+     *
      * @return the report file path, or null if not configured
      */
     public static String getConfiguredReportFile() {
         return System.getProperty(PROP_REPORT_FILE);
+    }
+
+    /**
+     * Checks if XMI ID comparison is enabled via system property.
+     *
+     * @return true if XMI ID comparison is enabled (default: false)
+     */
+    public static boolean isXmiIdComparisonEnabled() {
+        return Boolean.parseBoolean(System.getProperty(PROP_XMI_ID_COMPARISON, "false"));
     }
 
     /**
@@ -261,6 +273,9 @@ public class ModelComparator {
                 assertEquivalent(expected.getContents().get(i), actual.getContents().get(i), mode);
             }
         }
+
+        // XMI ID comparison (if enabled via system property)
+        assertXmiIdsEquivalent(expected, actual);
     }
 
     /**
@@ -804,6 +819,354 @@ public class ModelComparator {
         return obj.eClass().getName() + "@" + System.identityHashCode(obj);
     }
 
+    // ==================== XMI ID Comparison Methods ====================
+
+    /**
+     * Gets the XMI ID for an EObject from its containing resource.
+     * Returns null if the object has no XMI ID or is not in a resource.
+     *
+     * @param obj the object to get the XMI ID for
+     * @return the XMI ID, or null if not set
+     */
+    public static String getXmiId(EObject obj) {
+        if (obj == null) {
+            return null;
+        }
+        Resource resource = obj.eResource();
+        if (resource instanceof XMLResource) {
+            return ((XMLResource) resource).getID(obj);
+        }
+        return null;
+    }
+
+    /**
+     * Builds a map of XMI ID -> EObject for all elements in a resource.
+     * Only includes elements that have explicit XMI IDs set.
+     *
+     * @param resource the resource to scan
+     * @return map of XMI ID to EObject
+     */
+    public static Map<String, EObject> buildXmiIdMap(Resource resource) {
+        Map<String, EObject> map = new LinkedHashMap<>();
+        if (resource instanceof XMLResource) {
+            XMLResource xmlResource = (XMLResource) resource;
+            TreeIterator<EObject> iter = resource.getAllContents();
+            while (iter.hasNext()) {
+                EObject obj = iter.next();
+                String id = xmlResource.getID(obj);
+                if (id != null) {
+                    map.put(id, obj);
+                }
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Filters out secondary elements from an XMI ID map.
+     * Secondary elements are those created via ctx.create() that may not have structured IDs.
+     *
+     * @param map the original XMI ID map
+     * @return a new map with secondary elements removed
+     */
+    private static Map<String, EObject> filterOutSecondaryElements(Map<String, EObject> map) {
+        Map<String, EObject> filtered = new LinkedHashMap<>();
+        for (Map.Entry<String, EObject> entry : map.entrySet()) {
+            String typeName = entry.getValue().eClass().getName();
+            if (!SECONDARY_ELEMENT_TYPES.contains(typeName)) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered;
+    }
+
+    /**
+     * Set of element types that are considered "secondary" - created via ctx.create()
+     * rather than ctx.createTarget(), and thus may not have structured XMI IDs in Zeta.
+     * We skip XMI ID comparison for these types since:
+     * 1. Their parent elements' IDs are already being compared
+     * 2. Structural comparison already verifies they exist with correct values
+     */
+    private static final Set<String> SECONDARY_ELEMENT_TYPES = Set.of(
+            "EEnumLiteral",           // Enum member literals
+            "EStringToStringMapEntry" // Annotation details
+    );
+
+    /**
+     * Compares XMI IDs between two resources.
+     * Uses flexible matching where rule names can be substrings of each other.
+     * For example, ETL ID "(psm/_xxx)/Package" matches Zeta ID "(psm/_xxx)/NamespaceToPackage"
+     * because "Package" is a substring of "NamespaceToPackage".
+     * <p>
+     * Secondary elements (EEnumLiteral, EStringToStringMapEntry) are skipped since they
+     * may not have structured XMI IDs in Zeta transformations.
+     * <p>
+     * Returns differences where:
+     * <ul>
+     *   <li>An XMI ID exists in expected but not in actual (MissingXmiId)</li>
+     *   <li>An XMI ID exists in actual but not in expected (ExtraXmiId)</li>
+     *   <li>Elements with matching XMI IDs have different types (XmiIdTypeMismatch)</li>
+     * </ul>
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @return list of XMI ID differences
+     */
+    public static List<Difference> compareXmiIds(Resource expected, Resource actual) {
+        List<Difference> differences = new ArrayList<>();
+
+        Map<String, EObject> expectedIds = buildXmiIdMap(expected);
+        Map<String, EObject> actualIds = buildXmiIdMap(actual);
+
+        // Filter out secondary element types from both maps
+        expectedIds = filterOutSecondaryElements(expectedIds);
+        actualIds = filterOutSecondaryElements(actualIds);
+
+        // If neither has XMI IDs, they are equivalent in terms of XMI IDs
+        if (expectedIds.isEmpty() && actualIds.isEmpty()) {
+            return differences;
+        }
+
+        // Track which actual IDs have been matched
+        Set<String> matchedActualIds = new HashSet<>();
+
+        // Find missing XMI IDs (in expected but not in actual)
+        for (Map.Entry<String, EObject> entry : expectedIds.entrySet()) {
+            String expectedXmiId = entry.getKey();
+            EObject expectedObj = entry.getValue();
+
+            // First try exact match
+            if (actualIds.containsKey(expectedXmiId)) {
+                matchedActualIds.add(expectedXmiId);
+                // XMI ID exists in both - verify element types match
+                EObject actualObj = actualIds.get(expectedXmiId);
+                if (!expectedObj.eClass().getName().equals(actualObj.eClass().getName())) {
+                    differences.add(new XmiIdTypeMismatch(expectedXmiId,
+                            expectedObj.eClass().getName(),
+                            actualObj.eClass().getName()));
+                }
+            } else {
+                // Try flexible matching with rule name substring comparison
+                String matchedActualId = findMatchingXmiId(expectedXmiId, actualIds.keySet(), matchedActualIds);
+                if (matchedActualId != null) {
+                    matchedActualIds.add(matchedActualId);
+                    // Verify element types match
+                    EObject actualObj = actualIds.get(matchedActualId);
+                    if (!expectedObj.eClass().getName().equals(actualObj.eClass().getName())) {
+                        differences.add(new XmiIdTypeMismatch(expectedXmiId,
+                                expectedObj.eClass().getName(),
+                                actualObj.eClass().getName()));
+                    }
+                } else {
+                    differences.add(new MissingXmiId(expectedXmiId, getObjectIdentifier(expectedObj)));
+                }
+            }
+        }
+
+        // Find extra XMI IDs (in actual but not matched to any expected)
+        for (Map.Entry<String, EObject> entry : actualIds.entrySet()) {
+            String xmiId = entry.getKey();
+            if (!matchedActualIds.contains(xmiId)) {
+                differences.add(new ExtraXmiId(xmiId, getObjectIdentifier(entry.getValue())));
+            }
+        }
+
+        return differences;
+    }
+
+    /**
+     * Finds a matching XMI ID using flexible rule name comparison.
+     * XMI IDs have format: "(sourcePath)/RuleName" or "(sourcePath)/RuleName/SubPath"
+     * Matching is successful if:
+     * <ul>
+     *   <li>Source paths are identical</li>
+     *   <li>The shorter rule name is a substring of the longer one (case-insensitive)</li>
+     * </ul>
+     *
+     * @param expectedId the expected XMI ID to find a match for
+     * @param actualIds all actual XMI IDs to search
+     * @param alreadyMatched set of actual IDs already matched (to avoid double-matching)
+     * @return the matching actual XMI ID, or null if no match found
+     */
+    private static String findMatchingXmiId(String expectedId, Set<String> actualIds, Set<String> alreadyMatched) {
+        ParsedXmiId expected = parseXmiId(expectedId);
+        if (expected == null) {
+            return null;
+        }
+
+        for (String actualId : actualIds) {
+            if (alreadyMatched.contains(actualId)) {
+                continue;
+            }
+
+            ParsedXmiId actual = parseXmiId(actualId);
+            if (actual == null) {
+                continue;
+            }
+
+            // Source paths must match exactly
+            if (!expected.sourcePath.equals(actual.sourcePath)) {
+                continue;
+            }
+
+            // Rule names must have substring relationship (case-insensitive)
+            if (isRuleNameMatch(expected.ruleName, actual.ruleName)) {
+                // If there are sub-paths, they must also match
+                if (expected.subPath == null && actual.subPath == null) {
+                    return actualId;
+                }
+                if (expected.subPath != null && actual.subPath != null) {
+                    if (isRuleNameMatch(expected.subPath, actual.subPath)) {
+                        return actualId;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks if two rule names match using substring comparison.
+     * The shorter name must be a substring of the longer name (case-insensitive).
+     * For example: "Package" matches "NamespaceToPackage", "ModelToPackage"
+     *              "Enumeration" matches "CreateEnumeration"
+     */
+    private static boolean isRuleNameMatch(String name1, String name2) {
+        if (name1 == null || name2 == null) {
+            return name1 == null && name2 == null;
+        }
+        String lower1 = name1.toLowerCase();
+        String lower2 = name2.toLowerCase();
+        return lower1.contains(lower2) || lower2.contains(lower1);
+    }
+
+    /**
+     * Parsed representation of a structured XMI ID.
+     */
+    private static class ParsedXmiId {
+        final String sourcePath;  // e.g., "(psm/_xxx)"
+        final String ruleName;    // e.g., "Package" or "NamespaceToPackage"
+        final String subPath;     // e.g., "Literal1" (optional)
+
+        ParsedXmiId(String sourcePath, String ruleName, String subPath) {
+            this.sourcePath = sourcePath;
+            this.ruleName = ruleName;
+            this.subPath = subPath;
+        }
+    }
+
+    /**
+     * Parses a structured XMI ID into its components.
+     * Handles two formats:
+     * <ul>
+     *   <li>ETL format: "(psm/_xxx)/RuleName" or "(psm/_xxx)/RuleName/SubPath"</li>
+     *   <li>Zeta format: "ElementName/(psm/_xxx)/RuleName"</li>
+     * </ul>
+     * Also handles non-structured IDs (returns null).
+     *
+     * @param xmiId the XMI ID to parse
+     * @return parsed components, or null if not a structured ID
+     */
+    private static ParsedXmiId parseXmiId(String xmiId) {
+        if (xmiId == null) {
+            return null;
+        }
+
+        // Check for Zeta format: "ElementName/(psm/_xxx)/RuleName" or "ElementName/(source/_xxx)/RuleName"
+        int sourceStart = xmiId.indexOf("/(psm/");
+        if (sourceStart < 0) {
+            sourceStart = xmiId.indexOf("/(source/");
+        }
+        if (sourceStart >= 0) {
+            // Zeta format: extract the source ID part
+            int closeParenIndex = xmiId.indexOf(')', sourceStart);
+            if (closeParenIndex < 0) {
+                return null;
+            }
+            // Extract source path: "(psm/_xxx)" or "(source/_xxx)"
+            String sourcePath = xmiId.substring(sourceStart + 1, closeParenIndex + 1);
+
+            // The rule name comes after the closing parenthesis
+            String rest = xmiId.substring(closeParenIndex + 1);
+            if (rest.isEmpty() || !rest.startsWith("/")) {
+                return null;
+            }
+            rest = rest.substring(1);  // Remove leading "/"
+
+            // Split remaining path for sub-paths
+            int slashIndex = rest.indexOf('/');
+            String ruleName;
+            String subPath = null;
+            if (slashIndex < 0) {
+                ruleName = rest;
+            } else {
+                ruleName = rest.substring(0, slashIndex);
+                subPath = rest.substring(slashIndex + 1);
+            }
+
+            return new ParsedXmiId(sourcePath, ruleName, subPath);
+        }
+
+        // Check for ETL format: "(psm/_xxx)/RuleName"
+        if (!xmiId.startsWith("(")) {
+            return null;  // Not a structured ID
+        }
+
+        int closeParenIndex = xmiId.indexOf(')');
+        if (closeParenIndex < 0) {
+            return null;
+        }
+
+        String sourcePath = xmiId.substring(0, closeParenIndex + 1);  // "(psm/_xxx)"
+
+        // Rest after source path
+        String rest = xmiId.substring(closeParenIndex + 1);
+        if (rest.isEmpty() || !rest.startsWith("/")) {
+            return null;
+        }
+
+        rest = rest.substring(1);  // Remove leading "/"
+
+        // Split remaining path
+        int slashIndex = rest.indexOf('/');
+        String ruleName;
+        String subPath = null;
+
+        if (slashIndex < 0) {
+            ruleName = rest;
+        } else {
+            ruleName = rest.substring(0, slashIndex);
+            subPath = rest.substring(slashIndex + 1);
+        }
+
+        return new ParsedXmiId(sourcePath, ruleName, subPath);
+    }
+
+    /**
+     * Asserts that two Resources have equivalent XMI IDs.
+     * Throws AssertionError if XMI IDs differ.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @throws AssertionError if XMI IDs differ
+     */
+    public static void assertXmiIdsEquivalent(Resource expected, Resource actual) {
+        if (!isXmiIdComparisonEnabled()) {
+            return;
+        }
+
+        List<Difference> xmiDifferences = compareXmiIds(expected, actual);
+        if (!xmiDifferences.isEmpty()) {
+            StringBuilder sb = new StringBuilder("XMI ID comparison failed:\n");
+            sb.append(xmiDifferences.size()).append(" XMI ID difference(s):\n");
+            for (Difference diff : xmiDifferences) {
+                sb.append("  ").append(diff.describe()).append("\n");
+            }
+            throw new AssertionError(sb.toString());
+        }
+    }
+
     // ==================== Difference Classes ====================
 
     /**
@@ -927,6 +1290,95 @@ public class ModelComparator {
         @Override
         public String describe() {
             return path + ": type mismatch - expected " + expectedType + " but was " + actualType;
+        }
+    }
+
+    // ==================== XMI ID Difference Classes ====================
+
+    /**
+     * Indicates an XMI ID is missing from the actual model.
+     */
+    public static class MissingXmiId extends Difference {
+        private final String xmiId;
+        private final String elementDescription;
+
+        public MissingXmiId(String xmiId, String elementDescription) {
+            super("xmiId");
+            this.xmiId = xmiId;
+            this.elementDescription = elementDescription;
+        }
+
+        public String getXmiId() {
+            return xmiId;
+        }
+
+        public String getElementDescription() {
+            return elementDescription;
+        }
+
+        @Override
+        public String describe() {
+            return "XMI ID missing: '" + xmiId + "' for element " + elementDescription;
+        }
+    }
+
+    /**
+     * Indicates an unexpected XMI ID in the actual model.
+     */
+    public static class ExtraXmiId extends Difference {
+        private final String xmiId;
+        private final String elementDescription;
+
+        public ExtraXmiId(String xmiId, String elementDescription) {
+            super("xmiId");
+            this.xmiId = xmiId;
+            this.elementDescription = elementDescription;
+        }
+
+        public String getXmiId() {
+            return xmiId;
+        }
+
+        public String getElementDescription() {
+            return elementDescription;
+        }
+
+        @Override
+        public String describe() {
+            return "XMI ID unexpected: '" + xmiId + "' for element " + elementDescription;
+        }
+    }
+
+    /**
+     * Indicates elements with same XMI ID have different types.
+     */
+    public static class XmiIdTypeMismatch extends Difference {
+        private final String xmiId;
+        private final String expectedType;
+        private final String actualType;
+
+        public XmiIdTypeMismatch(String xmiId, String expectedType, String actualType) {
+            super("xmiId");
+            this.xmiId = xmiId;
+            this.expectedType = expectedType;
+            this.actualType = actualType;
+        }
+
+        public String getXmiId() {
+            return xmiId;
+        }
+
+        public String getExpectedType() {
+            return expectedType;
+        }
+
+        public String getActualType() {
+            return actualType;
+        }
+
+        @Override
+        public String describe() {
+            return "XMI ID '" + xmiId + "' type mismatch: expected " + expectedType + " but was " + actualType;
         }
     }
 

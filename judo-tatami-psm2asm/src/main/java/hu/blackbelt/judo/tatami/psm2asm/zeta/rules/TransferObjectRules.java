@@ -255,7 +255,6 @@ public class TransferObjectRules {
     public TransformFunction<MappedTransferObjectType, EClass> createMappedTransferObjectTypeClass() {
         return (s, ctx) -> {
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/MappedTransferObjectTypeClass");
             t.setName(s.getName());
             
             // Add to container package
@@ -280,7 +279,6 @@ public class TransferObjectRules {
     public TransformFunction<MappedTransferObjectType, EAnnotation> createMappedTransferObjectAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/MappedTransferObjectAnnotation");
             t.setSource(getAnnotationUri("mappedEntityType"));
             addAnnotationDetail(t, "value", getQualifiedName(s.getEntityType()));
             
@@ -305,7 +303,6 @@ public class TransferObjectRules {
     public TransformFunction<UnmappedTransferObjectType, EClass> createUnmappedTransferObjectTypeClass() {
         return (s, ctx) -> {
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/UnmappedTransferObjectTypeClass");
             t.setName(s.getName());
             
             // Add to container package
@@ -330,7 +327,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectType, EAnnotation> createTransferObjectTypeAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/TransferObjectTypeAnnotation");
             t.setSource(getAnnotationUri("transferObjectType"));
             addAnnotationDetail(t, "value", "true");
             
@@ -361,7 +357,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectType, EAnnotation> createActorAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ActorAnnotation");
             t.setSource(getAnnotationUri("actor"));
             
             AbstractActorType actorType = s.getActorType();
@@ -401,7 +396,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectType, EAnnotation> createGetRangeInputAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/GetRangeInputAnnotationForGetRangeInputClass");
             t.setSource(getAnnotationUri("getRangeInput"));
             addAnnotationDetail(t, "value", "true");
             
@@ -433,7 +427,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAttribute> createTransferAttribute() {
         return (s, ctx) -> {
             EAttribute t = ctx.createTarget(EAttribute.class);
-            setId(t, "(psm/" + getId(s) + ")/TransferAttribute");
             t.setName(s.getName());
             t.setLowerBound(s.isRequired() ? 1 : 0);
             
@@ -484,7 +477,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> addTransferAttributeBindingAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/TransferAttributeBindingAnnotation");
             t.setSource(getAnnotationUri("binding"));
             
             // Get binding path
@@ -516,7 +508,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> addTransientAnnotationToTransferAttribute() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/TransientAnnotationToTransferAttribute");
             t.setSource(getAnnotationUri("transient"));
             addAnnotationDetail(t, "value", "true");
             
@@ -546,9 +537,8 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> addStringTransferAttributeConstraints() {
         return (s, ctx) -> {
             StringType stringType = (StringType) s.getDataType();
-            
+
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/StringTransferAttributeConstraints");
             t.setSource(getAnnotationUri("constraints"));
             addAnnotationDetail(t, "maxLength", String.valueOf(stringType.getMaxLength()));
             
@@ -582,7 +572,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> addCustomTransferAttributeConstraints() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/CustomTransferAttributeConstraints");
             t.setSource(getAnnotationUri("constraints"));
             
             String qualifiedName = getQualifiedName((NamespaceElement) s.getDataType());
@@ -614,9 +603,8 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> addNumericTransferAttributeConstraints() {
         return (s, ctx) -> {
             NumericType numericType = (NumericType) s.getDataType();
-            
+
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/NumericTransferAttributeConstraints");
             t.setSource(getAnnotationUri("constraints"));
             addAnnotationDetail(t, "precision", String.valueOf(numericType.getPrecision()));
             addAnnotationDetail(t, "scale", String.valueOf(numericType.getScale()));
@@ -647,9 +635,8 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> addMeasuredTransferAttributeConstraints() {
         return (s, ctx) -> {
             MeasuredType measuredType = (MeasuredType) s.getDataType();
-            
+
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/MeasuredTransferAttributeConstraints");
             t.setSource(getAnnotationUri("constraints"));
             addAnnotationDetail(t, "precision", String.valueOf(measuredType.getPrecision()));
             addAnnotationDetail(t, "scale", String.valueOf(measuredType.getScale()));
@@ -692,7 +679,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferAttribute, EAnnotation> createDataReferenceBinding() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/DataReferenceBinding");
             t.setSource(getAnnotationUri("expression"));
             
             Object binding = s.getBinding();
@@ -786,7 +772,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectRelation, EReference> createTransferObjectRelation() {
         return (s, ctx) -> {
             EReference t = ctx.createTarget(EReference.class);
-            setId(t, "(psm/" + getId(s) + ")/TransferObjectRelation");
             t.setName(s.getName());
             
             if (s.getCardinality() != null) {
@@ -891,7 +876,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectRelation, EAnnotation> createTransferObjectRelationAccessAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/TransferObjectRelationAccessAnnotation");
             t.setSource(getAnnotationUri("access"));
             addAnnotationDetail(t, "value", "true");
             
@@ -919,7 +903,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectRelation, EAnnotation> createTransferObjectRelationPermissions() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/TransferObjectRelationPermissions");
             t.setSource(getAnnotationUri("permissions"));
             addAnnotationDetail(t, "create", String.valueOf(s.isEmbeddedCreate()));
             addAnnotationDetail(t, "update", String.valueOf(s.isEmbeddedUpdate()));
@@ -952,7 +935,6 @@ public class TransferObjectRules {
     public TransformFunction<TransferObjectRelation, EAnnotation> createNavigationReferenceBinding() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/NavigationReferenceBinding");
             t.setSource(getAnnotationUri("expression"));
             
             Object binding = s.getBinding();
@@ -1036,7 +1018,6 @@ public class TransferObjectRules {
     public TransformFunction<EntityType, EClass> createReferenceClassForEntityType() {
         return (s, ctx) -> {
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/ReferenceClassForEntityType");
             t.setName(s.getName() + "__Reference");
             
             // Add reference holder annotation

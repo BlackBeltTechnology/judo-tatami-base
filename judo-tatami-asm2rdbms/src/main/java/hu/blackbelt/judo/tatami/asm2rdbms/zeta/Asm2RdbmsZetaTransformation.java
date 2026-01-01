@@ -38,6 +38,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.emf.ecore.xmi.XMIResource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -207,18 +208,26 @@ public class Asm2RdbmsZetaTransformation {
     private void transformRootPackage(EPackage rootPackage) {
         // Create RDBMS Model
         RdbmsModel rdbmsModelElement = rdbmsFactory.createRdbmsModel();
-        setId(rdbmsModelElement, "(asm/" + getId(rootPackage) + ")/Model");
         rdbmsModelElement.setVersion(modelVersion);
         rdbmsModelElement.setName(rootPackage.getName());
 
         rdbmsModel.getResource().getContents().add(rdbmsModelElement);
+        // Set XMI ID for RdbmsModel (which doesn't extend RdbmsElement)
+        String modelXmiId = "(asm/" + getId(rootPackage) + ")/Model";
+        if (rdbmsModel.getResource() instanceof XMIResource) {
+            ((XMIResource) rdbmsModel.getResource()).setID(rdbmsModelElement, modelXmiId);
+        }
         addTrace(rootPackage, ROOT_PACKAGE_TO_MODEL, rdbmsModelElement);
 
         // Create Configuration
         RdbmsConfiguration configuration = rdbmsFactory.createRdbmsConfiguration();
-        setId(configuration, "(asm/" + getId(rootPackage) + ")/Configuration");
         configuration.setDialect(dialect);
         rdbmsModelElement.setConfiguration(configuration);
+        // Set XMI ID for RdbmsConfiguration (which doesn't extend RdbmsElement)
+        String configXmiId = "(asm/" + getId(rootPackage) + ")/Configuration";
+        if (rdbmsModel.getResource() instanceof XMIResource) {
+            ((XMIResource) rdbmsModel.getResource()).setID(configuration, configXmiId);
+        }
         addTrace(rootPackage, ROOT_PACKAGE_TO_CONFIGURATION, configuration);
     }
 
@@ -238,7 +247,6 @@ public class Asm2RdbmsZetaTransformation {
 
         // Create table
         RdbmsTable table = rdbmsFactory.createRdbmsTable();
-        setId(table, "(asm/" + getId(eClass) + ")/Table");
         table.setSqlName(tableSqlName(eClass));
         table.setName(asmUtils.getClassifierFQName(eClass));
         table.setUuid("(asm/" + getId(eClass) + ")/Table");
@@ -250,6 +258,7 @@ public class Asm2RdbmsZetaTransformation {
             model.getRdbmsTables().add(table);
         }
 
+        setXmiId(table);
         addTrace(eClass, ECLASS_TO_RDBMS_TABLE, table);
 
         // Set up inheritance
@@ -276,7 +285,6 @@ public class Asm2RdbmsZetaTransformation {
 
     private void createTableIdField(EClass eClass, RdbmsTable table) {
         RdbmsIdentifierField idField = rdbmsFactory.createRdbmsIdentifierField();
-        setId(idField, "(asm/" + getId(eClass) + ")/TableIdField");
         idField.setName(asmUtils.getClassifierFQName(eClass) + "#_id");
         idField.setUuid("(asm/" + getId(eClass) + ")/TableIdField");
         idField.setSqlName("ID");
@@ -284,12 +292,12 @@ public class Asm2RdbmsZetaTransformation {
 
         table.getFields().add(idField);
         table.setPrimaryKey(idField);
+        setXmiId(idField);
         addTrace(eClass, ECLASS_TO_TABLE_ID_FIELD, idField);
     }
 
     private void createTableTypeField(EClass eClass, RdbmsTable table) {
         RdbmsValueField typeField = rdbmsFactory.createRdbmsValueField();
-        setId(typeField, "(asm/" + getId(eClass) + ")/TableTypeField");
         typeField.setName(asmUtils.getClassifierFQName(eClass) + "#_type");
         typeField.setUuid("(asm/" + getId(eClass) + ")/TableTypeField");
         typeField.setSqlName("TYPE");
@@ -297,12 +305,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(typeField, "java.lang.String", null);
 
         table.getFields().add(typeField);
+        setXmiId(typeField);
         addTrace(eClass, ECLASS_TO_TABLE_TYPE_FIELD, typeField);
     }
 
     private void createTableVersionField(EClass eClass, RdbmsTable table) {
         RdbmsValueField versionField = rdbmsFactory.createRdbmsValueField();
-        setId(versionField, "(asm/" + getId(eClass) + ")/TableVersionField");
         versionField.setName(asmUtils.getClassifierFQName(eClass) + "#_version");
         versionField.setUuid("(asm/" + getId(eClass) + ")/TableVersionField");
         versionField.setSqlName("VERSION");
@@ -310,12 +318,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(versionField, "java.lang.Integer", null);
 
         table.getFields().add(versionField);
+        setXmiId(versionField);
         addTrace(eClass, ECLASS_TO_TABLE_VERSION_FIELD, versionField);
     }
 
     private void createTableCreateUsernameField(EClass eClass, RdbmsTable table) {
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(eClass) + ")/TableCreateUsernameField");
         field.setName(asmUtils.getClassifierFQName(eClass) + "#_create_username");
         field.setUuid("(asm/" + getId(eClass) + ")/TableCreateUsernameField");
         field.setSqlName("CREATE_USERNAME");
@@ -323,12 +331,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(field, "java.lang.String", null);
 
         table.getFields().add(field);
+        setXmiId(field);
         addTrace(eClass, ECLASS_TO_TABLE_CREATE_USERNAME_FIELD, field);
     }
 
     private void createTableCreateUserIdField(EClass eClass, RdbmsTable table) {
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(eClass) + ")/TableCreateUserIdField");
         field.setName(asmUtils.getClassifierFQName(eClass) + "#_create_user_id");
         field.setUuid("(asm/" + getId(eClass) + ")/TableCreateUserIdField");
         field.setSqlName("CREATE_USER_ID");
@@ -336,12 +344,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(field, "java.util.UUID", null);
 
         table.getFields().add(field);
+        setXmiId(field);
         addTrace(eClass, ECLASS_TO_TABLE_CREATE_USER_ID_FIELD, field);
     }
 
     private void createTableCreateTimestampField(EClass eClass, RdbmsTable table) {
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(eClass) + ")/TableCreateTimestampField");
         field.setName(asmUtils.getClassifierFQName(eClass) + "#_create_timestamp");
         field.setUuid("(asm/" + getId(eClass) + ")/TableCreateTimestampField");
         field.setSqlName("CREATE_TIMESTAMP");
@@ -349,12 +357,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(field, "java.time.LocalDateTime", null);
 
         table.getFields().add(field);
+        setXmiId(field);
         addTrace(eClass, ECLASS_TO_TABLE_CREATE_TIMESTAMP_FIELD, field);
     }
 
     private void createTableUpdateUsernameField(EClass eClass, RdbmsTable table) {
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(eClass) + ")/TableUpdateUsernameField");
         field.setName(asmUtils.getClassifierFQName(eClass) + "#_update_username");
         field.setUuid("(asm/" + getId(eClass) + ")/TableUpdateUsernameField");
         field.setSqlName("UPDATE_USERNAME");
@@ -362,12 +370,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(field, "java.lang.String", null);
 
         table.getFields().add(field);
+        setXmiId(field);
         addTrace(eClass, ECLASS_TO_TABLE_UPDATE_USERNAME_FIELD, field);
     }
 
     private void createTableUpdateUserIdField(EClass eClass, RdbmsTable table) {
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(eClass) + ")/TableUpdateUserIdField");
         field.setName(asmUtils.getClassifierFQName(eClass) + "#_update_user_id");
         field.setUuid("(asm/" + getId(eClass) + ")/TableUpdateUserIdField");
         field.setSqlName("UPDATE_USER_ID");
@@ -375,12 +383,12 @@ public class Asm2RdbmsZetaTransformation {
         fillType(field, "java.util.UUID", null);
 
         table.getFields().add(field);
+        setXmiId(field);
         addTrace(eClass, ECLASS_TO_TABLE_UPDATE_USER_ID_FIELD, field);
     }
 
     private void createTableUpdateTimestampField(EClass eClass, RdbmsTable table) {
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(eClass) + ")/TableUpdateTimestampField");
         field.setName(asmUtils.getClassifierFQName(eClass) + "#_update_timestamp");
         field.setUuid("(asm/" + getId(eClass) + ")/TableUpdateTimestampField");
         field.setSqlName("UPDATE_TIMESTAMP");
@@ -388,6 +396,7 @@ public class Asm2RdbmsZetaTransformation {
         fillType(field, "java.time.LocalDateTime", null);
 
         table.getFields().add(field);
+        setXmiId(field);
         addTrace(eClass, ECLASS_TO_TABLE_UPDATE_TIMESTAMP_FIELD, field);
     }
 
@@ -407,7 +416,6 @@ public class Asm2RdbmsZetaTransformation {
         log.debug("    Add attribute: {}", asmUtils.getAttributeFQName(attr));
 
         RdbmsValueField field = rdbmsFactory.createRdbmsValueField();
-        setId(field, "(asm/" + getId(attr) + ")/TableValueField");
         field.setUuid("(asm/" + getId(attr) + ")/TableValueField");
         field.setName(asmUtils.getAttributeFQName(attr));
         field.setSqlName(fieldSqlName(attr));
@@ -430,6 +438,7 @@ public class Asm2RdbmsZetaTransformation {
             table.getFields().add(field);
         }
 
+        setXmiId(field);
         addTrace(attr, EATTRIBUTE_TO_TABLE_VALUE_FIELD, field);
 
         // Create index for identifier attributes
@@ -442,7 +451,6 @@ public class Asm2RdbmsZetaTransformation {
         log.debug("    Add index: {}", asmUtils.getAttributeFQName(attr));
 
         RdbmsIndex index = rdbmsFactory.createRdbmsIndex();
-        setId(index, "(asm/" + getId(attr) + ")/Index");
         index.setUuid("(asm/" + getId(attr) + ")/Index");
         index.setName(asmUtils.getAttributeFQName(attr));
         index.setSqlName("IDX_" + md5("(asm/" + getId(attr) + ")/Index"));
@@ -452,6 +460,7 @@ public class Asm2RdbmsZetaTransformation {
             table.getIndexes().add(index);
         }
 
+        setXmiId(index);
         addTrace(attr, EATTRIBUTE_TO_INDEX, index);
     }
 
@@ -505,7 +514,6 @@ public class Asm2RdbmsZetaTransformation {
         log.debug("    Add foreign key: {}", asmUtils.getReferenceFQName(ref));
 
         RdbmsForeignKey fk = rdbmsFactory.createRdbmsForeignKey();
-        setId(fk, "(asm/" + getId(ref) + ")/TableForeignKey");
         fk.setName(ref.getName());
         fk.setUuid("(asm/" + getId(ref) + ")/TableForeignKey");
         fk.setMandatory(false);
@@ -533,6 +541,7 @@ public class Asm2RdbmsZetaTransformation {
             sourceTable.getFields().add(fk);
         }
 
+        setXmiId(fk);
         addTrace(ref, EREFERENCE_TO_RDBMS_TABLE_FOREIGN_KEY, fk);
     }
 
@@ -540,7 +549,6 @@ public class Asm2RdbmsZetaTransformation {
         log.debug("    Add inverse foreign key: {}", asmUtils.getReferenceFQName(ref));
 
         RdbmsForeignKey fk = rdbmsFactory.createRdbmsForeignKey();
-        setId(fk, "(asm/" + getId(ref) + ")/TableInverseForeignKey");
         fk.setName(firstToLowerCase(ref.getEContainingClass().getName()) + firstToUpperCase(ref.getName()));
         fk.setUuid("(asm/" + getId(ref) + ")/TableInverseForeignKey");
         fk.setMandatory(false);
@@ -562,6 +570,7 @@ public class Asm2RdbmsZetaTransformation {
             targetTable.getFields().add(fk);
         }
 
+        setXmiId(fk);
         addTrace(ref, EREFERENCE_TO_RDBMS_TABLE_INVERSE_FOREIGN_KEY, fk);
     }
 
@@ -569,7 +578,6 @@ public class Asm2RdbmsZetaTransformation {
         log.debug("    Add junction table: {}", asmUtils.getReferenceFQName(ref));
 
         RdbmsJunctionTable junctionTable = rdbmsFactory.createRdbmsJunctionTable();
-        setId(junctionTable, "(asm/" + getId(ref) + ")/JunctionTable");
         junctionTable.setSqlName(referenceManyToManyTableSqlName(ref));
         junctionTable.setUuid("(asm/" + getId(ref) + ")/JunctionTable");
 
@@ -586,12 +594,12 @@ public class Asm2RdbmsZetaTransformation {
             model.getRdbmsTables().add(junctionTable);
         }
 
+        setXmiId(junctionTable);
         addTrace(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE, junctionTable);
         log.debug("Junction table created and traced for: {}", asmUtils.getReferenceFQName(ref));
 
         // Create primary key for junction table
         RdbmsIdentifierField pk = rdbmsFactory.createRdbmsIdentifierField();
-        setId(pk, "(asm/" + getId(ref) + ")/JunctionTablePrimaryKey");
         pk.setName(junctionTable.getName() + "#id");
         pk.setUuid("(asm/" + getId(ref) + ")/JunctionTablePrimaryKey");
         pk.setSqlName("ID");
@@ -599,6 +607,7 @@ public class Asm2RdbmsZetaTransformation {
 
         junctionTable.getFields().add(pk);
         junctionTable.setPrimaryKey(pk);
+        setXmiId(pk);
         addTrace(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE_PRIMARY_KEY, pk);
     }
 
@@ -617,7 +626,6 @@ public class Asm2RdbmsZetaTransformation {
         if (junctionTable == null) { return; }
 
         RdbmsForeignKey fk = rdbmsFactory.createRdbmsForeignKey();
-        setId(fk, "(asm/" + getId(ref) + ")/JunctionTableForeignKeyBidirectional");
         fk.setName(ref.getName());
         fk.setUuid("(asm/" + getId(ref) + ")/JunctionTableForeignKeyBidirectional");
         fk.setMandatory(isMandatory(ref));
@@ -640,6 +648,7 @@ public class Asm2RdbmsZetaTransformation {
             junctionTable.setField2(fk);
         }
 
+        setXmiId(fk);
         addTrace(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE_FK_BIDIRECTIONAL, fk);
     }
 
@@ -651,7 +660,6 @@ public class Asm2RdbmsZetaTransformation {
 
         // FK1 - to target type
         RdbmsForeignKey fk1 = rdbmsFactory.createRdbmsForeignKey();
-        setId(fk1, "(asm/" + getId(ref) + ")/JunctionTableForeignKeyUnidirectional1");
         fk1.setName(ref.getName());
         fk1.setUuid("(asm/" + getId(ref) + ")/JunctionTableForeignKeyUnidirectional1");
         fk1.setMandatory(isMandatory(ref));
@@ -668,11 +676,11 @@ public class Asm2RdbmsZetaTransformation {
 
         junctionTable.getFields().add(fk1);
         junctionTable.setField1(fk1);
+        setXmiId(fk1);
         addTrace(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE_FK_UNIDIRECTIONAL_1, fk1);
 
         // FK2 - to containing class
         RdbmsForeignKey fk2 = rdbmsFactory.createRdbmsForeignKey();
-        setId(fk2, "(asm/" + getId(ref) + ")/JunctionTableForeignKeyUnidirectional2");
         fk2.setName(ref.getEContainingClass().getName() + "#" + ref.getName());
         fk2.setUuid("(asm/" + getId(ref) + ")/JunctionTableForeignKeyUnidirectional2");
         fk2.setMandatory(false);
@@ -689,6 +697,7 @@ public class Asm2RdbmsZetaTransformation {
 
         junctionTable.getFields().add(fk2);
         junctionTable.setField2(fk2);
+        setXmiId(fk2);
         addTrace(ref, EREFERENCE_TO_RDBMS_JUNCTION_TABLE_FK_UNIDIRECTIONAL_2, fk2);
     }
 
@@ -753,8 +762,16 @@ public class Asm2RdbmsZetaTransformation {
         return String.valueOf(System.identityHashCode(element));
     }
 
-    private void setId(EObject element, String id) {
-        // For RDBMS elements, the ID is set via uuid field
+    /**
+     * Sets the XMI ID for an RDBMS element on the resource.
+     * The XMI ID matches the uuid field value for consistency with ETL.
+     *
+     * @param element the RDBMS element to set the XMI ID for
+     */
+    private void setXmiId(RdbmsElement element) {
+        if (element.getUuid() != null && rdbmsModel.getResource() instanceof XMIResource) {
+            ((XMIResource) rdbmsModel.getResource()).setID(element, element.getUuid());
+        }
     }
 
     private EPackage getRootPackage(EClassifier classifier) {
