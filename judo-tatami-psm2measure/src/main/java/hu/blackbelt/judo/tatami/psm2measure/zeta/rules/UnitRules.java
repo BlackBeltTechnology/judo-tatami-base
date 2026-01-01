@@ -23,7 +23,6 @@ package hu.blackbelt.judo.tatami.psm2measure.zeta.rules;
 import hu.blackbelt.judo.meta.measure.BaseMeasure;
 import hu.blackbelt.judo.meta.measure.DurationType;
 import hu.blackbelt.judo.meta.measure.Measure;
-import hu.blackbelt.judo.meta.measure.MeasureFactory;
 import hu.blackbelt.judo.meta.measure.Unit;
 import hu.blackbelt.judo.meta.psm.PsmUtils;
 import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
@@ -37,8 +36,9 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EObject;
 
+import org.eclipse.emf.ecore.xmi.XMLResource;
+
 import java.math.BigDecimal;
-import java.util.stream.Stream;
 
 import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
 
@@ -53,8 +53,6 @@ import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
  */
 @hu.blackbelt.judo.zeta.annotation.TransformationContext(source = hu.blackbelt.judo.meta.psm.measure.Unit.class, target = Unit.class)
 public class UnitRules {
-
-    private final MeasureFactory measureFactory = MeasureFactory.eINSTANCE;
 
     /**
      * Default constructor required for TransformationRegistry.
@@ -82,17 +80,24 @@ public class UnitRules {
      *     transform s : JUDOPSM!Unit
      *     to t : MEASURES!Unit
      */
-    @TransformRule(name = CREATE_UNIT, description = "Transform PSM Unit to Measure Unit")
+    @TransformRule(name = UNIT, description = "Transform PSM Unit to Measure Unit")
     @Guard(method = "isNotDurationUnit")
     @Transform(type = hu.blackbelt.judo.meta.psm.measure.Unit.class)
     @To(type = Unit.class)
     public TransformFunction<hu.blackbelt.judo.meta.psm.measure.Unit, Unit> createUnit() {
         return (s, ctx) -> {
-            Unit t = measureFactory.createUnit();
+            Unit t = ctx.createTarget(Unit.class);
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
             t.setRateDividend(new BigDecimal(String.valueOf(s.getRateDividend())));
             t.setRateDivisor(new BigDecimal(String.valueOf(s.getRateDivisor())));
+
+            // Store XMI ID to match ETL format: (psm/<sourceId>)/Unit
+            String sourceId = getSourceXmiId(s);
+            if (sourceId != null) {
+                String xmiId = "(psm/" + sourceId + ")/" + UNIT;
+                storeCustomXmiId(ctx, t, xmiId);
+            }
 
             // Find parent measure and add unit to it
             Measure parentMeasure = findEquivalentMeasure(s, ctx);
@@ -110,13 +115,13 @@ public class UnitRules {
      *     to t : MEASURES!DurationUnit
      *     extends CreateUnit
      */
-    @TransformRule(name = CREATE_DURATION_UNIT, description = "Transform DurationUnit with duration type mapping")
-    @Extends(CREATE_UNIT)
+    @TransformRule(name = DURATION_UNIT, description = "Transform DurationUnit with duration type mapping")
+    @Extends(UNIT)
     @Transform(type = DurationUnit.class)
     @To(type = hu.blackbelt.judo.meta.measure.DurationUnit.class)
     public TransformFunction<DurationUnit, hu.blackbelt.judo.meta.measure.DurationUnit> createDurationUnit() {
         return (s, ctx) -> {
-            hu.blackbelt.judo.meta.measure.DurationUnit t = measureFactory.createDurationUnit();
+            hu.blackbelt.judo.meta.measure.DurationUnit t = ctx.createTarget(hu.blackbelt.judo.meta.measure.DurationUnit.class);
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
             t.setRateDividend(new BigDecimal(String.valueOf(s.getRateDividend())));
@@ -124,6 +129,15 @@ public class UnitRules {
 
             // Map duration type
             mapDurationType(t, s.getUnitType());
+
+            // Store custom XMI ID with type suffix to match ETL format
+            // ETL format: (psm/<sourceId>)/DurationUnit<Type>
+            String sourceId = getSourceXmiId(s);
+            if (sourceId != null) {
+                String typeSuffix = getDurationTypeSuffix(s.getUnitType());
+                String customId = "(psm/" + sourceId + ")/" + DURATION_UNIT + typeSuffix;
+                storeCustomXmiId(ctx, t, customId);
+            }
 
             // Find parent measure and add unit to it
             Measure parentMeasure = findEquivalentMeasure(s, ctx);
@@ -133,6 +147,50 @@ public class UnitRules {
 
             return t;
         };
+    }
+
+    /**
+     * Gets the XMI ID of a source PSM element from its resource.
+     */
+    private String getSourceXmiId(EObject source) {
+        if (source.eResource() instanceof XMLResource) {
+            return ((XMLResource) source.eResource()).getID(source);
+        }
+        return null;
+    }
+
+    /**
+     * Gets the suffix for DurationUnit XMI ID based on the duration type.
+     * Matches ETL format: DurationUnitNanosecond, DurationUnitSecond, etc.
+     */
+    private String getDurationTypeSuffix(hu.blackbelt.judo.meta.psm.measure.DurationType durationType) {
+        switch (durationType) {
+            case NANOSECOND: return "Nanosecond";
+            case MICROSECOND: return "Microsecond";
+            case MILLISECOND: return "Millisecond";
+            case SECOND: return "Second";
+            case MINUTE: return "Minute";
+            case HOUR: return "Hour";
+            case DAY: return "Day";
+            case WEEK: return "Week";
+            case MONTH: return "Month";
+            case YEAR: return "Year";
+            default: return "";
+        }
+    }
+
+    /**
+     * Stores a custom XMI ID for an element in the context's customXmiIds map.
+     * This ID will be applied in post-processing.
+     */
+    @SuppressWarnings("unchecked")
+    private void storeCustomXmiId(TransformationContext ctx, EObject element, String xmiId) {
+        java.util.Map<EObject, String> customXmiIds = (java.util.Map<EObject, String>) ctx.getAttribute("customXmiIds");
+        if (customXmiIds == null) {
+            customXmiIds = new java.util.HashMap<>();
+            ctx.setAttribute("customXmiIds", customXmiIds);
+        }
+        customXmiIds.put(element, xmiId);
     }
 
     // =========================================================================

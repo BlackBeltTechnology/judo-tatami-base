@@ -32,16 +32,15 @@ public final class Psm2MeasureRuleNames {
     }
 
     // Measure transformation rules (measure.etl)
-    /** @abstract - base rule for measure transformation */
-    public static final String CREATE_MEASURE = "CreateMeasure";
-    /** extends CreateMeasure - for non-derived measures */
-    public static final String CREATE_BASE_MEASURE = "CreateBaseMeasure";
-    /** extends CreateMeasure - for derived measures */
-    public static final String CREATE_DERIVED_MEASURE = "CreateDerivedMeasure";
-    /** helper - term for derived measure definition */
-    public static final String CREATE_BASE_MEASURE_TERM = "CreateBaseMeasureTerm";
+    // Rule names match ETL ID suffixes for XMI ID compatibility
+    /** transforms non-derived measures to BaseMeasure */
+    public static final String BASE_MEASURE = "BaseMeasure";
+    /** transforms derived measures to DerivedMeasure */
+    public static final String DERIVED_MEASURE = "DerivedMeasure";
+    /** BaseMeasureTerm for derived measures */
+    public static final String BASE_MEASURE_TERM = "BaseMeasureTerm";
 
     // Unit transformation rules
-    public static final String CREATE_UNIT = "CreateUnit";
-    public static final String CREATE_DURATION_UNIT = "CreateDurationUnit";
+    public static final String UNIT = "Unit";
+    public static final String DURATION_UNIT = "DurationUnit";
 }

@@ -86,28 +86,28 @@ public class Psm2MeasureZetaTraceTest {
     void testCreateMeasureMapping() {
         Collection<ElementResolutionCache.TraceEntry> entries = trace.getEntries();
 
-        // Look for CreateBaseMeasure or CreateDerivedMeasure rules
+        // Look for BaseMeasure or DerivedMeasure rules
         boolean foundMeasureMapping = entries.stream()
-                .anyMatch(e -> ("CreateBaseMeasure".equals(e.getRuleName())
-                        || "CreateDerivedMeasure".equals(e.getRuleName()))
+                .anyMatch(e -> ("BaseMeasure".equals(e.getRuleName())
+                        || "DerivedMeasure".equals(e.getRuleName()))
                         && e.getSource() instanceof hu.blackbelt.judo.meta.psm.measure.Measure
                         && e.getTarget() instanceof Measure);
 
-        assertTrue(foundMeasureMapping, "Expected CreateBaseMeasure or CreateDerivedMeasure trace entry mapping PSM Measure to Measure");
+        assertTrue(foundMeasureMapping, "Expected BaseMeasure or DerivedMeasure trace entry mapping PSM Measure to Measure");
     }
 
     @Test
     void testCreateUnitMapping() {
         Collection<ElementResolutionCache.TraceEntry> entries = trace.getEntries();
 
-        // Look for CreateUnit or CreateDurationUnit rules
+        // Look for Unit or DurationUnit rules
         boolean foundUnitMapping = entries.stream()
-                .anyMatch(e -> ("CreateUnit".equals(e.getRuleName())
-                        || "CreateDurationUnit".equals(e.getRuleName()))
+                .anyMatch(e -> ("Unit".equals(e.getRuleName())
+                        || "DurationUnit".equals(e.getRuleName()))
                         && e.getSource() instanceof hu.blackbelt.judo.meta.psm.measure.Unit
                         && e.getTarget() instanceof Unit);
 
-        assertTrue(foundUnitMapping, "Expected CreateUnit or CreateDurationUnit trace entry mapping PSM Unit to Unit");
+        assertTrue(foundUnitMapping, "Expected Unit or DurationUnit trace entry mapping PSM Unit to Unit");
     }
 
     @Test
