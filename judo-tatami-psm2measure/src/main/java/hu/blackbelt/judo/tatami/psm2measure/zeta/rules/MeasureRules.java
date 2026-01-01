@@ -23,12 +23,9 @@ package hu.blackbelt.judo.tatami.psm2measure.zeta.rules;
 import hu.blackbelt.judo.meta.measure.BaseMeasure;
 import hu.blackbelt.judo.meta.measure.BaseMeasureTerm;
 import hu.blackbelt.judo.meta.measure.Measure;
-import hu.blackbelt.judo.meta.measure.MeasureFactory;
 import hu.blackbelt.judo.meta.psm.PsmUtils;
 import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
 import hu.blackbelt.judo.meta.psm.measure.MeasureDefinitionTerm;
-import hu.blackbelt.judo.zeta.annotation.Abstract;
-import hu.blackbelt.judo.zeta.annotation.Extends;
 import hu.blackbelt.judo.zeta.annotation.Guard;
 import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
@@ -41,6 +38,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.emf.ecore.xmi.XMLResource;
+
 import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
 
 /**
@@ -48,15 +47,12 @@ import static hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureRuleNames.*;
  * <p>
  * Rules:
  * <ul>
- *   <li>CreateMeasure - @Abstract base rule for all measures</li>
- *   <li>CreateBaseMeasure - @Extends CreateMeasure, transforms non-derived measures</li>
- *   <li>CreateDerivedMeasure - @Extends CreateMeasure, transforms derived measures with terms</li>
+ *   <li>CreateBaseMeasure - transforms non-derived measures to BaseMeasure</li>
+ *   <li>CreateDerivedMeasure - transforms derived measures with terms</li>
  * </ul>
  */
 @hu.blackbelt.judo.zeta.annotation.TransformationContext(source = hu.blackbelt.judo.meta.psm.measure.Measure.class, target = Measure.class)
 public class MeasureRules {
-
-    private final MeasureFactory measureFactory = MeasureFactory.eINSTANCE;
 
     /**
      * Default constructor required for TransformationRegistry.
@@ -80,46 +76,29 @@ public class MeasureRules {
     // =========================================================================
 
     /**
-     * @abstract
-     * rule CreateMeasure
-     *     transform s : JUDOPSM!Measure
-     *     to t : MEASURES!Measure
-     */
-    @TransformRule(name = CREATE_MEASURE, description = "Abstract base rule for measure transformation")
-    @Abstract
-    @Transform(type = hu.blackbelt.judo.meta.psm.measure.Measure.class)
-    @To(type = Measure.class)
-    public TransformFunction<hu.blackbelt.judo.meta.psm.measure.Measure, Measure> createMeasure() {
-        return (s, ctx) -> {
-            Measure t = ctx.createTarget(Measure.class);
-            PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
-            t.setNamespace(psmUtils.namespaceToString(s.getNamespace()));
-            t.setName(s.getName());
-            t.setSymbol(s.getSymbol());
-            return t;
-        };
-    }
-
-    /**
      * rule CreateBaseMeasure
      *     transform s : JUDOPSM!Measure
      *     to t : MEASURES!BaseMeasure
-     *     extends CreateMeasure {
-     *         guard: not s.isKindOf(JUDOPSM!DerivedMeasure)
-     *     }
+     *     guard: not s.isKindOf(JUDOPSM!DerivedMeasure)
      */
-    @TransformRule(name = CREATE_BASE_MEASURE, description = "Transform non-derived PSM Measure to BaseMeasure")
-    @Extends(CREATE_MEASURE)
+    @TransformRule(name = BASE_MEASURE, description = "Transform non-derived PSM Measure to BaseMeasure")
     @Guard(method = "isNotDerivedMeasure")
     @Transform(type = hu.blackbelt.judo.meta.psm.measure.Measure.class)
     @To(type = BaseMeasure.class)
     public TransformFunction<hu.blackbelt.judo.meta.psm.measure.Measure, BaseMeasure> createBaseMeasure() {
         return (s, ctx) -> {
-            BaseMeasure t = measureFactory.createBaseMeasure();
+            BaseMeasure t = ctx.createTarget(BaseMeasure.class);
             PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
             t.setNamespace(psmUtils.namespaceToString(s.getNamespace()));
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
+
+            // Store XMI ID to match ETL format: (psm/<sourceId>)/BaseMeasure
+            String sourceId = getSourceXmiId(s);
+            if (sourceId != null) {
+                String xmiId = "(psm/" + sourceId + ")/" + BASE_MEASURE;
+                storeCustomXmiId(ctx, t, xmiId);
+            }
 
             // Add to target resource
             Resource targetResource = (Resource) ctx.getAttribute("measureResource");
@@ -135,19 +114,25 @@ public class MeasureRules {
      * rule CreateDerivedMeasure
      *     transform s : JUDOPSM!DerivedMeasure
      *     to t : MEASURES!DerivedMeasure
-     *     extends CreateMeasure
      */
-    @TransformRule(name = CREATE_DERIVED_MEASURE, description = "Transform DerivedMeasure with base measure terms")
-    @Extends(CREATE_MEASURE)
+    @TransformRule(name = DERIVED_MEASURE, description = "Transform DerivedMeasure with base measure terms")
     @Transform(type = DerivedMeasure.class)
     @To(type = hu.blackbelt.judo.meta.measure.DerivedMeasure.class)
     public TransformFunction<DerivedMeasure, hu.blackbelt.judo.meta.measure.DerivedMeasure> createDerivedMeasure() {
         return (s, ctx) -> {
-            hu.blackbelt.judo.meta.measure.DerivedMeasure t = measureFactory.createDerivedMeasure();
+            hu.blackbelt.judo.meta.measure.DerivedMeasure t = ctx.createTarget(hu.blackbelt.judo.meta.measure.DerivedMeasure.class);
             PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
             t.setNamespace(psmUtils.namespaceToString(s.getNamespace()));
             t.setName(s.getName());
             t.setSymbol(s.getSymbol());
+
+            // Store XMI ID to match ETL format: (psm/<sourceId>)/DerivedMeasure
+            String sourceId = getSourceXmiId(s);
+            String derivedMeasureId = null;
+            if (sourceId != null) {
+                derivedMeasureId = "(psm/" + sourceId + ")/" + DERIVED_MEASURE;
+                storeCustomXmiId(ctx, t, derivedMeasureId);
+            }
 
             // Get base measures with exponents
             Map<hu.blackbelt.judo.meta.psm.measure.Measure, Integer> baseMeasures = getBaseMeasures(s);
@@ -156,13 +141,21 @@ public class MeasureRules {
                 hu.blackbelt.judo.meta.psm.measure.Measure m = entry.getKey();
                 Integer exponent = entry.getValue();
 
-                BaseMeasureTerm term = measureFactory.createBaseMeasureTerm();
+                BaseMeasureTerm term = ctx.createTarget(BaseMeasureTerm.class);
                 term.setExponent(exponent);
 
                 // Get equivalent base measure from context
                 BaseMeasure equivalentMeasure = ctx.equivalent(m, BaseMeasure.class);
                 if (equivalentMeasure != null) {
                     term.setBaseMeasure(equivalentMeasure);
+                }
+
+                // Store custom XMI ID for BaseMeasureTerm to match ETL format
+                // Format: (<derivedMeasureId>)_((psm/<sourceBaseMeasureId>)/BaseMeasureTerm)
+                String sourceBaseMeasureId = getSourceXmiId(m);
+                if (derivedMeasureId != null && sourceBaseMeasureId != null) {
+                    String termId = "(" + derivedMeasureId + ")_((psm/" + sourceBaseMeasureId + ")/" + BASE_MEASURE_TERM + ")";
+                    storeCustomXmiId(ctx, term, termId);
                 }
 
                 t.getTerms().add(term);
@@ -176,6 +169,30 @@ public class MeasureRules {
 
             return t;
         };
+    }
+
+    /**
+     * Gets the XMI ID of a source PSM element from its resource.
+     */
+    private String getSourceXmiId(EObject source) {
+        if (source.eResource() instanceof XMLResource) {
+            return ((XMLResource) source.eResource()).getID(source);
+        }
+        return null;
+    }
+
+    /**
+     * Stores a custom XMI ID for an element in the context's customXmiIds map.
+     * This ID will be applied in post-processing.
+     */
+    @SuppressWarnings("unchecked")
+    private void storeCustomXmiId(TransformationContext ctx, EObject element, String xmiId) {
+        Map<EObject, String> customXmiIds = (Map<EObject, String>) ctx.getAttribute("customXmiIds");
+        if (customXmiIds == null) {
+            customXmiIds = new HashMap<>();
+            ctx.setAttribute("customXmiIds", customXmiIds);
+        }
+        customXmiIds.put(element, xmiId);
     }
 
     // =========================================================================

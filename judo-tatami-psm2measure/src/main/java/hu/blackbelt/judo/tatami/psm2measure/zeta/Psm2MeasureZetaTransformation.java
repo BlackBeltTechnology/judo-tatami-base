@@ -37,6 +37,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.emf.ecore.xmi.XMIResource;
 
 import java.util.*;
 
@@ -102,6 +103,9 @@ public class Psm2MeasureZetaTransformation {
         TransformationResult result = executor.transform();
         log.debug("Finished executor.transform()");
 
+        // Post-processing: apply pending XMI IDs to all elements
+        postProcess(context);
+
         long duration = System.currentTimeMillis() - startTime;
         log.info("PSM to Measure Zeta transformation completed in {}ms", duration);
 
@@ -149,6 +153,9 @@ public class Psm2MeasureZetaTransformation {
 
         // Configure context
         context.setTransformationRegistry(registry);
+        // Note: We do NOT use Zeta's structured IDs because the format doesn't match ETL.
+        // Instead, we manually set XMI IDs in post-processing to match the ETL format exactly.
+        context.setUseStructuredIds(false);
 
         // Register resources with aliases
         // "source" is the default alias used by @Transform annotations
@@ -163,6 +170,57 @@ public class Psm2MeasureZetaTransformation {
         context.setAttribute("measureResource", measureModel.getResource());
 
         return context;
+    }
+
+    /**
+     * Post-processing after all rules have executed.
+     * Applies pending XMI IDs to all elements in the measure resource.
+     */
+    private void postProcess(TransformationContext context) {
+        XMIResource xmiResource = measureModel.getResource() instanceof XMIResource
+                ? (XMIResource) measureModel.getResource() : null;
+
+        if (xmiResource == null) {
+            log.warn("Measure resource is not an XMIResource, XMI IDs will not be applied");
+            return;
+        }
+
+        // Get custom XMI IDs set by rules (for elements like BaseMeasureTerm and DurationUnit)
+        @SuppressWarnings("unchecked")
+        Map<EObject, String> customXmiIds = (Map<EObject, String>) context.getAttribute("customXmiIds");
+        if (customXmiIds == null) {
+            customXmiIds = new HashMap<>();
+        }
+
+        // Apply pending XMI IDs to all elements in the resource
+        for (EObject rootElement : measureModel.getResource().getContents()) {
+            applyPendingXmiIds(rootElement, context, xmiResource, customXmiIds);
+        }
+
+        log.debug("Applied pending XMI IDs to measure model elements");
+    }
+
+    /**
+     * Recursively apply XMI IDs to an element and all its children.
+     * Uses the customXmiIds map populated by the transformation rules.
+     *
+     * @param element      the element to apply IDs to
+     * @param context      the transformation context (unused, kept for future extensibility)
+     * @param xmiResource  the XMI resource to set IDs on
+     * @param customXmiIds map of custom XMI IDs set by rules
+     */
+    private void applyPendingXmiIds(EObject element, TransformationContext context, XMIResource xmiResource, Map<EObject, String> customXmiIds) {
+        // Get the XMI ID set by the transformation rules
+        String xmiId = customXmiIds.get(element);
+        if (xmiId != null) {
+            xmiResource.setID(element, xmiId);
+            log.trace("Applied XMI ID '{}' to element {}", xmiId, element.eClass().getName());
+        }
+
+        // Recursively process children
+        for (EObject child : element.eContents()) {
+            applyPendingXmiIds(child, context, xmiResource, customXmiIds);
+        }
     }
 
     /**
