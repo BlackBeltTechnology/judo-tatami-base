@@ -22,11 +22,15 @@ package hu.blackbelt.judo.tatami.psm2measure;
 
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureZetaTransformation;
 
 import java.io.File;
 import java.util.List;
@@ -37,6 +41,8 @@ import static hu.blackbelt.judo.meta.measure.runtime.MeasureModel.buildMeasureMo
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter;
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
 import static hu.blackbelt.judo.tatami.psm2measure.Psm2MeasureTransformationTrace.fromModelsAndTrace;
+import static org.junit.jupiter.api.Assertions.fail;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 @Slf4j
 public class Psm2MeasureTest {
@@ -60,31 +66,92 @@ public class Psm2MeasureTest {
     }
 
 
-    @Test
-    public void testPsm2MeasureTransformation() throws Exception {
-        Psm2MeasureTransformationTrace psm2MeasureTransformationTrace =
-                executePsm2MeasureTransformation(psm2MeasureParameter()
-                        .psmModel(psmModel)
-                        .measureModel(measureModel));
+    @ParameterizedTest(name = "testPsm2MeasureTransformation with {0}")
+    @EnumSource(TransformationMode.class)
+    public void testPsm2MeasureTransformation(TransformationMode transformationMode) throws Exception {
+        Psm2MeasureTransformationTrace psm2MeasureTransformationTrace;
 
-        // Saving trace map
-        psm2MeasureTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
+        if (transformationMode.isZeta()) {
+            log.info("Running Zeta transformation");
+            Psm2MeasureZetaTransformation transformation = Psm2MeasureZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .measureModel(measureModel)
+                    .build();
+            transformation.execute();
+            // For Zeta transformation, trace is not available
+            psm2MeasureTransformationTrace = null;
+        } else {
+            log.info("Running ETL transformation");
+            psm2MeasureTransformationTrace = executePsm2MeasureTransformation(psm2MeasureParameter()
+                    .psmModel(psmModel)
+                    .measureModel(measureModel));
+        }
 
-        // Loading trace map
-        Psm2MeasureTransformationTrace psm2MeasureTransformationTraceLoaded =
-                fromModelsAndTrace(DEMO, psmModel, measureModel, new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
+        // Trace operations only for ETL transformation
+        if (psm2MeasureTransformationTrace != null) {
+            // Saving trace map
+            psm2MeasureTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
 
-        Map<EObject, List<EObject>> resolvedTrace = psm2MeasureTransformationTraceLoaded.getTransformationTrace();
+            // Loading trace map
+            Psm2MeasureTransformationTrace psm2MeasureTransformationTraceLoaded =
+                    fromModelsAndTrace(DEMO, psmModel, measureModel, new File(TARGET_TEST_CLASSES, NORTHWIND_PSM_2_MEASURE_MODEL));
 
-        // Printing trace
-        for (EObject e : resolvedTrace.keySet()) {
-            for (EObject t : resolvedTrace.get(e)) {
-                log.info(e.toString() + " -> " + t.toString());
+            Map<EObject, List<EObject>> resolvedTrace = psm2MeasureTransformationTraceLoaded.getTransformationTrace();
+
+            // Printing trace
+            for (EObject e : resolvedTrace.keySet()) {
+                for (EObject t : resolvedTrace.get(e)) {
+                    log.info(e.toString() + " -> " + t.toString());
+                }
             }
         }
+        
         measureModel.saveMeasureModel(measureSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_MEASURE_MODEL)));
     }
 
+    /**
+     * Test that ETL and Zeta transformations produce equivalent Measure models.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Use the same PSM model for both transformations to ensure matching UUIDs in XMI IDs
+        PsmModel psmModel = new Demo().fullDemo();
+
+        // Run ETL transformation
+        log.info("Running ETL transformation for equivalence test...");
+        MeasureModel etlResult = buildMeasureModel().name(DEMO).build();
+        executePsm2MeasureTransformation(psm2MeasureParameter()
+                .psmModel(psmModel)
+                .measureModel(etlResult));
+
+        // Run Zeta transformation
+        log.info("Running Zeta transformation for equivalence test...");
+        MeasureModel zetaResult = buildMeasureModel().name(DEMO).build();
+        Psm2MeasureZetaTransformation zetaTransformation = Psm2MeasureZetaTransformation.builder()
+                .psmModel(psmModel)
+                .measureModel(zetaResult)
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models using Resource-level comparison for complete coverage
+        log.info("Comparing ETL and Zeta output models...");
+        try {
+            ModelComparator.assertEquivalent(
+                    etlResult.getResourceSet().getResources().get(0),
+                    zetaResult.getResourceSet().getResources().get(0),
+                    ModelComparator.getConfiguredMode()
+            );
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } catch (AssertionError e) {
+            log.warn("Models have differences:\n{}", e.getMessage());
+            fail("ETL and Zeta models are not equivalent:\n" + e.getMessage());
+        }
+    }
 
 }
