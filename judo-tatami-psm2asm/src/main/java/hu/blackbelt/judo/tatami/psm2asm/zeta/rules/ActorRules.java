@@ -105,7 +105,6 @@ public class ActorRules {
     public TransformFunction<ActorType, EClass> createActorTypeClass() {
         return (s, ctx) -> {
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/ActorTypeClass");
             t.setName(s.getName());
             
             // Add to container package
@@ -133,7 +132,6 @@ public class ActorRules {
     public TransformFunction<MappedActorType, EClass> createMappedActorTypeClass() {
         return (s, ctx) -> {
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/MappedActorTypeClass");
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             
@@ -169,7 +167,6 @@ public class ActorRules {
     public TransformFunction<AbstractActorType, EAnnotation> createActorTypeAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ActorTypeAnnotation");
             t.setSource(getAnnotationUri("actorType"));
             addAnnotationDetail(t, "value", "true");
             
@@ -208,7 +205,6 @@ public class ActorRules {
     public TransformFunction<AbstractActorType, EAnnotation> createRealmAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/RealmAnnotation");
             t.setSource(getAnnotationUri("realm"));
             addAnnotationDetail(t, "value", s.getRealm());
             
@@ -236,7 +232,6 @@ public class ActorRules {
     public TransformFunction<MappedActorType, EAnnotation> createMappedActorTypeAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/MappedActorTypeAnnotation");
             t.setSource(getAnnotationUri("mappedTransferObjectType"));
             addAnnotationDetail(t, "value", getQualifiedName(s.getTransferObjectType()));
             
@@ -265,7 +260,6 @@ public class ActorRules {
     public TransformFunction<AbstractActorType, EAnnotation> createDocumentationAnnotationForActorType() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/DocumentationAnnotation");
             t.setSource(getAnnotationUri("documentation"));
             addAnnotationDetail(t, "value", s.getDocumentation());
             

@@ -150,19 +150,13 @@ public class Psm2AsmTypeTest {
                 .build();
         zetaTransformation.execute();
 
-        // Compare models
-        ModelComparator.ComparisonResult result = ModelComparator.compare(
-                etlModel.getResourceSet().getResources().get(0).getContents().get(0),
-                zetaModel.getResourceSet().getResources().get(0).getContents().get(0),
+        // Compare models - use Resource-based comparison for XMI ID support
+        ModelComparator.assertEquivalent(
+                etlModel.getResourceSet().getResources().get(0),
+                zetaModel.getResourceSet().getResources().get(0),
                 ModelComparator.getConfiguredMode()
         );
-
-        if (result.isEquivalent()) {
-            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
-        } else {
-            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
-            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
-        }
+        log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
     }
 
     @ParameterizedTest(name = "testType with {0}")

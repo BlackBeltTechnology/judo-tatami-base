@@ -156,7 +156,6 @@ public class DerivedRules {
     public TransformFunction<DataProperty, EAttribute> createDataPropertyForDerivedAttribute() {
         return (s, ctx) -> {
             EAttribute t = ctx.createTarget(EAttribute.class);
-            setId(t, "(psm/" + getId(s) + ")/DataProperty");
             t.setName(s.getName());
             t.setDerived(true);
             t.setVolatile(true);
@@ -198,7 +197,6 @@ public class DerivedRules {
             StringType stringType = (StringType) s.getDataType();
             
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/PrimitiveAccessorConstraints");
             t.setSource(getAnnotationUri("constraints"));
             addAnnotationDetail(t, "maxLength", String.valueOf(stringType.getMaxLength()));
             
@@ -232,7 +230,6 @@ public class DerivedRules {
             NumericType numericType = (NumericType) s.getDataType();
             
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/PrimitiveAccessorConstraints");
             t.setSource(getAnnotationUri("constraints"));
             addAnnotationDetail(t, "precision", String.valueOf(numericType.getPrecision()));
             addAnnotationDetail(t, "scale", String.valueOf(numericType.getScale()));
@@ -275,7 +272,6 @@ public class DerivedRules {
     public TransformFunction<DataProperty, EAnnotation> addCustomPrimitiveAccessorConstraints() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/CustomPrimitiveAccessorConstraints");
             t.setSource(getAnnotationUri("constraints"));
             
             // Add customType detail
@@ -306,7 +302,6 @@ public class DerivedRules {
     public TransformFunction<DataProperty, EAnnotation> addPrimitiveAccessorExpressionAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/PrimitiveAccessorExpressionAnnotation");
             t.setSource(getAnnotationUri("expression"));
             
             // Add getter expression
@@ -352,7 +347,6 @@ public class DerivedRules {
     public TransformFunction<DataProperty, EAnnotation> createDocumentationAnnotationForDataProperty() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/DocumentationAnnotation");
             t.setSource(getAnnotationUri("documentation"));
             addAnnotationDetail(t, "value", s.getDocumentation());
             
@@ -381,7 +375,6 @@ public class DerivedRules {
     public TransformFunction<NavigationProperty, EReference> createNavigationPropertyForDerivedReference() {
         return (s, ctx) -> {
             EReference t = ctx.createTarget(EReference.class);
-            setId(t, "(psm/" + getId(s) + ")/NavigationProperty");
             t.setName(s.getName());
             t.setDerived(true);
             t.setVolatile(true);
@@ -427,7 +420,6 @@ public class DerivedRules {
     public TransformFunction<NavigationProperty, EAnnotation> addReferenceAccessorExpressionAnnotation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            setId(t, "(psm/" + getId(s) + ")/ReferenceAccessorExpressionAnnotation");
             t.setSource(getAnnotationUri("expression"));
             
             // Add getter expression

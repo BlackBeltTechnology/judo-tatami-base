@@ -47,6 +47,7 @@ import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.emf.ecore.xmi.XMIResource;
 
 import java.util.*;
 
@@ -185,10 +186,17 @@ public class Psm2AsmZetaTransformation {
         // Configure context
         context.setTargetPackage(EcorePackage.eINSTANCE);
         context.setTransformationRegistry(registry);
+        context.setUseStructuredIds(true);
+        // Note: autoAddRootElements is intentionally disabled (default: false)
+        // We add root elements in postProcess after all rules complete, so that
+        // addToResource can recursively apply pending XMI IDs to all children
 
         // Register resources with aliases
         context.registerResource("psm", sourceResourceSet);
         context.registerResource("asm", targetResourceSet);
+
+        // Use "psm" alias in structured XMI IDs to match ETL format
+        context.setPreferredSourceAlias("psm");
 
         // Store configuration in context attributes for rules to access
         context.setAttribute("modelName", modelName);
@@ -209,13 +217,19 @@ public class Psm2AsmZetaTransformation {
      */
     private void postProcess(TransformationContext context) {
         hu.blackbelt.judo.meta.psm.PsmUtils psmUtils = new hu.blackbelt.judo.meta.psm.PsmUtils(psmModel.getResourceSet());
-        
-        // 1. Add root packages to the ASM model resource
-        // The rules create EPackages but don't add root packages to the resource
+
+        // 1. Add root packages to the ASM model resource and apply pending XMI IDs
+        // Note: addToResource only sets the ID for the root element when staging is disabled,
+        // so we need to manually apply pending IDs to all children recursively
+        XMIResource xmiResource = asmModel.getResource() instanceof XMIResource
+                ? (XMIResource) asmModel.getResource() : null;
+
         psmUtils.all(psmModel.getResourceSet(), Model.class).forEach(model -> {
             EPackage rootPkg = context.equivalent(model, EPackage.class);
             if (rootPkg != null && !asmModel.getResource().getContents().contains(rootPkg)) {
-                asmModel.getResource().getContents().add(rootPkg);
+                context.addToResource(rootPkg);
+                // Apply pending XMI IDs to all children recursively
+                applyPendingXmiIds(rootPkg, context, xmiResource);
                 log.debug("Added root package '{}' to ASM resource", rootPkg.getName());
             }
         });
@@ -284,6 +298,33 @@ public class Psm2AsmZetaTransformation {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         asmUtils.enrichWithAnnotations();
         log.debug("Enriched ASM model with annotations");
+    }
+
+    /**
+     * Recursively apply pending XMI IDs to an element and all its children.
+     * This is needed because TransformationContext.addToResource only sets the ID for the
+     * direct element when staging is disabled, not for its children.
+     *
+     * @param element     the element to apply IDs to
+     * @param context     the transformation context containing pending IDs
+     * @param xmiResource the XMI resource to set IDs on
+     */
+    private void applyPendingXmiIds(EObject element, TransformationContext context, XMIResource xmiResource) {
+        if (xmiResource == null) {
+            return;
+        }
+
+        // Iterate through all contained children
+        for (EObject child : element.eContents()) {
+            // Get and apply the pending XMI ID for this child
+            String pendingId = context.getPendingXmiId(child);
+            if (pendingId != null) {
+                xmiResource.setID(child, pendingId);
+                log.trace("Applied pending XMI ID '{}' to element {}", pendingId, child.eClass().getName());
+            }
+            // Recursively process this child's children
+            applyPendingXmiIds(child, context, xmiResource);
+        }
     }
 
     /**

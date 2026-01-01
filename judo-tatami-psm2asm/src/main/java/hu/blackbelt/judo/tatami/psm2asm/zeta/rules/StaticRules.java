@@ -82,8 +82,7 @@ public class StaticRules {
     public TransformFunction<StaticData, EClass> createUnmappedTransferObjectForStaticData() {
         return (s, ctx) -> {
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/UnmappedTransferObjectForStaticData");
-            
+
             // Name is the static data name with first letter uppercased
             String name = s.getName();
             if (name != null && !name.isEmpty()) {
@@ -111,7 +110,6 @@ public class StaticRules {
             
             // Create and add the static query attribute
             EAttribute attr = EcorePackage.eINSTANCE.getEcoreFactory().createEAttribute();
-            setId(attr, "(psm/" + getId(s) + ")/StaticQueryAttribute");
             attr.setName(s.getName());
             attr.setLowerBound(s.isRequired() ? 1 : 0);
             attr.setDerived(true);
@@ -188,8 +186,7 @@ public class StaticRules {
             }
             
             EClass t = ctx.createTarget(EClass.class);
-            setId(t, "(psm/" + getId(s) + ")/UnmappedTransferObjectForStaticNavigation");
-            
+
             // Name is the static navigation name with first letter uppercased
             String name = s.getName();
             if (name != null && !name.isEmpty()) {
@@ -217,7 +214,6 @@ public class StaticRules {
             
             // Create and add the static query navigation EReference
             EReference ref = EcorePackage.eINSTANCE.getEcoreFactory().createEReference();
-            setId(ref, "(psm/" + getId(s) + ")/StaticQueryNavigation");
             ref.setName(s.getName());
             ref.setContainment(false);
             
