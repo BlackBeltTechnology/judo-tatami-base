@@ -43,10 +43,12 @@ import java.util.stream.Collectors;
  * 
  * <h2>Comparison Modes</h2>
  * <ul>
- *   <li><b>STRICT</b> - All attributes and references must match exactly</li>
+ *   <li><b>STRICT</b> - All attributes and references must match exactly, annotations compared with order-independent details</li>
  *   <li><b>STRUCTURAL</b> - Element structure must match, annotation differences tolerated</li>
  *   <li><b>LENIENT</b> - Major structural elements must match, minor differences allowed</li>
  * </ul>
+ *
+ * <p>Note: Derived and transient features are always skipped as they contain computed values.</p>
  * 
  * <h2>Configuration</h2>
  * The comparator can be configured via system properties:
@@ -382,11 +384,12 @@ public class ModelComparator {
     }
 
     private static boolean shouldSkipFeature(EStructuralFeature feature, ComparisonMode mode) {
-        // Always skip derived and transient features
+        // Always skip derived and transient features - they are computed values
+        // that depend on object identity or other derived data
         if (feature.isDerived() || feature.isTransient()) {
             return true;
         }
-        
+
         // In LENIENT mode, skip certain features
         if (mode == ComparisonMode.LENIENT) {
             String name = feature.getName();
@@ -395,7 +398,7 @@ public class ModelComparator {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -522,7 +525,14 @@ public class ModelComparator {
             if (mode != ComparisonMode.STRICT && !list1.isEmpty() && list1.get(0) instanceof EAnnotation) {
                 return;
             }
-            
+
+            // Special handling for EAnnotation details (EStringToStringMapEntry)
+            // Compare as multimap (key -> set of values) to handle duplicate keys like multiple 'owner' entries
+            if (!list1.isEmpty() && isAnnotationDetailEntry(list1.get(0))) {
+                compareAnnotationDetails(list1, list2, path, differences, mode);
+                return;
+            }
+
             // Try to match elements by identifier (order-independent)
             Map<String, EObject> map1 = mapByIdentifier(list1);
             Map<String, EObject> map2 = mapByIdentifier(list2);
@@ -579,6 +589,93 @@ public class ModelComparator {
             differences.add(new TypeMismatch(path, 
                     val1 != null ? val1.getClass().getSimpleName() : "null",
                     val2 != null ? val2.getClass().getSimpleName() : "null"));
+        }
+    }
+
+    /**
+     * Checks if an EObject is an annotation detail entry (has 'key' and 'value' attributes).
+     * Works with both interface (Map.Entry) and Ecore implementations.
+     */
+    private static boolean isAnnotationDetailEntry(EObject obj) {
+        if (obj == null) {
+            return false;
+        }
+        // Check by interface - EAnnotation.details contains Map.Entry<String, String>
+        if (obj instanceof Map.Entry) {
+            return true;
+        }
+        // Check by structural feature presence (key and value attributes)
+        EClass eClass = obj.eClass();
+        return eClass.getEStructuralFeature("key") != null
+                && eClass.getEStructuralFeature("value") != null
+                && eClass.getName().contains("StringToString");
+    }
+
+    /**
+     * Compares annotation details (EStringToStringMapEntry) in an order-independent manner.
+     * Handles duplicate keys by comparing sets of values for each key.
+     */
+    @SuppressWarnings("unchecked")
+    private static void compareAnnotationDetails(EList<EObject> list1, EList<EObject> list2,
+                                                  String path, List<Difference> differences,
+                                                  ComparisonMode mode) {
+        // Build multimap: key -> set of values for each list
+        Map<String, Set<String>> map1 = new LinkedHashMap<>();
+        Map<String, Set<String>> map2 = new LinkedHashMap<>();
+
+        for (EObject entry : list1) {
+            String key = getAttributeValue(entry, "key");
+            String value = getAttributeValue(entry, "value");
+            if (key != null) {
+                map1.computeIfAbsent(key, k -> new LinkedHashSet<>()).add(value != null ? value : "");
+            }
+        }
+
+        for (EObject entry : list2) {
+            String key = getAttributeValue(entry, "key");
+            String value = getAttributeValue(entry, "value");
+            if (key != null) {
+                map2.computeIfAbsent(key, k -> new LinkedHashSet<>()).add(value != null ? value : "");
+            }
+        }
+
+        // Compare keys and their value sets
+        Set<String> allKeys = new LinkedHashSet<>();
+        allKeys.addAll(map1.keySet());
+        allKeys.addAll(map2.keySet());
+
+        for (String key : allKeys) {
+            Set<String> values1 = map1.getOrDefault(key, Collections.emptySet());
+            Set<String> values2 = map2.getOrDefault(key, Collections.emptySet());
+
+            if (values1.isEmpty()) {
+                // Key only in actual
+                differences.add(new ExtraElement(path + "[key=" + key + "]",
+                        "values=" + values2));
+            } else if (values2.isEmpty()) {
+                // Key only in expected
+                differences.add(new MissingElement(path + "[key=" + key + "]",
+                        "values=" + values1));
+            } else if (!values1.equals(values2)) {
+                // Values differ for this key - compare as sets
+                Set<String> missing = new LinkedHashSet<>(values1);
+                missing.removeAll(values2);
+                Set<String> extra = new LinkedHashSet<>(values2);
+                extra.removeAll(values1);
+
+                if (!missing.isEmpty() || !extra.isEmpty()) {
+                    StringBuilder desc = new StringBuilder();
+                    if (!missing.isEmpty()) {
+                        desc.append("missing=").append(missing);
+                    }
+                    if (!extra.isEmpty()) {
+                        if (desc.length() > 0) desc.append(", ");
+                        desc.append("extra=").append(extra);
+                    }
+                    differences.add(new ValueMismatch(path + "[key=" + key + "]",
+                            values1.toString(), values2.toString()));
+                }
+            }
         }
     }
 
@@ -713,7 +810,7 @@ public class ModelComparator {
     }
 
     /**
-     * Gets a unique identifier for an object (tries name, id, uuid, source attributes).
+     * Gets a unique identifier for an object (tries name, id, uuid, source, key attributes).
      */
     private static String getIdentifier(EObject obj) {
         // For EAnnotation, use 'source' attribute as identifier
@@ -723,31 +820,38 @@ public class ModelComparator {
                 return "EAnnotation:" + source;
             }
         }
-        
+
+        // For EStringToStringMapEntry (annotation details), use 'key' attribute as identifier
+        // This enables order-independent comparison of annotation details
+        String key = getAttributeValue(obj, "key");
+        if (key != null && obj.eClass().getName().equals("EStringToStringMapEntry")) {
+            return "EStringToStringMapEntry:" + key;
+        }
+
         // Try 'name' attribute
         String name = getAttributeValue(obj, "name");
         if (name != null) {
             return obj.eClass().getName() + ":" + name;
         }
-        
+
         // Try 'id' attribute
         String id = getAttributeValue(obj, "id");
         if (id != null) {
             return obj.eClass().getName() + "#" + id;
         }
-        
+
         // Try 'uuid' attribute
         String uuid = getAttributeValue(obj, "uuid");
         if (uuid != null) {
             return obj.eClass().getName() + "@" + uuid;
         }
-        
+
         // Try 'source' attribute (for annotation-like elements)
         String source = getAttributeValue(obj, "source");
         if (source != null) {
             return obj.eClass().getName() + ":" + source;
         }
-        
+
         return null;
     }
 
