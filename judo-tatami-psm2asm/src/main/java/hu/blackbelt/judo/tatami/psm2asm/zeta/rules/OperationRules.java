@@ -167,18 +167,18 @@ public class OperationRules {
                 if (fault.getType() != null) {
                     EClass faultType = ctx.equivalent(fault.getType(), EClass.class);
                     if (faultType != null) {
-                        t.getEExceptions().add(faultType);
+                        synchronized (t.getEExceptions()) {
+                            t.getEExceptions().add(faultType);
+                        }
                     }
                 }
             }
-            
-            // Add to owning entity class
+
+            // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEOperations().add(t);
-                }
+                addOperation(ownerClass, t);
             }
             
             return t;
@@ -201,12 +201,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("bound"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -232,12 +230,10 @@ public class OperationRules {
                 }
             }
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -259,12 +255,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("abstract"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -288,12 +282,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("outputParameterName"));
             addAnnotationDetail(t, "value", s.getOutput().getName());
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -315,12 +307,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("customImplementation"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -356,12 +346,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("script"));
             addAnnotationDetail(t, "body", s.getImplementation().getBody());
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -396,12 +384,10 @@ public class OperationRules {
                 t.setUpperBound(s.getInput().getCardinality().getUpper());
             }
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEParameters().add(t);
-            }
-            
+            addParameter(eOp, t);
+
             return t;
         };
     }
@@ -443,32 +429,32 @@ public class OperationRules {
                     if (fault.getType() != null) {
                         EClass faultType = ctx.equivalent(fault.getType(), EClass.class);
                         if (faultType != null) {
-                            t.getEExceptions().add(faultType);
+                            synchronized (t.getEExceptions()) {
+                                t.getEExceptions().add(faultType);
+                            }
                         }
                     }
                 }
             }
-            
-            // Add binding annotation inline (matching ETL CreateBoundTransferOperation)
+
+            // Add binding annotation inline (matching ETL CreateBoundTransferOperation, thread-safe)
             if (s.getBinding() != null) {
                 EAnnotation bindingAnnotation = createAnnotation(
-                        t.eResource() != null ? t.eResource().getURIFragment(t) + "/BindingAnnotation" 
+                        t.eResource() != null ? t.eResource().getURIFragment(t) + "/BindingAnnotation"
                                 : "(psm/" + getId(s) + ")/BoundTransferOperation/BindingAnnotation",
                         getAnnotationUri("binding"));
                 EOperation boundOp = ctx.equivalent(s.getBinding(), EOperation.class);
                 if (boundOp != null) {
                     addAnnotationDetail(bindingAnnotation, "value", boundOp.getName());
                 }
-                t.getEAnnotations().add(bindingAnnotation);
+                addAnnotation(t, bindingAnnotation);
             }
-            
-            // Add to owning transfer object class
+
+            // Add to owning transfer object class (thread-safe)
             TransferObjectType owner = (TransferObjectType) s.eContainer();
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEOperations().add(t);
-                }
+                addOperation(ownerClass, t);
             }
             
             return t;
@@ -502,15 +488,13 @@ public class OperationRules {
                 }
             }
             
-            // Add to owning transfer object class
+            // Add to owning transfer object class (thread-safe)
             TransferObjectType owner = (TransferObjectType) s.eContainer();
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEOperations().add(t);
-                }
+                addOperation(ownerClass, t);
             }
-            
+
             return t;
         };
     }
@@ -539,13 +523,11 @@ public class OperationRules {
             addAnnotationDetail(t, "type", typeValue);
             addAnnotationDetail(t, "owner", ownerValue);
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
-            // For BoundTransferOperation, also add behaviour annotation to the binding (entity operation)
+            addAnnotation(eOp, t);
+
+            // For BoundTransferOperation, also add behaviour annotation to the binding (entity operation, thread-safe)
             if (s instanceof BoundTransferOperation) {
                 BoundTransferOperation bto = (BoundTransferOperation) s;
                 if (bto.getBinding() != null) {
@@ -556,7 +538,7 @@ public class OperationRules {
                                 getAnnotationUri("behaviour"));
                         addAnnotationDetail(bindingAnnotation, "type", typeValue);
                         addAnnotationDetail(bindingAnnotation, "owner", ownerValue);
-                        bindingOp.getEAnnotations().add(bindingAnnotation);
+                        addAnnotation(bindingOp, bindingAnnotation);
                     }
                 }
             }
@@ -708,13 +690,11 @@ public class OperationRules {
                 t.setUpperBound(s.getCardinality().getUpper());
             }
             
-            // Add to equivalent operation (container is the TransferOperation)
+            // Add to equivalent operation (container is the TransferOperation, thread-safe)
             if (s.eContainer() instanceof TransferOperation) {
                 TransferOperation op = (TransferOperation) s.eContainer();
                 EOperation eOp = ctx.equivalent(op, EOperation.class);
-                if (eOp != null) {
-                    eOp.getEParameters().add(t);
-                }
+                addParameter(eOp, t);
             }
             
             return t;
@@ -764,12 +744,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("stateful"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isStateful()));
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -792,12 +770,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("stateful"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -819,13 +795,11 @@ public class OperationRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("customImplementation"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
-            
-            // Add to equivalent operation
+
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -867,12 +841,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("initializer"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -908,12 +880,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("script"));
             addAnnotationDetail(t, "body", s.getImplementation().getBody());
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -940,12 +910,10 @@ public class OperationRules {
             t.setSource(getAnnotationUri("customImplementation"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
             
-            // Add to equivalent operation
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -967,13 +935,11 @@ public class OperationRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("outputParameterName"));
             addAnnotationDetail(t, "value", s.getOutput().getName());
-            
-            // Add to equivalent operation
+
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -995,13 +961,11 @@ public class OperationRules {
             t.setSource(getAnnotationUri("permissions"));
             addAnnotationDetail(t, "update", String.valueOf(s.isUpdateOnResult()));
             addAnnotationDetail(t, "delete", String.valueOf(s.isDeleteOnResult()));
-            
-            // Add to equivalent operation
+
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -1022,13 +986,11 @@ public class OperationRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("immutable"));
             addAnnotationDetail(t, "value", String.valueOf(s.isImmutable()));
-            
-            // Add to equivalent operation
+
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -1051,13 +1013,11 @@ public class OperationRules {
             // BoundTransferOperation is bound, UnboundOperation is not
             boolean isBound = s instanceof BoundTransferOperation;
             addAnnotationDetail(t, "value", String.valueOf(isBound));
-            
-            // Add to equivalent operation
+
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -1100,13 +1060,11 @@ public class OperationRules {
                     stateful = true;
             }
             addAnnotationDetail(t, "value", String.valueOf(stateful));
-            
-            // Add to equivalent operation
+
+            // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
-            if (eOp != null) {
-                eOp.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -1120,6 +1078,297 @@ public class OperationRules {
             return op.getImplementation() == null && op.getBehaviour() != null;
         }
         return false;
+    }
+
+    /**
+     * Guard: bound operation has documentation
+     */
+    public boolean hasBoundOperationDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundOperation) {
+            String doc = ((BoundOperation) source).getDocumentation();
+            return doc != null && !doc.isEmpty();
+        }
+        return false;
+    }
+
+    /**
+     * Guard: transfer operation has documentation
+     */
+    public boolean hasTransferOperationDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferOperation) {
+            String doc = ((TransferOperation) source).getDocumentation();
+            return doc != null && !doc.isEmpty();
+        }
+        return false;
+    }
+
+    /**
+     * Guard: input parameter has documentation
+     */
+    public boolean hasInputParameterDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof Parameter) {
+            Parameter param = (Parameter) source;
+            EObject container = param.eContainer();
+            if (container instanceof TransferOperation) {
+                if (((TransferOperation) container).getInput() == param) {
+                    String doc = param.getDocumentation();
+                    return doc != null && !doc.isEmpty();
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Guard: output parameter has documentation (for TransferOperation)
+     */
+    public boolean hasOutputParameterDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferOperation) {
+            TransferOperation op = (TransferOperation) source;
+            if (op.getOutput() != null) {
+                String doc = op.getOutput().getDocumentation();
+                return doc != null && !doc.isEmpty();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Guard: bound operation output parameter has documentation
+     */
+    public boolean hasBoundOutputParameterDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundOperation) {
+            BoundOperation op = (BoundOperation) source;
+            if (op.getOutput() != null) {
+                String doc = op.getOutput().getDocumentation();
+                return doc != null && !doc.isEmpty();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Guard: bound operation input parameter has documentation
+     */
+    public boolean hasBoundInputParameterDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundOperation) {
+            BoundOperation op = (BoundOperation) source;
+            if (op.getInput() != null) {
+                String doc = op.getInput().getDocumentation();
+                return doc != null && !doc.isEmpty();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Guard: transfer operation has inputRange defined
+     * ETL: s.inputRange.isDefined()
+     */
+    public boolean hasInputRange(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferOperation) {
+            return ((TransferOperation) source).getInputRange() != null;
+        }
+        return false;
+    }
+
+    // =========================================================================
+    // DOCUMENTATION ANNOTATION RULES
+    // =========================================================================
+
+    /**
+     * rule CreateDocumentationAnnotationForBoundOperation
+     *     transform s : JUDOPSM!BoundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.documentation.isDefined()
+     *     }
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_BOUND_OPERATION, description = "Add documentation annotation to BoundOperation")
+    @Guard(method = "hasBoundOperationDocumentation")
+    @Transform(type = BoundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BoundOperation, EAnnotation> createDocumentationAnnotationForBoundOperation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForTransferOperation
+     *     transform s : JUDOPSM!TransferOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.documentation.isDefined()
+     *     }
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_TRANSFER_OPERATION, description = "Add documentation annotation to TransferOperation")
+    @Greedy
+    @Guard(method = "hasTransferOperationDocumentation")
+    @Transform(type = TransferOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferOperation, EAnnotation> createDocumentationAnnotationForTransferOperation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForInputParameter
+     *     transform s : JUDOPSM!Parameter
+     *     to t : ASM!EAnnotation {
+     *         guard: s.isInput() and s.documentation.isDefined()
+     *     }
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_INPUT_PARAMETER, description = "Add documentation annotation to input parameter")
+    @Greedy
+    @Guard(method = "hasInputParameterDocumentation")
+    @Transform(type = Parameter.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<Parameter, EAnnotation> createDocumentationAnnotationForInputParameter() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
+            // Add to equivalent parameter (thread-safe)
+            EParameter eParam = ctx.equivalent(s, EParameter.class);
+            addAnnotation(eParam, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForOutputParameter (TransferOperation)
+     *     transform s : JUDOPSM!TransferOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.output.isDefined() and s.output.documentation.isDefined()
+     *     }
+     *
+     * Note: Output parameters are not transformed to EParameter, so we add
+     * an outputParameterDocumentation annotation to the operation itself.
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_OUTPUT_PARAMETER, description = "Add output parameter documentation annotation")
+    @Greedy
+    @Guard(method = "hasOutputParameterDocumentation")
+    @Transform(type = TransferOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferOperation, EAnnotation> createDocumentationAnnotationForOutputParameter() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("outputParameterDocumentation"));
+            addAnnotationDetail(t, "value", s.getOutput().getDocumentation());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForBoundOutputParameter
+     *     transform s : JUDOPSM!BoundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.output.isDefined() and s.output.documentation.isDefined()
+     *     }
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_BOUND_OUTPUT_PARAMETER, description = "Add output parameter documentation annotation for BoundOperation")
+    @Guard(method = "hasBoundOutputParameterDocumentation")
+    @Transform(type = BoundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BoundOperation, EAnnotation> createDocumentationAnnotationForBoundOutputParameter() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("outputParameterDocumentation"));
+            addAnnotationDetail(t, "value", s.getOutput().getDocumentation());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForBoundInputParameter
+     *     transform s : JUDOPSM!BoundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.input.isDefined() and s.input.documentation.isDefined()
+     *     }
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_BOUND_INPUT_PARAMETER, description = "Add input parameter documentation annotation for BoundOperation")
+    @Guard(method = "hasBoundInputParameterDocumentation")
+    @Transform(type = BoundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BoundOperation, EAnnotation> createDocumentationAnnotationForBoundInputParameter() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("inputParameterDocumentation"));
+            addAnnotationDetail(t, "value", s.getInput().getDocumentation());
+
+            // Add to equivalent parameter (thread-safe)
+            EParameter eParam = ctx.equivalent(s, EParameter.class);
+            if (eParam != null) {
+                addAnnotation(eParam, t);
+            } else {
+                // Fallback: add to operation if parameter not found
+                EOperation eOp = ctx.equivalent(s, EOperation.class);
+                addAnnotation(eOp, t);
+            }
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateTransferOperationInputRangeAnnotation
+     *     transform s : JUDOPSM!TransferOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.inputRange.isDefined()
+     *         t.source = asmUtils.getAnnotationUri("inputRange");
+     *         range.value = asmUtils.getReferenceFQName(s.inputRange.asmEquivalent());
+     *         t.details.add(range);
+     *         s.asmEquivalent().eAnnotations.add(t);
+     *     }
+     */
+    @TransformRule(name = CREATE_TRANSFER_OPERATION_INPUT_RANGE_ANNOTATION, description = "Add inputRange annotation to operations with inputRange defined")
+    @Greedy
+    @Guard(method = "hasInputRange")
+    @Transform(type = TransferOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferOperation, EAnnotation> createTransferOperationInputRangeAnnotation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("inputRange"));
+
+            // Get the FQ name of the inputRange reference equivalent
+            EReference inputRangeRef = ctx.equivalent(s.getInputRange(), EReference.class);
+            addAnnotationDetail(t, "value", getReferenceFQName(inputRangeRef));
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
     }
 
     // =========================================================================

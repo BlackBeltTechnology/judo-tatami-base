@@ -240,6 +240,107 @@ public class TransferObjectRules {
         return false;
     }
 
+    /**
+     * Guard: transfer attribute has a default value
+     * ETL: s.defaultValue.isDefined()
+     */
+    public boolean hasDefaultValue(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferAttribute) {
+            return ((TransferAttribute) source).getDefaultValue() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: transfer object relation has a default value
+     * ETL: s.defaultValue.isDefined()
+     */
+    public boolean hasDefaultValueRelation(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferObjectRelation) {
+            return ((TransferObjectRelation) source).getDefaultValue() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: transfer attribute has a claim type
+     * ETL: s.claimType.isDefined()
+     */
+    public boolean hasClaimType(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferAttribute) {
+            return ((TransferAttribute) source).getClaimType() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: transfer object type is a query customizer
+     * ETL: s.queryCustomizer
+     */
+    public boolean isQueryCustomizer(EObject source, TransformationContext ctx) {
+        if (source instanceof TransferObjectType) {
+            return ((TransferObjectType) source).isQueryCustomizer();
+        }
+        return false;
+    }
+
+    /**
+     * Guard: transfer object type is a metadata type
+     * ETL: JUDOPSM!TransferOperation.all().exists(o | o.behaviour.isDefined()
+     *      and o.behaviour.behaviourType == GET_METADATA
+     *      and o.output.isDefined()
+     *      and (o.output.type == self or o.output.type.relations.exists(r | r.target == self)))
+     */
+    public boolean isMetadataType(EObject source, TransformationContext ctx) {
+        if (!(source instanceof TransferObjectType)) {
+            return false;
+        }
+        TransferObjectType self = (TransferObjectType) source;
+
+        // Get root element by walking up containment hierarchy
+        EObject root = source;
+        while (root.eContainer() != null) {
+            root = root.eContainer();
+        }
+
+        // Check all TransferOperations in the model
+        return streamOf(root.eAllContents())
+                .filter(TransferOperation.class::isInstance)
+                .map(TransferOperation.class::cast)
+                .anyMatch(op -> isGetMetadataOperationFor(op, self));
+    }
+
+    /**
+     * Helper: Check if operation is a GET_METADATA operation with output type matching the given type
+     */
+    private boolean isGetMetadataOperationFor(TransferOperation op, TransferObjectType targetType) {
+        if (op.getBehaviour() == null
+                || op.getBehaviour().getBehaviourType() != TransferOperationBehaviourType.GET_METADATA) {
+            return false;
+        }
+        if (op.getOutput() == null || op.getOutput().getType() == null) {
+            return false;
+        }
+        TransferObjectType outputType = op.getOutput().getType();
+        if (outputType == targetType) {
+            return true;
+        }
+        // Check if any relation of the output type targets the self type
+        if (outputType.getRelations() != null) {
+            return outputType.getRelations().stream()
+                    .anyMatch(r -> r.getTarget() == targetType);
+        }
+        return false;
+    }
+
+    /**
+     * Helper: Convert iterator to stream
+     */
+    private static <T> java.util.stream.Stream<T> streamOf(java.util.Iterator<T> iterator) {
+        return java.util.stream.StreamSupport.stream(
+                java.util.Spliterators.spliteratorUnknownSize(iterator, 0), false);
+    }
+
     // =========================================================================
     // TRANSFER OBJECT TYPE RULES
     // =========================================================================
@@ -257,12 +358,10 @@ public class TransferObjectRules {
             EClass t = ctx.createTarget(EClass.class);
             t.setName(s.getName());
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -271,8 +370,13 @@ public class TransferObjectRules {
      * rule CreateMappedTransferObjectAnnotation
      *     transform s : JUDOPSM!MappedTransferObjectType
      *     to t : ASM!EAnnotation
+     *
+     * When s.filter.isDefined(), adds:
+     *   - filter key with value s.filter.expression
+     *   - filter.dialect key with value s.filter.dialect.asString()
      */
     @TransformRule(name = CREATE_MAPPED_ENTITY_TYPE_ANNOTATION_ON_MAPPED_TRANSFER_OBJECT, description = "Add mappedEntityType annotation")
+    @Greedy
     @Guard(method = "hasEntityType")
     @Transform(type = MappedTransferObjectType.class)
     @To(type = EAnnotation.class)
@@ -281,13 +385,17 @@ public class TransferObjectRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("mappedEntityType"));
             addAnnotationDetail(t, "value", getQualifiedName(s.getEntityType()));
-            
-            // Add to equivalent class
-            EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
+
+            // Add filter and filterDialect details if filter is defined
+            if (s.getFilter() != null) {
+                addAnnotationDetail(t, "filter", s.getFilter().getExpression());
+                addAnnotationDetail(t, "filter.dialect", s.getFilter().getDialect().toString());
             }
-            
+
+            // Add to equivalent class (thread-safe)
+            EClass eClass = ctx.equivalent(s, EClass.class);
+            addAnnotation(eClass, t);
+
             return t;
         };
     }
@@ -305,12 +413,10 @@ public class TransferObjectRules {
             EClass t = ctx.createTarget(EClass.class);
             t.setName(s.getName());
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -329,13 +435,69 @@ public class TransferObjectRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("transferObjectType"));
             addAnnotationDetail(t, "value", "true");
-            
-            // Add to equivalent class
+
+            // Add to equivalent class (thread-safe)
             EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eClass, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateQueryCustomizerAnnotationForQueryCustomizerClass
+     *     transform s : JUDOPSM!TransferObjectType
+     *     to t : ASM!EAnnotation {
+     *         guard: s.queryCustomizer
+     *         t.source = asmUtils.getAnnotationUri("queryCustomizer");
+     *         t.details.add({key="value", value="true"});
+     *         s.asmEquivalent().eAnnotations.add(t);
+     *     }
+     */
+    @TransformRule(name = CREATE_QUERY_CUSTOMIZER_ANNOTATION, description = "Add queryCustomizer annotation to query customizer types")
+    @Greedy
+    @Guard(method = "isQueryCustomizer")
+    @Transform(type = TransferObjectType.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferObjectType, EAnnotation> createQueryCustomizerAnnotation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("queryCustomizer"));
+            addAnnotationDetail(t, "value", "true");
+
+            // Add to equivalent class (thread-safe)
+            EClass eClass = ctx.equivalent(s, EClass.class);
+            addAnnotation(eClass, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateMetadataAnnotationForMetadataClass
+     *     transform s : JUDOPSM!TransferObjectType
+     *     to t : ASM!EAnnotation {
+     *         guard: s.isMetadataType()
+     *         t.source = asmUtils.getAnnotationUri("metadata");
+     *         t.details.add({key="value", value="true"});
+     *         s.asmEquivalent().eAnnotations.add(t);
+     *     }
+     */
+    @TransformRule(name = CREATE_METADATA_ANNOTATION, description = "Add metadata annotation to metadata types")
+    @Greedy
+    @Guard(method = "isMetadataType")
+    @Transform(type = TransferObjectType.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferObjectType, EAnnotation> createMetadataAnnotation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("metadata"));
+            addAnnotationDetail(t, "value", "true");
+
+            // Add to equivalent class (thread-safe)
+            EClass eClass = ctx.equivalent(s, EClass.class);
+            addAnnotation(eClass, t);
+
             return t;
         };
     }
@@ -369,12 +531,10 @@ public class TransferObjectRules {
                 addAnnotationDetail(t, "realm", actorType.getRealm());
             }
             
-            // Add to equivalent class
+            // Add to equivalent class (thread-safe)
             EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eClass, t);
+
             return t;
         };
     }
@@ -399,12 +559,10 @@ public class TransferObjectRules {
             t.setSource(getAnnotationUri("getRangeInput"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent class
+            // Add to equivalent class (thread-safe)
             EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eClass, t);
+
             return t;
         };
     }
@@ -450,15 +608,13 @@ public class TransferObjectRules {
                 (binding instanceof PrimitiveAccessor && ((PrimitiveAccessor) binding).getSetterExpression() != null);
             t.setChangeable(changeable);
             
-            // Add to owning transfer object class
+            // Add to owning transfer object class (thread-safe)
             TransferObjectType owner = (TransferObjectType) s.eContainer();
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
-            
+
             return t;
         };
     }
@@ -483,12 +639,10 @@ public class TransferObjectRules {
             String bindingPath = s.getBinding().getName();
             addAnnotationDetail(t, "value", bindingPath);
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -511,12 +665,10 @@ public class TransferObjectRules {
             t.setSource(getAnnotationUri("transient"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -546,12 +698,10 @@ public class TransferObjectRules {
                 addAnnotationDetail(t, "pattern", stringType.getRegExp());
             }
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -577,12 +727,10 @@ public class TransferObjectRules {
             String qualifiedName = getQualifiedName((NamespaceElement) s.getDataType());
             addAnnotationDetail(t, "customType", qualifiedName);
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -609,12 +757,10 @@ public class TransferObjectRules {
             addAnnotationDetail(t, "precision", String.valueOf(numericType.getPrecision()));
             addAnnotationDetail(t, "scale", String.valueOf(numericType.getScale()));
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -650,12 +796,10 @@ public class TransferObjectRules {
                 addAnnotationDetail(t, "unit", measuredType.getStoreUnit().getName());
             }
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -744,12 +888,68 @@ public class TransferObjectRules {
                 }
             }
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule AddDefaultAnnotationToTransferAttribute
+     *     transform s : JUDOPSM!TransferAttribute
+     *     to t : ASM!EAnnotation {
+     *         guard: s.defaultValue.isDefined()
+     *         t.source = asmUtils.getAnnotationUri("default");
+     *         t.details.add({key="value", value=s.defaultValue.name});
+     *         s.equivalent("CreateTransferObjectAttribute").eAnnotations.add(t);
+     *     }
+     */
+    @TransformRule(name = ADD_DEFAULT_ANNOTATION_TO_TRANSFER_ATTRIBUTE, description = "Add default annotation to transfer attribute with default value")
+    @Guard(method = "hasDefaultValue")
+    @Transform(type = TransferAttribute.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<TransferAttribute, EAnnotation> addDefaultAnnotationToTransferAttribute() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("default"));
+            addAnnotationDetail(t, "value", s.getDefaultValue().getName());
+
+            // Add to equivalent attribute (thread-safe)
+            EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
+            addAnnotation(eAttr, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateTransferAttributeClaimAnnotation
+     *     transform s : JUDOPSM!TransferAttribute
+     *     to t : ASM!EAnnotation {
+     *         guard: s.claimType.isDefined()
+     *         t.source = asmUtils.getAnnotationUri("claim");
+     *         t.details.add({key="value", value=s.claimType});
+     *         s.equivalent("CreateTransferObjectAttribute").eAnnotations.add(t);
+     *     }
+     */
+    @TransformRule(name = CREATE_TRANSFER_ATTRIBUTE_CLAIM_ANNOTATION, description = "Add claim annotation to transfer attribute with claim type")
+    @Guard(method = "hasClaimType")
+    @Transform(type = TransferAttribute.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<TransferAttribute, EAnnotation> createTransferAttributeClaimAnnotation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("claim"));
+            addAnnotationDetail(t, "value", s.getClaimType());
+
+            // Add to equivalent attribute (thread-safe)
+            EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -762,7 +962,7 @@ public class TransferObjectRules {
      * rule CreateTransferObjectRelation
      *     transform s : JUDOPSM!TransferObjectRelation
      *     to t : ASM!EReference
-     * 
+     *
      * Note: Annotations (binding, embedded) are created inline to avoid recursive update
      * issues that would occur if separate annotation rules called ctx.equivalent(s, EReference.class).
      */
@@ -799,27 +999,27 @@ public class TransferObjectRules {
             // NOTE: Target type is set in post-processing to avoid recursive update
             // when transfer object types have circular references
             
-            // Add binding annotation inline (avoids recursive update from separate rule)
+            // Add binding annotation inline (avoids recursive update from separate rule, thread-safe)
             // ETL rule guard: s.binding.isDefined() and not s.binding.isKindOf(JUDOPSM!StaticNavigation)
             if (s.getBinding() != null && !(s.getBinding() instanceof StaticNavigation)) {
                 EAnnotation bindingAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/TransferObjectRelationBindingAnnotation",
                         getAnnotationUri("binding"));
                 addAnnotationDetail(bindingAnnotation, "value", s.getBinding().getName());
-                t.getEAnnotations().add(bindingAnnotation);
+                addAnnotation(t, bindingAnnotation);
             }
-            
-            // Add range annotation for relations that have a range
+
+            // Add range annotation for relations that have a range (thread-safe)
             // ETL rule: CreateTransferObjectRelationRangeAnnotation guard: s.range.isDefined()
             if (s.getRange() != null) {
                 EAnnotation rangeAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/TransferObjectRelationRangeAnnotation",
                         getAnnotationUri("range"));
                 addAnnotationDetail(rangeAnnotation, "value", s.getRange().getName());
-                t.getEAnnotations().add(rangeAnnotation);
+                addAnnotation(t, rangeAnnotation);
             }
-            
-            // Add embedded annotation inline (avoids recursive update from separate rule)
+
+            // Add embedded annotation inline (avoids recursive update from separate rule, thread-safe)
             // ETL rule: CreateTransferObjectRelationEmbeddedFlags adds value, create, update, delete
             if (s.isEmbedded()) {
                 EAnnotation embeddedAnnotation = createAnnotation(
@@ -829,26 +1029,24 @@ public class TransferObjectRules {
                 addAnnotationDetail(embeddedAnnotation, "create", String.valueOf(s.isEmbeddedCreate()));
                 addAnnotationDetail(embeddedAnnotation, "update", String.valueOf(s.isEmbeddedUpdate()));
                 addAnnotationDetail(embeddedAnnotation, "delete", String.valueOf(s.isEmbeddedDelete()));
-                t.getEAnnotations().add(embeddedAnnotation);
+                addAnnotation(t, embeddedAnnotation);
             }
-            
-            // Add transient annotation for relations without binding and not access
+
+            // Add transient annotation for relations without binding and not access (thread-safe)
             // ETL rule: AddTransientAnnotationToTransferObjectRelation
             if (s.getBinding() == null && !isAccessRelation(s)) {
                 EAnnotation transientAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/TransientAnnotationToTransferObjectRelation",
                         getAnnotationUri("transient"));
                 addAnnotationDetail(transientAnnotation, "value", "true");
-                t.getEAnnotations().add(transientAnnotation);
+                addAnnotation(t, transientAnnotation);
             }
-            
-            // Add to owning transfer object class
+
+            // Add to owning transfer object class (thread-safe)
             TransferObjectType owner = (TransferObjectType) s.eContainer();
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
             
             return t;
@@ -879,12 +1077,10 @@ public class TransferObjectRules {
             t.setSource(getAnnotationUri("access"));
             addAnnotationDetail(t, "value", "true");
             
-            // Add to equivalent reference
+            // Add to equivalent reference (thread-safe)
             EReference eRef = ctx.equivalent(s, EReference.class);
-            if (eRef != null) {
-                eRef.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eRef, t);
+
             return t;
         };
     }
@@ -908,12 +1104,10 @@ public class TransferObjectRules {
             addAnnotationDetail(t, "update", String.valueOf(s.isEmbeddedUpdate()));
             addAnnotationDetail(t, "delete", String.valueOf(s.isEmbeddedDelete()));
             
-            // Add to equivalent reference
+            // Add to equivalent reference (thread-safe)
             EReference eRef = ctx.equivalent(s, EReference.class);
-            if (eRef != null) {
-                eRef.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eRef, t);
+
             return t;
         };
     }
@@ -986,12 +1180,39 @@ public class TransferObjectRules {
                 }
             }
             
-            // Add to equivalent reference
+            // Add to equivalent reference (thread-safe)
             EReference eRef = ctx.equivalent(s, EReference.class);
-            if (eRef != null) {
-                eRef.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eRef, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule AddDefaultAnnotationToTransferObjectRelation
+     *     transform s : JUDOPSM!TransferObjectRelation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.defaultValue.isDefined()
+     *         t.source = asmUtils.getAnnotationUri("default");
+     *         t.details.add({key="value", value=s.defaultValue.name});
+     *         s.equivalent("CreateTransferObjectRelation").eAnnotations.add(t);
+     *     }
+     */
+    @TransformRule(name = ADD_DEFAULT_ANNOTATION_TO_TRANSFER_OBJECT_RELATION, description = "Add default annotation to transfer relation with default value")
+    @Guard(method = "hasDefaultValueRelation")
+    @Transform(type = TransferObjectRelation.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<TransferObjectRelation, EAnnotation> addDefaultAnnotationToTransferObjectRelation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("default"));
+            addAnnotationDetail(t, "value", s.getDefaultValue().getName());
+
+            // Add to equivalent reference (thread-safe)
+            EReference eRef = ctx.equivalent(s, EReference.class);
+            addAnnotation(eRef, t);
+
             return t;
         };
     }
@@ -1020,32 +1241,30 @@ public class TransferObjectRules {
             EClass t = ctx.createTarget(EClass.class);
             t.setName(s.getName() + "__Reference");
             
-            // Add reference holder annotation
+            // Add reference holder annotation (thread-safe)
             EAnnotation refHolderAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/AnnotationOnReferenceClassForEntityType",
                     getAnnotationUri("referenceHolder"));
             addAnnotationDetail(refHolderAnnotation, "value", "true");
-            t.getEAnnotations().add(refHolderAnnotation);
-            
-            // Add transfer object type annotation
+            addAnnotation(t, refHolderAnnotation);
+
+            // Add transfer object type annotation (thread-safe)
             EAnnotation toAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/TransferObjectTypeAnnotationClassForReferenceClass",
                     getAnnotationUri("transferObjectType"));
             addAnnotationDetail(toAnnotation, "value", "true");
-            t.getEAnnotations().add(toAnnotation);
-            
-            // Add mapped entity type annotation - uses qualified name of the entity
+            addAnnotation(t, toAnnotation);
+
+            // Add mapped entity type annotation - uses qualified name of the entity (thread-safe)
             EAnnotation mappedEntityAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/MappedEntityTypeAnnotationOnReferenceClassForEntityType",
                     getAnnotationUri("mappedEntityType"));
             addAnnotationDetail(mappedEntityAnnotation, "value", getQualifiedName(s));
-            t.getEAnnotations().add(mappedEntityAnnotation);
-            
-            // Add to container package
+            addAnnotation(t, mappedEntityAnnotation);
+
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
+            addClassifier(containerPkg, t);
             
             // Note: Inheritance setup is deferred to post-processing in Psm2AsmZetaTransformation
             // because parent reference classes may not exist yet when this rule runs.
