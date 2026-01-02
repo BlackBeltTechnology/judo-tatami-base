@@ -5,13 +5,16 @@ This document provides a comprehensive comparison between the Epsilon ETL (Epsil
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [PSM to ASM Transformation](#psm-to-asm-transformation)
-3. [ASM to RDBMS Transformation](#asm-to-rdbms-transformation)
-4. [RDBMS to Liquibase Transformation](#rdbms-to-liquibase-transformation)
-5. [PSM to Measure Transformation](#psm-to-measure-transformation)
-6. [ASM to Keycloak Transformation](#asm-to-keycloak-transformation)
-7. [Common Patterns and Differences](#common-patterns-and-differences)
-8. [Recommendations](#recommendations)
+2. [Zeta Framework Architecture](#zeta-framework-architecture)
+3. [PSM to ASM Transformation](#psm-to-asm-transformation)
+4. [ASM to RDBMS Transformation](#asm-to-rdbms-transformation)
+5. [RDBMS to Liquibase Transformation](#rdbms-to-liquibase-transformation)
+6. [PSM to Measure Transformation](#psm-to-measure-transformation)
+7. [ASM to Keycloak Transformation](#asm-to-keycloak-transformation)
+8. [Zeta Validation Framework](#zeta-validation-framework)
+9. [Common Patterns and Differences](#common-patterns-and-differences)
+10. [Zeta API Reference](#zeta-api-reference)
+11. [Recommendations](#recommendations)
 
 ---
 
@@ -24,6 +27,9 @@ This document provides a comprehensive comparison between the Epsilon ETL (Epsil
 | RDBMS to Liquibase | 11 .etl files | 11 Java files | Per-phase sub-transformations in Zeta |
 | PSM to Measure | 3 .etl files | 4 Java files | Derived measure recursion explicit in Zeta |
 | ASM to Keycloak | 3 .etl files | 4 Java files | Enhanced logging and error handling in Zeta |
+| PSM Validation | 1 .evl file | 1 Work class | Uses PsmValidator from judo-meta-psm |
+| ASM Validation | 1 .evl file | 1 Work class | Uses AsmValidator from judo-meta-asm |
+| Expression Validation | 2 .evl files | 2 Work classes | Uses ExpressionZetaValidator with model adapters |
 
 ### Key Takeaways
 
@@ -31,6 +37,79 @@ This document provides a comprehensive comparison between the Epsilon ETL (Epsil
 2. **Zeta is more explicit** - Execution order, caching, and post-processing are explicitly managed
 3. **ETL is more concise** - Fewer lines of code due to DSL syntax
 4. **Zeta has better tooling** - Full IDE support, debugging, type safety
+5. **Validation is unified** - Zeta validators in metamodel projects, Work classes in tatami
+
+---
+
+## Zeta Framework Architecture
+
+### Core Classes
+
+The Zeta framework provides these core transformation classes:
+
+| Class | Purpose |
+|-------|---------|
+| `TransformationRegistry` | Scans and registers rule classes |
+| `TransformationExecutor` | Executes transformations in order |
+| `TransformationContext` | Holds transformation state, equivalents, attributes |
+| `TransformationResult` | Contains transformation trace after execution |
+| `TransformationTrace` | Source-to-target element mappings |
+| `ElementResolutionCache` | Caches equivalent lookups for performance |
+| `ModelProvider` | Provides model traversal functionality |
+| `ExtensionMethodRegistry` | Registers extension methods |
+
+### Transformation Flow
+
+```
+1. Create TransformationRegistry
+2. Register rule classes: registry.register(RuleClass.class)
+3. Create TransformationContext with ModelProvider
+4. Configure context (aliases, structured IDs, attributes)
+5. Create TransformationExecutor with registry + context
+6. Execute: TransformationResult result = executor.transform()
+7. Post-process: apply XMI IDs, set cross-references
+8. Return: result.getTrace()
+```
+
+### Rule Class Structure
+
+```java
+@hu.blackbelt.judo.zeta.annotation.TransformationContext(source = SourceType.class, target = TargetType.class)
+public class MyRules {
+
+    // Guard method
+    public boolean guardCondition(EObject source, TransformationContext ctx) {
+        return /* condition */;
+    }
+
+    // Abstract rule
+    @TransformRule(name = "AbstractRule", description = "Base rule")
+    @Abstract
+    @Transform(type = SourceType.class)
+    @To(type = TargetType.class)
+    public TransformFunction<SourceType, TargetType> abstractRule() {
+        return (s, ctx) -> {
+            TargetType t = ctx.createTarget(TargetType.class);
+            t.setName(s.getName());
+            return t;
+        };
+    }
+
+    // Concrete rule extending abstract
+    @TransformRule(name = "ConcreteRule", description = "Extends AbstractRule")
+    @Extends({"AbstractRule"})
+    @Guard(method = "guardCondition")
+    @Transform(type = ConcreteSourceType.class)
+    @To(type = TargetType.class)
+    public TransformFunction<ConcreteSourceType, TargetType> concreteRule() {
+        return (s, ctx) -> {
+            TargetType t = ctx.executeParentRule("AbstractRule", s);
+            // Additional processing
+            return t;
+        };
+    }
+}
+```
 
 ---
 
@@ -52,79 +131,159 @@ This document provides a comprehensive comparison between the Epsilon ETL (Epsil
 
 ### Key Differences
 
-#### 1. Annotation Creation Pattern
+#### 1. TransformationExecutor Usage
 
-**ETL**: Creates annotations as separate rules that reference parent elements
+**Zeta**: Uses TransformationRegistry and TransformationExecutor
+```java
+// Create registry and register all rule classes
+TransformationRegistry registry = new TransformationRegistry();
+registry.register(NamespaceRules.class);
+registry.register(TypeRules.class);
+registry.register(DataRules.class);
+// ... more rules
+
+// Create context
+TransformationContext context = new TransformationContext(
+        modelProvider, sourceResourceSet, targetResourceSet, extensionRegistry);
+context.setTransformationRegistry(registry);
+context.setUseStructuredIds(true);
+context.setPreferredSourceAlias("psm");
+
+// Create executor with sequential execution
+TransformationExecutor executor = TransformationExecutor.builder()
+        .registry(registry)
+        .context(context)
+        .parallel(false)  // Sequential for complex dependencies
+        .build();
+
+// Execute transformation
+TransformationResult result = executor.transform();
+```
+
+#### 2. TransformFunction Pattern
+
+**ETL**: Rule blocks with implicit context
 ```etl
-rule CreateEntityAnnotationClass
+rule CreateEntityClass
     transform s : JUDOPSM!EntityType
-    to t : ASM!EAnnotation {
-        s.equivalent("CreateEntityClass").eAnnotations.add(t);
+    to t : ASM!EClass {
+        t.name = s.name;
+        t.abstract = s.abstract;
     }
 ```
 
-**Zeta**: Creates annotations inline within main element transformation
+**Zeta**: TransformFunction lambdas with explicit context
 ```java
+@TransformRule(name = "CreateEntityClass")
+@Transform(type = EntityType.class)
+@To(type = EClass.class)
 public TransformFunction<EntityType, EClass> createEntityClass() {
     return (s, ctx) -> {
         EClass t = ctx.createTarget(EClass.class);
-        // Add entity annotation inline - avoids recursive update issues
-        EAnnotation entityAnnotation = createAnnotation(...);
-        t.getEAnnotations().add(entityAnnotation);
+        t.setName(s.getName());
+        t.setAbstract(s.isAbstract());
         return t;
     };
 }
 ```
 
-**Reason**: Zeta discovered that separate annotation rules caused recursive update issues with the TransformationContext. Inline creation avoids this problem.
+#### 3. Rule Inheritance with @Extends
 
-**Suggestion**: Keep Zeta's inline approach - it's more robust and explicit about when annotations are created.
-
-#### 2. ID Generation
-
-**ETL**: Assigns IDs using `setId()` calls
+**ETL**: `extends` keyword
 ```etl
-t.setId("(psm/" + s.getId() + ")/Package");
+rule CreateEntityClass extends NamespaceElementToEClassifier
 ```
 
-**Zeta**: ID generation is a no-op
+**Zeta**: `@Extends` annotation with `ctx.executeParentRule()`
 ```java
-public static void setId(EObject element, String id) {
-    // No-op: ETL doesn't produce ID annotations, so neither should Zeta
+@TransformRule(name = "CreateEntityClass")
+@Extends({"NamespaceElementToEClassifier"})
+@Transform(type = EntityType.class)
+@To(type = EClass.class)
+public TransformFunction<EntityType, EClass> createEntityClass() {
+    return (s, ctx) -> {
+        // Execute parent rule first
+        EClass t = ctx.executeParentRule("NamespaceElementToEClassifier", s);
+        // Then apply EntityType-specific logic
+        t.setAbstract(s.isAbstract());
+        return t;
+    };
 }
 ```
 
-**Reason**: Testing revealed ETL doesn't actually produce ID annotations in the output, so Zeta matches this behavior.
+#### 4. Guard Conditions
 
-**Suggestion**: This is intentionally equivalent - no fix needed.
-
-#### 3. Post-Processing
-
-**ETL**: Minimal post-processing in `post { }` block
-
-**Zeta**: Comprehensive 5-phase post-processing:
-1. Add root packages to ASM model resource
-2. Set EOpposite for bidirectional associations
-3. Set target types for TransferObjectRelations
-4. Set up inheritance for Reference classes
-5. Enrich model with annotations
-
-**Reason**: Zeta needs explicit post-processing because certain relationships require all elements to exist first.
-
-**Suggestion**: Document these post-processing phases for maintainability.
-
-#### 4. Caching
-
-**ETL**: Framework-managed via `@cached` decorator
-
-**Zeta**: Explicit `ConcurrentHashMap` caching in `Psm2AsmHelper`
-```java
-private static final Map<String, String> NAMESPACE_ELEMENT_STRING_CACHE = new ConcurrentHashMap<>();
+**ETL**: Inline guard expression
+```etl
+rule ModelToPackageVersion
+    guard: s.version.isDefined()
 ```
 
-**Reason**: Zeta needs thread-safe caching for potential parallel execution.
+**Zeta**: Guard method reference
+```java
+// Guard method
+public boolean hasVersion(EObject source, TransformationContext ctx) {
+    if (source instanceof Model) {
+        String version = ((Model) source).getVersion();
+        return version != null && !version.isEmpty();
+    }
+    return false;
+}
 
-**Suggestion**: Profile and verify caching effectiveness.
+@TransformRule(name = "ModelToPackageVersion")
+@Guard(method = "hasVersion")
+@Transform(type = Model.class)
+@To(type = EAnnotation.class)
+public TransformFunction<Model, EAnnotation> modelToPackageVersion() { ... }
+```
+
+#### 5. XMI ID Generation
+
+**Zeta**: Structured IDs with configurable alias
+```java
+// In context setup
+context.setUseStructuredIds(true);
+context.setPreferredSourceAlias("psm");  // IDs like "(psm/Model_Entity)/EClass"
+
+// Post-process to apply pending IDs
+private void applyPendingXmiIds(EObject element, TransformationContext context, XMIResource xmiResource) {
+    for (EObject child : element.eContents()) {
+        String pendingId = context.getPendingXmiId(child);
+        if (pendingId != null) {
+            xmiResource.setID(child, pendingId);
+        }
+        applyPendingXmiIds(child, context, xmiResource);
+    }
+}
+```
+
+#### 6. Equivalent Lookups
+
+**ETL**: `s.equivalent()` and `s.equivalents()`
+```etl
+var eClass = entityType.equivalent("CreateEntityClass");
+```
+
+**Zeta**: `ctx.equivalent()` and `ctx.equivalents()`
+```java
+EClass eClass = ctx.equivalent(entityType, EClass.class);
+// Get all equivalents (for multiple rules producing same target type)
+Collection<EClass> allClasses = ctx.equivalents(entityType, EClass.class);
+```
+
+#### 7. Post-Processing Phases
+
+**Zeta**: Explicit 5-phase post-processing
+```java
+private void postProcess(TransformationContext context) {
+    // 1. Add root packages to ASM model resource
+    // 2. Apply pending XMI IDs recursively
+    // 3. Set EOpposite for bidirectional associations
+    // 4. Set target types for TransferObjectRelations
+    // 5. Set up inheritance for Reference classes
+    // 6. Enrich model with annotations (asmUtils.enrichWithAnnotations())
+}
+```
 
 ---
 
@@ -139,89 +298,65 @@ private static final Map<String, String> NAMESPACE_ELEMENT_STRING_CACHE = new Co
 | `modules/class.etl` | (inline in main class) |
 | `modules/attribute.etl` | (inline in main class) |
 | `modules/reference.etl` | (inline in main class) |
-| `operations/*.eol` (utilities) | `rules/Asm2RdbmsRules.java` |
+| `operations/*.eol` (utilities) | `Asm2RdbmsRuleNames.java` (constants) |
 
 ### Key Differences
 
-#### 1. Rule Mapping Logic
+#### 1. Manual Trace Building
 
-**ETL**: Uses helper operations for rule decisions
-```etl
-guard: s.ruleMapping().foreignKey
-```
-
-**Zeta**: Centralizes rule decisions in `RuleMapping` class
+**Zeta**: Explicit trace map with `ElementResolutionCache`
 ```java
-private static class RuleMapping {
-    private final boolean foreignKey;
-    private final boolean junctionTable;
-    // ...
+// Internal trace map
+private final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
+
+// Add trace entry
+private void addTrace(EObject source, String ruleName, EObject target) {
+    traceMap.computeIfAbsent(source, k -> new ConcurrentHashMap<>())
+            .put(ruleName, target);
 }
 
-private RuleMapping getRuleMapping(EReference ref) {
-    Rule rule = rules.getRuleFromReference(ref);
-    return new RuleMapping(
-        rule != null && rule.isForeignKey(),
-        rule != null && rule.isJunctionTable()
-    );
+// Get equivalent
+private EObject getEquivalent(EObject source, String ruleName) {
+    Map<String, EObject> rules = traceMap.get(source);
+    return rules != null ? rules.get(ruleName) : null;
+}
+
+// Build native Zeta trace
+private TransformationTrace buildZetaTrace() {
+    ElementResolutionCache cache = new ElementResolutionCache();
+    for (Map.Entry<EObject, Map<String, EObject>> entry : traceMap.entrySet()) {
+        EObject source = entry.getKey();
+        for (Map.Entry<String, EObject> targetEntry : entry.getValue().entrySet()) {
+            String ruleName = targetEntry.getKey();
+            EObject target = targetEntry.getValue();
+            cache.addMapping(source, ruleName, target, true);
+        }
+    }
+    return new TransformationTrace(cache);
 }
 ```
 
-**Reason**: Zeta encapsulates rule decisions for better testability.
+#### 2. Rule Name Constants
 
-**Suggestion**: Consider extracting to a separate class for reusability.
-
-#### 2. System Field Creation
-
-**ETL**: 9 separate rules with abstract parent
-```etl
-@abstract
-rule EAttributeToRdbmsField
-    transform s : ASM!EAttribute
-    to t : RDBMS!RdbmsField { ... }
-
-rule EClassToTableIdField
-    extends EAttributeToRdbmsField { ... }
-```
-
-**Zeta**: 9 separate methods called sequentially
+**Zeta**: Centralized rule name constants in `Asm2RdbmsRuleNames.java`
 ```java
-private void createTableIdField(RdbmsTable table, EClass eClass) { ... }
-private void createTableTypeField(RdbmsTable table, EClass eClass) { ... }
-// ... 7 more field creation methods
+public static final String ROOT_PACKAGE_TO_MODEL = "rootPackageToModel";
+public static final String ROOT_PACKAGE_TO_CONFIGURATION = "rootPackageToConfiguration";
+public static final String ECLASS_TO_RDBMS_TABLE = "EClassToRdbmsTable";
+public static final String ECLASS_TO_TABLE_ID_FIELD = "EClassToTableIdField";
+// ... more constants
 ```
 
-**Reason**: Java doesn't have rule inheritance; method calls achieve same result.
+#### 3. XMI ID Setting
 
-**Suggestion**: Consider extracting to a `SystemFieldFactory` for better organization.
-
-#### 3. Junction Table Handling
-
-**ETL**: Uses `@lazy` decorator for deferred creation
-```etl
-@lazy
-rule EReferenceToRdbmsJunctionTable
-    transform s : ASM!EReference
-    to t : RDBMS!RdbmsJunctionTable { ... }
-```
-
-**Zeta**: Two-pass loop approach
+**Zeta**: Direct XMI ID setting via `setXmiId()` helper
 ```java
-// Pass 1: Create all junction tables
-for (EReference ref : references) {
-    if (getRuleMapping(ref).junctionTable) {
-        createJunctionTable(ref);
+private void setXmiId(RdbmsElement element) {
+    if (element.getUuid() != null && rdbmsModel.getResource() instanceof XMIResource) {
+        ((XMIResource) rdbmsModel.getResource()).setID(element, element.getUuid());
     }
 }
-// Pass 2: Create foreign keys
-for (EReference ref : references) {
-    createForeignKey(ref);
-}
 ```
-
-**Reason**: Zeta must explicitly manage the order that ETL handles implicitly.
-
-**Suggestion**: Document the two-pass requirement in code comments.
 
 ---
 
@@ -249,14 +384,6 @@ for (EReference ref : references) {
 #### 1. Model Management
 
 **ETL**: Creates 8 target models in `pre { }` block
-```etl
-pre {
-    var targetModel : LIQUIBASE!databaseChangeLog = new LIQUIBASE!databaseChangeLog();
-    var dbCheckupModel : DBCHECKUP!databaseChangeLog = ...
-    var dbBackupModel : DBBACKUP!databaseChangeLog = ...
-    // ... 5 more models
-}
-```
 
 **Zeta**: Constructor receives 8 explicit model parameters
 ```java
@@ -266,49 +393,13 @@ public Rdbms2LiquibaseIncrementalZetaTransformation(
     @NonNull LiquibaseModel dbCheckupLiquibaseModel,
     @NonNull LiquibaseModel dbBackupLiquibaseModel,
     @NonNull LiquibaseModel beforeIncrementalLiquibaseModel,
-    // ... 5 more models
+    @NonNull LiquibaseModel incrementalLiquibaseModel,
+    @NonNull LiquibaseModel afterIncrementalLiquibaseModel,
+    @NonNull LiquibaseModel dbDropBackupLiquibaseModel,
+    @NonNull LiquibaseModel dataUpdateBeforeLiquibaseModel,
+    @NonNull LiquibaseModel dataUpdateAfterLiquibaseModel
 ) { ... }
 ```
-
-**Reason**: Zeta makes dependencies explicit for testability and clarity.
-
-**Suggestion**: Consider using a ModelContainer/ModelBundle class to group related models.
-
-#### 2. ChangeSet Caching
-
-**ETL**: Uses `@cached` operation
-```etl
-@cached
-operation LIQUIBASE!databaseChangeLog getOrCreateChangeSet(id : String, ...) { ... }
-```
-
-**Zeta**: Explicit HashMap caching
-```java
-private final Map<String, ChangeSet> changeSetCache = new HashMap<>();
-
-private ChangeSet getOrCreateChangeSet(String id, String logicalFilePath) {
-    String cacheKey = id + ":" + logicalFilePath;
-    return changeSetCache.computeIfAbsent(cacheKey, k -> {
-        // Create new ChangeSet
-    });
-}
-```
-
-**Reason**: Zeta needs explicit cache management per model.
-
-**Suggestion**: This is working correctly - no fix needed.
-
-#### 3. Unique Constraint Bug
-
-**Both ETL and Zeta** have a potential issue with multi-column unique constraints:
-```etl
-// ETL comment:
-for (field in s.fields) {
-    // works in theory, but fails when executed on db if there are more then 1 field
-}
-```
-
-**Suggestion**: Fix both implementations to handle multi-column unique constraints correctly by creating a single constraint with multiple columns.
 
 ---
 
@@ -324,60 +415,31 @@ for (field in s.fields) {
 
 ### Key Differences
 
-#### 1. Derived Measure Resolution
+#### 1. Custom XMI ID Handling
 
-**ETL**: Relies on pre-computed `getBaseMeasures()`
-```etl
-for (m in s.getBaseMeasures().keySet()) {
-    var term = new MEASURES!MeasuredTerm;
-    term.exponent = s.getBaseMeasures().get(m);
-    term.measure = m.equivalent();
-    t.terms.add(term);
-}
-```
-
-**Zeta**: Implements recursive resolution explicitly
+**Zeta**: Manual XMI ID tracking via context attribute
 ```java
-private Map<Measure, Integer> getBaseMeasures(DerivedMeasure derivedMeasure) {
-    Map<Measure, Integer> result = new LinkedHashMap<>();
-    for (Term term : derivedMeasure.getTerms()) {
-        Measure termMeasure = term.getUnit().getMeasure();
-        int exponent = term.getExponent();
+// In rules - store custom XMI IDs
+@SuppressWarnings("unchecked")
+Map<EObject, String> customXmiIds = (Map<EObject, String>) ctx.getAttribute("customXmiIds");
+if (customXmiIds == null) {
+    customXmiIds = new HashMap<>();
+    ctx.setAttribute("customXmiIds", customXmiIds);
+}
+customXmiIds.put(targetElement, "(psm/" + sourceId + ")/Measure");
 
-        if (termMeasure instanceof DerivedMeasure) {
-            // Recursively resolve nested derived measures
-            Map<Measure, Integer> nestedBaseMeasures = getBaseMeasures((DerivedMeasure) termMeasure);
-            for (Map.Entry<Measure, Integer> entry : nestedBaseMeasures.entrySet()) {
-                int newExponent = entry.getValue() * exponent;
-                result.merge(entry.getKey(), newExponent, (a, b) -> {
-                    int sum = a + b;
-                    return sum == 0 ? null : sum; // Filter zero exponents
-                });
-            }
-        } else {
-            result.merge(termMeasure, exponent, Integer::sum);
-        }
+// In post-process - apply XMI IDs
+private void applyPendingXmiIds(EObject element, TransformationContext context,
+                                 XMIResource xmiResource, Map<EObject, String> customXmiIds) {
+    String xmiId = customXmiIds.get(element);
+    if (xmiId != null) {
+        xmiResource.setID(element, xmiId);
     }
-    return result;
+    for (EObject child : element.eContents()) {
+        applyPendingXmiIds(child, context, xmiResource, customXmiIds);
+    }
 }
 ```
-
-**Reason**: Zeta explicitly handles nested derived measures and exponent combination.
-
-**Suggestion**: Verify ETL's `getBaseMeasures()` implementation does the same recursion.
-
-#### 2. ID Assignment
-
-**ETL**: Explicit ID assignment
-```etl
-t.setId("(psm/" + s.getId() + ")/Measure");
-```
-
-**Zeta**: No visible ID assignment in rules
-
-**Reason**: Unknown - may be handled by framework or intentionally omitted.
-
-**Suggestion**: Verify if IDs are needed in output; add if missing.
 
 ---
 
@@ -391,52 +453,73 @@ t.setId("(psm/" + s.getId() + ")/Measure");
 | `modules/realm.etl` | `rules/RealmRules.java` |
 | `modules/client.etl` | `rules/ClientRules.java` |
 
-### Key Differences
+---
 
-#### 1. Realm Tracking
+## Zeta Validation Framework
 
-**ETL**: Simple set of realm names
-```etl
-var realms = new Set();
-for (actor in asmUtils.getAllActorTypes()) {
-    var realm = asmUtils.getExtensionAnnotationValue(actor, "realm", false);
-    if (realm.present) {
-        realms.add(realm.get);
-    }
+### Overview
+
+Zeta validation provides native Java validators as alternatives to Epsilon EVL. The validators are implemented in metamodel projects and exposed via Work classes in judo-tatami.
+
+### Validation Work Classes
+
+| EVL Work Class | Zeta Work Class | Validator |
+|----------------|-----------------|-----------|
+| `PsmValidationWork` | `PsmValidationZetaWork` | `PsmValidator` from judo-meta-psm |
+| `AsmValidationWork` | `AsmValidationZetaWork` | `AsmValidator` from judo-meta-asm |
+| `ExpressionValidationOnPsmWork` | `ExpressionValidationOnPsmZetaWork` | `ExpressionZetaValidator` with `PsmModelAdapter` |
+| `ExpressionValidationOnAsmWork` | `ExpressionValidationOnAsmZetaWork` | `ExpressionZetaValidator` with `AsmModelAdapter` |
+
+### Validation API
+
+#### PSM Validation
+```java
+// Returns list of validation results
+List<ValidationResult> results = PsmValidator.validate(log, psmModel);
+
+// Check for errors
+List<ValidationResult> errors = results.stream()
+        .filter(r -> r.getSeverity() == Severity.ERROR)
+        .collect(Collectors.toList());
+
+if (!errors.isEmpty()) {
+    throw new PsmJavaValidationException(message, results, errorDetails, ...);
 }
 ```
 
-**Zeta**: Maps realm names to source actors for tracing
+#### ASM Validation
 ```java
-Map<String, EClass> realmToFirstActor = new LinkedHashMap<>();
-asmUtils.getAllActorTypes().forEach(actor -> {
-    Optional<String> realmOpt = asmUtils.getExtensionAnnotationValue(actor, "realm", false);
-    if (realmOpt.isPresent() && !realmOpt.get().trim().isEmpty()) {
-        String realmName = realmOpt.get().trim();
-        realmToFirstActor.putIfAbsent(realmName, actor);
-    }
-});
+// Throws AsmValidationException if validation fails
+AsmValidator.validateAsm(log, asmModel);
 ```
 
-**Reason**: Zeta maintains source element references for transformation tracing.
-
-**Suggestion**: This is correct - enables better debugging and traceability.
-
-#### 2. Error Handling
-
-**ETL**: Silent failures via guard conditions
-
-**Zeta**: Explicit warnings when realms not found
+#### Expression Validation
 ```java
-if (realm == null) {
-    log.warn("Could not find realm '{}' for actor '{}'", realmName, s.getName());
-    return null;
+// Create model adapter (PSM or ASM)
+PsmModelAdapter modelAdapter = new PsmModelAdapter(
+        psmModel.getResourceSet(),
+        psmModel.getResourceSet()  // measureResourceSet same as psmResourceSet
+);
+
+// Or for ASM
+AsmModelAdapter modelAdapter = new AsmModelAdapter(
+        asmModel.getResourceSet(),
+        measureModel.getResourceSet()
+);
+
+// Throws ExpressionValidationException if validation fails
+ExpressionZetaValidator.validateExpression(log, expressionModel, modelAdapter);
+```
+
+### ValidationResult API
+```java
+public interface ValidationResult {
+    Severity getSeverity();        // ERROR, WARNING, INFO
+    String getConstraintName();    // Rule name (e.g., "ObjectTypeIsValid")
+    String getMessage();           // Detailed error message
+    EObject getElement();          // Element that failed validation
 }
 ```
-
-**Reason**: Better visibility into transformation failures.
-
-**Suggestion**: Add similar logging to other transformations.
 
 ---
 
@@ -446,14 +529,29 @@ if (realm == null) {
 
 | Pattern | ETL | Zeta |
 |---------|-----|------|
-| Rule inheritance | `extends RuleName` | `@Extends({"RuleName"})` |
+| Rule declaration | `rule RuleName transform s : Type to t : Type { }` | `@TransformRule @Transform @To public TransformFunction<S,T> ruleName()` |
+| Rule inheritance | `extends RuleName` | `@Extends({"RuleName"})` + `ctx.executeParentRule()` |
 | Guards | `guard: condition` | `@Guard(method = "methodName")` |
-| Lazy execution | `@lazy` | Two-pass loops |
+| Abstract rules | `@abstract rule` | `@Abstract` annotation |
+| Lazy execution | `@lazy` | Two-pass loops or post-processing |
 | Greedy matching | `@greedy` | `@Greedy` annotation |
-| Pre-execution | `pre { }` block | `@PreExecution` method |
+| Pre-execution | `pre { }` block | Constructor or context setup |
 | Post-execution | `post { }` block | `postProcess()` method |
 | Equivalent lookup | `s.equivalent()` | `ctx.equivalent(s, Type.class)` |
-| Factory creation | `new TYPE!Element` | `factory.createElement()` |
+| All equivalents | `s.equivalents()` | `ctx.equivalents(s, Type.class)` |
+| Factory creation | `new TYPE!Element` | `ctx.createTarget(Type.class)` |
+| Resource access | `source!Type.all` | `modelProvider.getAllContents(resourceSet, Type.class)` |
+| Context attributes | `ctx.variable` | `ctx.getAttribute("key")` / `ctx.setAttribute("key", value)` |
+
+### Annotation Mapping
+
+| ETL Annotation | Zeta Annotation |
+|----------------|-----------------|
+| `@abstract` | `@Abstract` |
+| `@lazy` | (manual two-pass) |
+| `@greedy` | `@Greedy` |
+| `@cached` | `ConcurrentHashMap` caching |
+| `@primary` | (rule registration order) |
 
 ### Code Size Comparison
 
@@ -479,6 +577,63 @@ if (realm == null) {
 
 ---
 
+## Zeta API Reference
+
+### TransformationContext Methods
+
+| Method | Description |
+|--------|-------------|
+| `createTarget(Class<T>)` | Creates new target element of given type |
+| `equivalent(source, Class<T>)` | Gets equivalent target element |
+| `equivalents(source, Class<T>)` | Gets all equivalent target elements |
+| `executeParentRule(ruleName, source)` | Executes parent rule and returns result |
+| `addToResource(element)` | Adds element to target resource |
+| `getPendingXmiId(element)` | Gets pending XMI ID for element |
+| `setAttribute(key, value)` | Sets context attribute |
+| `getAttribute(key)` | Gets context attribute |
+| `registerResource(alias, resourceSet)` | Registers resource with alias |
+| `setUseStructuredIds(boolean)` | Enables/disables structured XMI IDs |
+| `setPreferredSourceAlias(alias)` | Sets alias for ID generation |
+| `setTransformationRegistry(registry)` | Sets the rule registry |
+| `setTargetPackage(EPackage)` | Sets target metamodel package |
+
+### TransformationRegistry Methods
+
+| Method | Description |
+|--------|-------------|
+| `register(Class<?>)` | Registers a rule class |
+| `getRules()` | Gets all registered rules |
+
+### TransformationExecutor Methods
+
+| Method | Description |
+|--------|-------------|
+| `transform()` | Executes transformation, returns TransformationResult |
+| `builder()` | Creates executor builder |
+
+### TransformationExecutor.Builder Methods
+
+| Method | Description |
+|--------|-------------|
+| `registry(TransformationRegistry)` | Sets rule registry |
+| `context(TransformationContext)` | Sets transformation context |
+| `parallel(boolean)` | Enables/disables parallel execution |
+| `build()` | Builds executor instance |
+
+### TransformationResult Methods
+
+| Method | Description |
+|--------|-------------|
+| `getTrace()` | Gets TransformationTrace with mappings |
+
+### ElementResolutionCache Methods
+
+| Method | Description |
+|--------|-------------|
+| `addMapping(source, ruleName, target, primary)` | Adds source-to-target mapping |
+
+---
+
 ## Recommendations
 
 ### High Priority
@@ -487,33 +642,29 @@ if (realm == null) {
    - Both ETL and Zeta have a bug with multi-column unique constraints
    - Fix: Create single constraint with multiple column names
 
-2. **ID Assignment (PSM2Measure)**
-   - Verify if IDs are needed in measure model output
-   - Add ID generation to Zeta if required
-
 ### Medium Priority
 
-3. **Consistent Logging**
+2. **Consistent Logging**
    - Add warning logs to all Zeta transformations when guards fail
    - Helps debugging production issues
 
-4. **Extract Helpers**
+3. **Extract Helpers**
    - ASM2RDBMS: Extract `SystemFieldFactory` class
    - RDBMS2Liquibase: Create `ModelBundle` class for related models
 
-5. **Document Post-Processing**
+4. **Document Post-Processing**
    - Add comments explaining why each post-processing phase exists
    - Critical for maintainability
 
 ### Low Priority
 
-6. **Cache Profiling**
+5. **Cache Profiling**
    - Profile PSM2ASM caches to verify effectiveness
    - Remove unused caches
 
-7. **Parallel Execution**
-   - Currently disabled in all transformations
-   - Profile and enable where safe
+6. **Parallel Execution**
+   - Currently disabled in all transformations due to EMF thread-safety issues
+   - Profile and enable where safe (requires thread-safe EMF collections)
 
 ---
 
@@ -521,10 +672,26 @@ if (realm == null) {
 
 The Zeta implementations are faithful ports of ETL transformations with these key improvements:
 
-1. **Type Safety**: Compile-time error detection
+1. **Type Safety**: Compile-time error detection via generics
 2. **Tooling**: Full IDE support for refactoring and debugging
 3. **Testability**: Unit tests for individual rules
-4. **Traceability**: Explicit transformation traces
-5. **Error Handling**: Better logging and warnings
+4. **Traceability**: Explicit transformation traces via ElementResolutionCache
+5. **Error Handling**: Better logging and validation exceptions
+6. **Validation**: Native Java validators with consistent API
 
-The main trade-off is increased code verbosity (~2-5x more lines) for these benefits. Both implementations produce equivalent output as verified by the dual-engine test framework.
+The main trade-off is increased code verbosity (~2-5x more lines) for these benefits. Both implementations produce equivalent output as verified by the dual-engine test framework with ModelComparator.
+
+### Migration Checklist
+
+When adding new transformations with Zeta:
+
+1. Create rule classes with `@TransformRule`, `@Transform`, `@To` annotations
+2. Implement `TransformFunction` lambdas for each rule
+3. Use `@Extends` and `ctx.executeParentRule()` for inheritance
+4. Use `@Guard` with guard methods for conditional execution
+5. Register rules with `TransformationRegistry` in execution order
+6. Configure `TransformationContext` with structured IDs if needed
+7. Add post-processing for cross-references and XMI ID application
+8. Build `TransformationTrace` using `ElementResolutionCache`
+9. Create corresponding Work class extending `AbstractTransformationWork`
+10. Add dual-engine tests comparing ETL and Zeta output

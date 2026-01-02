@@ -48,6 +48,7 @@ public final class Asm2RdbmsRuleNames {
     public static final String ECLASS_TO_TABLE_UPDATE_TIMESTAMP_FIELD = "EClassToTableUpdateTimestampField";
 
     // Attribute transformation rules
+    public static final String EATTRIBUTE_TO_RDBMS_FIELD = "EAttributeToRdbmsField";
     public static final String EATTRIBUTE_TO_TABLE_VALUE_FIELD = "EAttributeToTableValueField";
     public static final String EATTRIBUTE_TO_INDEX = "EAttributeToIndex";
 
