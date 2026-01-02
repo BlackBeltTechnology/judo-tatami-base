@@ -1,7 +1,8 @@
-# Capability: RDBMS to Liquibase Zeta Rule-Based Transformation
+# rdbms2liquibase-zeta-rules Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change refactor-rdbms2liquibase-zeta-rules. Update Purpose after archive.
+## Requirements
 ### Requirement: Rdbms2Liquibase Zeta MUST use declarative rule classes matching ETL structure
 
 The RDBMS to Liquibase Zeta transformation MUST use declarative rule classes with Zeta annotations, organized to match the ETL file structure (table.etl, field.etl).
@@ -50,6 +51,13 @@ Given the ETL rule `@lazy rule TableToCreateTable`
 When implementing in Zeta
 Then the rule method has `@Lazy` annotation
 And the rule is only executed when another rule calls `ctx.equivalent()` for it
+
+#### Scenario: Greedy annotation enables subtype matching
+
+Given the ETL rule `@greedy rule FieldToColumn`
+When implementing in Zeta
+Then the rule method has `@Greedy` annotation
+And the rule matches RdbmsField and all its subtypes (RdbmsValueField, RdbmsIdentifierField, RdbmsForeignKey)
 
 #### Scenario: Abstract annotation marks base column rule
 
@@ -101,3 +109,4 @@ When refactored to use rule classes
 Then the generated Liquibase databaseChangeLog is structurally identical
 And all ChangeSet IDs match exactly
 And all Column, CreateTable, and constraint elements match
+

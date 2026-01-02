@@ -59,6 +59,7 @@ The ETL uses these rule files:
 2. Use proper Zeta annotations matching ETL:
    - `@TransformRule(name = "...")` for each rule
    - `@Lazy` for `TableToCreateTable`
+   - `@Greedy` for rules that match subtypes (e.g., `FieldToColumn` matches all field subtypes)
    - `@Abstract` for `FieldToColumn`
    - `@Extends` for rule inheritance
    - `@Guard(method = "...")` for guard conditions
@@ -68,6 +69,8 @@ The ETL uses these rule files:
    - `ctx.equivalent(field.eContainer(), TABLE_TO_CREATE_FOREIGN_KEYS_CHANGESET)`
 
 4. Refactor orchestrator to use `TransformationRegistry` and `TransformationExecutor`
+
+5. Keep `getOrCreateChangeSet()` as a helper method in the orchestrator for index and unique constraint rules (not a source-to-target transformation)
 
 ## Scope
 
