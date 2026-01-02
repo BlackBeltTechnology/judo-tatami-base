@@ -19,27 +19,29 @@ This doesn't match the ETL pattern where:
 
 ### table.etl
 
-| Rule | Annotations | Key Pattern |
-|------|-------------|-------------|
-| `TableToCreateTable` | `@lazy`, `@greedy` | Base table creation, called lazily |
-| `TableToCreateTableChangeSet` | `@greedy` | Uses `s.equivalent("TableToCreateTable")` |
-| `TableToCreateForeignKeysChangeSet` | `@greedy` | Guard: has FK fields |
-| `TableToAddNotNullChangeSet` | `@greedy` | Guard: has mandatory fields |
+| Rule | ETL Annotations | Zeta Annotations | Key Pattern |
+|------|-----------------|------------------|-------------|
+| `TableToCreateTable` | `@lazy`, `@greedy` | `@Lazy`, `@Greedy` | Base table creation, called lazily |
+| `TableToCreateTableChangeSet` | `@greedy` | `@Greedy` | Uses `s.equivalent("TableToCreateTable")` |
+| `TableToCreateForeignKeysChangeSet` | `@greedy` | `@Greedy`, `@Guard` | Guard: has FK fields |
+| `TableToAddNotNullChangeSet` | `@greedy` | `@Greedy`, `@Guard` | Guard: has mandatory fields |
 
 ### field.etl
 
-| Rule | Annotations | Key Pattern |
-|------|-------------|-------------|
-| `FieldToColumn` | `@abstract`, `@greedy` | Base column creation |
-| `IdentifierFieldToCreateTableColumn` | Extends `FieldToColumn` | Uses `s.table().equivalent("TableToCreateTable")` |
-| `ValueFieldToCreateTableColumn` | Extends `FieldToColumn` | Uses `s.table().equivalent("TableToCreateTable")` |
-| `IdentifierFieldToCreateTableColumnAddPrimaryKeyConstraint` | - | Uses `s.equivalent("IdentifierFieldToCreateTableColumn")` |
-| `ForeignKeyFieldToAddForeignKeyConstraint` | `@abstract` | Base FK constraint |
-| `ForeignKeyFieldToCreateTableAddForeignKeyConstraint` | Extends above | Uses `s.table().equivalent("TableToCreateForeignKeysChangeSet")` |
-| `FieldToAddNotNullConstraint` | `@abstract`, `@greedy` | Base not-null |
-| `FieldToCreateTableAddNotNullConstraint` | Extends above, `@greedy` | Uses `s.table().equivalent("TableToAddNotNullChangeSet")` |
-| `IndexToCreateIndex` | - | Uses `targetModel.getOrCreateChangeSet()` |
-| `AddUniqueConstraints` | - | Uses `targetModel.getOrCreateChangeSet()` |
+| Rule | ETL Annotations | Zeta Annotations | Key Pattern |
+|------|-----------------|------------------|-------------|
+| `FieldToColumn` | `@abstract`, `@greedy` | `@Abstract`, `@Greedy` | Base column creation |
+| `IdentifierFieldToCreateTableColumn` | `@greedy`, extends | `@Greedy`, `@Extends` | Uses `s.table().equivalent("TableToCreateTable")` |
+| `ValueFieldToCreateTableColumn` | extends | `@Extends` | Uses `s.table().equivalent("TableToCreateTable")` |
+| `IdentifierFieldToCreateTableColumnAddPrimaryKeyConstraint` | - | - | Uses `s.equivalent("IdentifierFieldToCreateTableColumn")` |
+| `ForeignKeyFieldToAddForeignKeyConstraint` | `@abstract` | `@Abstract` | Base FK constraint |
+| `ForeignKeyFieldToCreateTableAddForeignKeyConstraint` | extends | `@Extends` | Uses `s.table().equivalent("TableToCreateForeignKeysChangeSet")` |
+| `FieldToAddNotNullConstraint` | `@abstract`, `@greedy` | `@Abstract`, `@Greedy` | Base not-null |
+| `FieldToCreateTableAddNotNullConstraint` | `@greedy`, extends | `@Greedy`, `@Extends`, `@Guard` | Uses `s.table().equivalent("TableToAddNotNullChangeSet")` |
+| `IndexToCreateIndex` | - | - | Uses `getOrCreateChangeSet()` helper |
+| `AddUniqueConstraints` | - | - | Uses `getOrCreateChangeSet()` helper |
+
+**Note:** The `getOrCreateChangeSet()` pattern remains as a helper method in the orchestrator, not as a transformation rule, since it's a utility for grouping ChangeSets by logical file path.
 
 ## Proposed Architecture
 

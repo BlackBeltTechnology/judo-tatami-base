@@ -2,49 +2,50 @@
 
 ## Phase 1: Create TableRules
 
-- [ ] Create `rules/TableRules.java`
+- [x] Create `rules/TableRules.java`
   - Add `@TransformationContext` annotation
-  - Implement `tableToCreateTable()` with `@TransformRule`, `@Lazy`
-  - Implement `tableToCreateTableChangeSet()` with `@TransformRule`
-  - Implement `tableToCreateForeignKeysChangeSet()` with `@TransformRule`, `@Guard`
-  - Implement `tableToAddNotNullChangeSet()` with `@TransformRule`, `@Guard`
+  - Implement `tableToCreateTable()` with `@TransformRule`, `@Lazy`, `@Greedy`
+  - Implement `tableToCreateTableChangeSet()` with `@TransformRule`, `@Greedy`
+  - Implement `tableToCreateForeignKeysChangeSet()` with `@TransformRule`, `@Greedy`, `@Guard`
+  - Implement `tableToAddNotNullChangeSet()` with `@TransformRule`, `@Greedy`, `@Guard`
   - Add guard methods `hasForeignKeys()`, `hasMandatoryFields()`
   - Use `ctx.equivalent(s, TABLE_TO_CREATE_TABLE)` for lazy lookup
 
 ## Phase 2: Create FieldRules
 
-- [ ] Create `rules/FieldRules.java`
-  - Implement `fieldToColumn()` with `@TransformRule`, `@Abstract`
-  - Implement `identifierFieldToColumn()` with `@TransformRule`, `@Extends`
+- [x] Create `rules/FieldRules.java`
+  - Implement `fieldToColumn()` with `@TransformRule`, `@Abstract`, `@Greedy`
+  - Implement `identifierFieldToColumn()` with `@TransformRule`, `@Extends`, `@Greedy`
   - Implement `identifierFieldToPkConstraint()` with `@TransformRule`
   - Implement `valueFieldToColumn()` with `@TransformRule`, `@Extends`
   - Implement `foreignKeyFieldToAddFkConstraint()` with `@TransformRule`, `@Abstract`
   - Implement `foreignKeyFieldToCreateTableAddFkConstraint()` with `@TransformRule`, `@Extends`
-  - Implement `fieldToAddNotNullConstraint()` with `@TransformRule`, `@Abstract`
-  - Implement `fieldToCreateTableAddNotNullConstraint()` with `@TransformRule`, `@Extends`, `@Guard`
-  - Implement `indexToCreateIndex()` with `@TransformRule`
-  - Implement `addUniqueConstraints()` with `@TransformRule`
+  - Implement `fieldToAddNotNullConstraint()` with `@TransformRule`, `@Abstract`, `@Greedy`
+  - Implement `fieldToCreateTableAddNotNullConstraint()` with `@TransformRule`, `@Extends`, `@Greedy`, `@Guard`
+  - Implement `indexToCreateIndex()` with `@TransformRule` (uses `getOrCreateChangeSet()` helper)
+  - Implement `addUniqueConstraints()` with `@TransformRule` (uses `getOrCreateChangeSet()` helper)
   - All rules use `ctx.equivalent()` for named lookups matching ETL
   - Use `ctx.executeParentRule()` for `@Extends` inheritance
 
 ## Phase 3: Refactor Orchestrator
 
-- [ ] Simplify `Rdbms2LiquibaseZetaTransformation.java`
+- [x] Simplify `Rdbms2LiquibaseZetaTransformation.java`
   - Remove inline procedural transformation methods (`transformTables()`, `transformFields()`, etc.)
   - Remove inline annotated rules (duplicates of rule class methods)
   - Remove manual `addTrace()`/`getEquivalent()` methods
   - Add `createRegistry()` method registering rule classes
   - Add `createContext()` method with configuration attributes
-  - Keep or extract `getOrCreateChangeSet()` for index/unique constraint rules
+  - Keep `getOrCreateChangeSet()` helper method for index/unique constraint rules
+  - Store helper in context attribute so rule classes can access it
   - Use `TransformationExecutor` for execution
   - Add `postProcess()` for adding root databaseChangeLog to resource
 
 ## Phase 4: Verification
 
-- [ ] Run existing tests to verify transformation works
-- [ ] Run comparison tests (ETL vs Zeta) if available
-- [ ] Verify all rule names match ETL exactly
-- [ ] Run full module test suite
+- [x] Run existing tests to verify transformation works
+- [x] Run comparison tests (ETL vs Zeta) if available
+- [x] Verify all rule names match ETL exactly
+- [x] Run full module test suite
 
 ## Dependencies
 
