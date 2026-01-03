@@ -94,6 +94,36 @@ public class ModelComparator {
     }
 
     /**
+     * Functional interface for custom XMI ID extraction.
+     * <p>
+     * Consumer projects can implement this interface to provide custom XMI ID
+     * extraction logic for their specific model types during comparison.
+     * </p>
+     * <p>
+     * Example usage:
+     * <pre>
+     * XmiIdExtractor customExtractor = obj -> {
+     *     if (obj instanceof MyDomainElement) {
+     *         return ((MyDomainElement) obj).getBusinessKey();
+     *     }
+     *     // Return null to fall back to default XMI ID extraction
+     *     return null;
+     * };
+     * ModelComparator.compareXmiIds(expected, actual, customExtractor);
+     * </pre>
+     */
+    @FunctionalInterface
+    public interface XmiIdExtractor {
+        /**
+         * Extracts XMI ID for an EObject for comparison purposes.
+         *
+         * @param obj the object to get XMI ID for
+         * @return XMI ID string, or null to use default extraction via {@link #defaultXmiId(EObject)}
+         */
+        String extractXmiId(EObject obj);
+    }
+
+    /**
      * Checks if comparison is enabled via system property.
      * 
      * @return true if comparison is enabled (default: true)
@@ -305,6 +335,121 @@ public class ModelComparator {
         int maxDifferences = getConfiguredMaxDifferences();
         compareObjects(obj1, obj2, "", differences, new IdentityHashMap<>(), mode, maxDifferences);
         return new ComparisonResult(differences, maxDifferences);
+    }
+
+    /**
+     * Compares two Resources for structural equivalence (order-independent).
+     * Uses identifier-based matching for root elements to handle different element ordering.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @return a ComparisonResult indicating whether the resources are equivalent
+     */
+    public static ComparisonResult compare(Resource expected, Resource actual) {
+        return compare(expected, actual, getConfiguredMode());
+    }
+
+    /**
+     * Compares two Resources for structural equivalence (order-independent).
+     * Uses identifier-based matching for root elements to handle different element ordering.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @param mode the comparison mode to use
+     * @return a ComparisonResult indicating whether the resources are equivalent
+     */
+    public static ComparisonResult compare(Resource expected, Resource actual, ComparisonMode mode) {
+        return compare(expected, actual, mode, null);
+    }
+
+    /**
+     * Compares two Resources for structural equivalence (order-independent).
+     * Uses identifier-based matching for root elements to handle different element ordering.
+     * <p>
+     * When a custom XMI ID extractor is provided, it is used for element identification
+     * in addition to XMI ID comparison. If the extractor returns null for an element,
+     * the default identifier logic is used.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @param mode the comparison mode to use
+     * @param extractor custom XMI ID extractor for element identification, or null to use default
+     * @return a ComparisonResult indicating whether the resources are equivalent
+     */
+    public static ComparisonResult compare(Resource expected, Resource actual, ComparisonMode mode, XmiIdExtractor extractor) {
+        List<Difference> differences = new ArrayList<>();
+        int maxDifferences = getConfiguredMaxDifferences();
+
+        // Check content count
+        if (expected.getContents().size() != actual.getContents().size()) {
+            differences.add(new ValueMismatch("contents.size",
+                    String.valueOf(expected.getContents().size()),
+                    String.valueOf(actual.getContents().size())));
+        }
+
+        // Use order-independent comparison by matching elements by identifier
+        Map<String, EObject> expectedMap = new LinkedHashMap<>();
+        Map<String, EObject> actualMap = new LinkedHashMap<>();
+
+        for (EObject obj : expected.getContents()) {
+            String id = getIdentifierWithExtractor(obj, extractor);
+            if (id != null) {
+                expectedMap.put(id, obj);
+            }
+        }
+        for (EObject obj : actual.getContents()) {
+            String id = getIdentifierWithExtractor(obj, extractor);
+            if (id != null) {
+                actualMap.put(id, obj);
+            }
+        }
+
+        // If all elements have identifiers, use order-independent matching
+        if (expectedMap.size() == expected.getContents().size() &&
+            actualMap.size() == actual.getContents().size()) {
+
+            Set<String> allKeys = new LinkedHashSet<>();
+            allKeys.addAll(expectedMap.keySet());
+            allKeys.addAll(actualMap.keySet());
+
+            for (String key : allKeys) {
+                if (shouldStop(differences, maxDifferences)) break;
+
+                EObject exp = expectedMap.get(key);
+                EObject act = actualMap.get(key);
+
+                if (exp == null) {
+                    differences.add(new ExtraElement("", key));
+                } else if (act == null) {
+                    differences.add(new MissingElement("", key));
+                } else {
+                    compareObjects(exp, act, key, differences, new IdentityHashMap<>(), mode, maxDifferences);
+                }
+            }
+        } else {
+            // Fall back to positional comparison
+            int minSize = Math.min(expected.getContents().size(), actual.getContents().size());
+            for (int i = 0; i < minSize && !shouldStop(differences, maxDifferences); i++) {
+                compareObjects(expected.getContents().get(i), actual.getContents().get(i),
+                        "[" + i + "]", differences, new IdentityHashMap<>(), mode, maxDifferences);
+            }
+        }
+
+        return new ComparisonResult(differences, maxDifferences);
+    }
+
+    /**
+     * Gets identifier for an object, using custom extractor if provided.
+     * Falls back to default getIdentifier() if extractor returns null.
+     */
+    private static String getIdentifierWithExtractor(EObject obj, XmiIdExtractor extractor) {
+        if (extractor != null) {
+            String customId = extractor.extractXmiId(obj);
+            if (customId != null) {
+                return customId;
+            }
+        }
+        return getIdentifier(obj);
     }
 
     private static void writeReportIfConfigured(ComparisonResult result) {
@@ -548,7 +693,8 @@ public class ModelComparator {
             // Check if we can use identifier-based matching
             if (map1.size() == list1.size() && map2.size() == list2.size()) {
                 // All elements have unique identifiers - compare by identifier (order-independent)
-                Set<String> allKeys = new HashSet<>();
+                // Use LinkedHashSet to ensure deterministic iteration order for consistent error messages
+                Set<String> allKeys = new LinkedHashSet<>();
                 allKeys.addAll(map1.keySet());
                 allKeys.addAll(map2.keySet());
                 
@@ -570,8 +716,9 @@ public class ModelComparator {
                 // Try matching by type signature for elements without unique names
                 Map<String, List<EObject>> byType1 = groupByTypeSignature(list1);
                 Map<String, List<EObject>> byType2 = groupByTypeSignature(list2);
-                
-                Set<String> allTypes = new HashSet<>();
+
+                // Use LinkedHashSet to ensure deterministic iteration order for consistent error messages
+                Set<String> allTypes = new LinkedHashSet<>();
                 allTypes.addAll(byType1.keySet());
                 allTypes.addAll(byType2.keySet());
                 
@@ -1098,6 +1245,49 @@ public class ModelComparator {
     }
 
     /**
+     * Default XMI ID extraction for an EObject.
+     * <p>
+     * This method is exposed for use in custom {@link XmiIdExtractor} implementations
+     * that need to fall back to the default behavior for certain element types.
+     * </p>
+     * <p>
+     * Example usage in custom extractor:
+     * <pre>
+     * XmiIdExtractor customExtractor = obj -> {
+     *     if (obj instanceof MyType) {
+     *         return ((MyType) obj).getCustomId();
+     *     }
+     *     // Fall back to default for other types
+     *     return ModelComparator.defaultXmiId(obj);
+     * };
+     * </pre>
+     *
+     * @param obj the object to get the XMI ID for
+     * @return the XMI ID, or null if not set
+     * @see #getXmiId(EObject)
+     */
+    public static String defaultXmiId(EObject obj) {
+        return getXmiId(obj);
+    }
+
+    /**
+     * Extracts XMI ID using custom extractor with fallback to default.
+     *
+     * @param obj the object to get the XMI ID for
+     * @param extractor custom extractor, or null to use default
+     * @return the XMI ID, or null if not set
+     */
+    private static String extractXmiId(EObject obj, XmiIdExtractor extractor) {
+        if (extractor != null) {
+            String customId = extractor.extractXmiId(obj);
+            if (customId != null) {
+                return customId;
+            }
+        }
+        return getXmiId(obj);
+    }
+
+    /**
      * Builds a map of XMI ID -> EObject for all elements in a resource.
      * Only includes elements that have explicit XMI IDs set.
      *
@@ -1105,13 +1295,24 @@ public class ModelComparator {
      * @return map of XMI ID to EObject
      */
     public static Map<String, EObject> buildXmiIdMap(Resource resource) {
+        return buildXmiIdMap(resource, null);
+    }
+
+    /**
+     * Builds a map of XMI ID -> EObject for all elements in a resource.
+     * Uses custom extractor if provided, with fallback to default XMI ID extraction.
+     *
+     * @param resource the resource to scan
+     * @param extractor custom XMI ID extractor, or null to use default
+     * @return map of XMI ID to EObject
+     */
+    public static Map<String, EObject> buildXmiIdMap(Resource resource, XmiIdExtractor extractor) {
         Map<String, EObject> map = new LinkedHashMap<>();
-        if (resource instanceof XMLResource) {
-            XMLResource xmlResource = (XMLResource) resource;
+        if (resource != null) {
             TreeIterator<EObject> iter = resource.getAllContents();
             while (iter.hasNext()) {
                 EObject obj = iter.next();
-                String id = xmlResource.getID(obj);
+                String id = extractXmiId(obj, extractor);
                 if (id != null) {
                     map.put(id, obj);
                 }
@@ -1151,7 +1352,7 @@ public class ModelComparator {
     );
 
     /**
-     * Compares XMI IDs between two resources.
+     * Compares XMI IDs between two resources using default XMI ID extraction.
      * Uses flexible matching where rule names can be substrings of each other.
      * For example, ETL ID "(psm/_xxx)/Package" matches Zeta ID "(psm/_xxx)/NamespaceToPackage"
      * because "Package" is a substring of "NamespaceToPackage".
@@ -1171,10 +1372,38 @@ public class ModelComparator {
      * @return list of XMI ID differences
      */
     public static List<Difference> compareXmiIds(Resource expected, Resource actual) {
+        return compareXmiIds(expected, actual, null);
+    }
+
+    /**
+     * Compares XMI IDs between two resources using custom XMI ID extraction.
+     * Uses flexible matching where rule names can be substrings of each other.
+     * <p>
+     * This overload allows consumer projects to provide custom XMI ID extraction logic
+     * for their specific model types. When the extractor returns null for an element,
+     * the default XMI ID extraction is used as fallback.
+     * <p>
+     * Example usage:
+     * <pre>
+     * XmiIdExtractor customExtractor = obj -> {
+     *     if (obj instanceof MyDomainElement) {
+     *         return ((MyDomainElement) obj).getBusinessKey();
+     *     }
+     *     return null; // Fall back to default
+     * };
+     * List&lt;Difference&gt; diffs = ModelComparator.compareXmiIds(expected, actual, customExtractor);
+     * </pre>
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @param extractor custom XMI ID extractor, or null to use default extraction
+     * @return list of XMI ID differences
+     */
+    public static List<Difference> compareXmiIds(Resource expected, Resource actual, XmiIdExtractor extractor) {
         List<Difference> differences = new ArrayList<>();
 
-        Map<String, EObject> expectedIds = buildXmiIdMap(expected);
-        Map<String, EObject> actualIds = buildXmiIdMap(actual);
+        Map<String, EObject> expectedIds = buildXmiIdMap(expected, extractor);
+        Map<String, EObject> actualIds = buildXmiIdMap(actual, extractor);
 
         // Filter out secondary element types from both maps
         expectedIds = filterOutSecondaryElements(expectedIds);
@@ -1196,25 +1425,17 @@ public class ModelComparator {
             // First try exact match
             if (actualIds.containsKey(expectedXmiId)) {
                 matchedActualIds.add(expectedXmiId);
-                // XMI ID exists in both - verify element types match
+                // XMI ID exists in both - verify element types and containers match
                 EObject actualObj = actualIds.get(expectedXmiId);
-                if (!expectedObj.eClass().getName().equals(actualObj.eClass().getName())) {
-                    differences.add(new XmiIdTypeMismatch(expectedXmiId,
-                            expectedObj.eClass().getName(),
-                            actualObj.eClass().getName()));
-                }
+                verifyMatchedElements(expectedXmiId, expectedObj, actualObj, differences);
             } else {
                 // Try flexible matching with rule name substring comparison
                 String matchedActualId = findMatchingXmiId(expectedXmiId, actualIds.keySet(), matchedActualIds);
                 if (matchedActualId != null) {
                     matchedActualIds.add(matchedActualId);
-                    // Verify element types match
+                    // Verify element types and containers match
                     EObject actualObj = actualIds.get(matchedActualId);
-                    if (!expectedObj.eClass().getName().equals(actualObj.eClass().getName())) {
-                        differences.add(new XmiIdTypeMismatch(expectedXmiId,
-                                expectedObj.eClass().getName(),
-                                actualObj.eClass().getName()));
-                    }
+                    verifyMatchedElements(expectedXmiId, expectedObj, actualObj, differences);
                 } else {
                     differences.add(new MissingXmiId(expectedXmiId, getObjectIdentifier(expectedObj)));
                 }
@@ -1230,6 +1451,32 @@ public class ModelComparator {
         }
 
         return differences;
+    }
+
+    /**
+     * Verifies that two matched elements have the same type and container.
+     *
+     * @param xmiId the XMI ID being compared
+     * @param expectedObj the expected element
+     * @param actualObj the actual element
+     * @param differences list to add any differences to
+     */
+    private static void verifyMatchedElements(String xmiId, EObject expectedObj, EObject actualObj,
+                                               List<Difference> differences) {
+        // Check type match
+        String expectedType = expectedObj.eClass().getName();
+        String actualType = actualObj.eClass().getName();
+        if (!expectedType.equals(actualType)) {
+            differences.add(new XmiIdTypeMismatch(xmiId, expectedType, actualType));
+            return; // Don't check container if types don't match
+        }
+
+        // Check container match
+        String expectedContainer = getContainerIdentifier(expectedObj);
+        String actualContainer = getContainerIdentifier(actualObj);
+        if (!containersMatch(expectedContainer, actualContainer)) {
+            differences.add(new XmiIdContainerMismatch(xmiId, expectedType, expectedContainer, actualContainer));
+        }
     }
 
     /**
@@ -1312,6 +1559,72 @@ public class ModelComparator {
             this.ruleName = ruleName;
             this.subPath = subPath;
         }
+    }
+
+    /**
+     * Gets a descriptive identifier for an element's container.
+     * Uses the container's XMI ID if available, otherwise falls back to type:name format.
+     *
+     * @param obj the object whose container to identify
+     * @return a string identifying the container, or "root" if no container
+     */
+    private static String getContainerIdentifier(EObject obj) {
+        if (obj == null) {
+            return "null";
+        }
+        EObject container = obj.eContainer();
+        if (container == null) {
+            return "root";
+        }
+
+        // Try to get XMI ID of container
+        String containerXmiId = getXmiId(container);
+        if (containerXmiId != null) {
+            return containerXmiId;
+        }
+
+        // Fall back to type:name format
+        String name = getAttributeValue(container, "name");
+        if (name != null) {
+            return container.eClass().getName() + ":" + name;
+        }
+
+        return container.eClass().getName();
+    }
+
+    /**
+     * Checks if two container identifiers match.
+     * Uses flexible matching for XMI IDs (rule name substring comparison).
+     *
+     * @param expectedContainer the expected container identifier
+     * @param actualContainer the actual container identifier
+     * @return true if containers match
+     */
+    private static boolean containersMatch(String expectedContainer, String actualContainer) {
+        if (expectedContainer == null && actualContainer == null) {
+            return true;
+        }
+        if (expectedContainer == null || actualContainer == null) {
+            return false;
+        }
+        if (expectedContainer.equals(actualContainer)) {
+            return true;
+        }
+
+        // Try flexible XMI ID matching (for ETL vs Zeta rule name differences)
+        ParsedXmiId expectedParsed = parseXmiId(expectedContainer);
+        ParsedXmiId actualParsed = parseXmiId(actualContainer);
+
+        if (expectedParsed != null && actualParsed != null) {
+            // Both are structured XMI IDs - use flexible matching
+            if (!expectedParsed.sourcePath.equals(actualParsed.sourcePath)) {
+                return false;
+            }
+            return isRuleNameMatch(expectedParsed.ruleName, actualParsed.ruleName);
+        }
+
+        // For non-XMI ID containers, use exact match (already checked above)
+        return false;
     }
 
     /**
@@ -1637,6 +1950,45 @@ public class ModelComparator {
         @Override
         public String describe() {
             return "XMI ID '" + xmiId + "' type mismatch: expected " + expectedType + " but was " + actualType;
+        }
+    }
+
+    /**
+     * Indicates elements with same XMI ID have different containers/owners.
+     */
+    public static class XmiIdContainerMismatch extends Difference {
+        private final String xmiId;
+        private final String elementType;
+        private final String expectedContainer;
+        private final String actualContainer;
+
+        public XmiIdContainerMismatch(String xmiId, String elementType, String expectedContainer, String actualContainer) {
+            super("xmiId");
+            this.xmiId = xmiId;
+            this.elementType = elementType;
+            this.expectedContainer = expectedContainer;
+            this.actualContainer = actualContainer;
+        }
+
+        public String getXmiId() {
+            return xmiId;
+        }
+
+        public String getElementType() {
+            return elementType;
+        }
+
+        public String getExpectedContainer() {
+            return expectedContainer;
+        }
+
+        public String getActualContainer() {
+            return actualContainer;
+        }
+
+        @Override
+        public String describe() {
+            return "XMI ID '" + xmiId + "' (" + elementType + ") container mismatch: expected '" + expectedContainer + "' but was '" + actualContainer + "'";
         }
     }
 

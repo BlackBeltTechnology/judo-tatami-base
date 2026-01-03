@@ -166,6 +166,7 @@ public class Asm2RdbmsZetaTransformation {
 
         // Create executor - sequential mode required due to EMF thread safety
         // Parallel execution causes NPE in postProcess when accessing model elements
+        // on large models (e.g., RackInspect with 1273 elements)
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
