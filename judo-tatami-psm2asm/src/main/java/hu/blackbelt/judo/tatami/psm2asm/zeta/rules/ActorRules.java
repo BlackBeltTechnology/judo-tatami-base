@@ -80,16 +80,6 @@ public class ActorRules {
         return false;
     }
 
-    /**
-     * Guard: mapped actor type has transfer object type
-     */
-    public boolean hasTransferObjectType(EObject source, TransformationContext ctx) {
-        if (source instanceof MappedActorType) {
-            return ((MappedActorType) source).getTransferObjectType() != null;
-        }
-        return false;
-    }
-
     // =========================================================================
     // ACTOR TYPE RULES
     // =========================================================================
@@ -107,12 +97,10 @@ public class ActorRules {
             EClass t = ctx.createTarget(EClass.class);
             t.setName(s.getName());
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -135,12 +123,10 @@ public class ActorRules {
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            addClassifier(containerPkg, t);
+
             // Do NOT add inheritance from transferObjectType or entityType here
             // ETL only sets up inheritance from transfer object super types
             
@@ -180,12 +166,10 @@ public class ActorRules {
                 addAnnotationDetail(t, "kind", s.getKind().toString());
             }
             
-            // Add to equivalent class
+            // Add to equivalent class (thread-safe)
             EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eClass, t);
+
             return t;
         };
     }
@@ -208,42 +192,19 @@ public class ActorRules {
             t.setSource(getAnnotationUri("realm"));
             addAnnotationDetail(t, "value", s.getRealm());
             
-            // Add to equivalent class
+            // Add to equivalent class (thread-safe)
             EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eClass, t);
+
             return t;
         };
     }
 
     /**
-     * rule CreateMappedActorTypeAnnotation
-     *     transform s : JUDOPSM!MappedActorType
-     *     to t : ASM!EAnnotation {
-     *         guard: s.transferObjectType.isDefined()
-     *     }
+     * Note: mappedEntityType annotation for MappedActorType is handled by TransferObjectRules
+     * via CREATE_MAPPED_ENTITY_TYPE_ANNOTATION_ON_MAPPED_TRANSFER_OBJECT since
+     * MappedActorType extends MappedTransferObjectType.
      */
-    @TransformRule(name = CREATE_MAPPED_ACTOR_TYPE_ANNOTATION, description = "Add mappedTransferObjectType annotation")
-    @Guard(method = "hasTransferObjectType")
-    @Transform(type = MappedActorType.class)
-    @To(type = EAnnotation.class)
-    public TransformFunction<MappedActorType, EAnnotation> createMappedActorTypeAnnotation() {
-        return (s, ctx) -> {
-            EAnnotation t = ctx.createTarget(EAnnotation.class);
-            t.setSource(getAnnotationUri("mappedTransferObjectType"));
-            addAnnotationDetail(t, "value", getQualifiedName(s.getTransferObjectType()));
-            
-            // Add to equivalent class
-            EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
-            return t;
-        };
-    }
 
     /**
      * rule CreateDocumentationAnnotationForActorType
@@ -263,12 +224,10 @@ public class ActorRules {
             t.setSource(getAnnotationUri("documentation"));
             addAnnotationDetail(t, "value", s.getDocumentation());
             
-            // Add to equivalent class
+            // Add to equivalent class (thread-safe)
             EClass eClass = ctx.equivalent(s, EClass.class);
-            if (eClass != null) {
-                eClass.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eClass, t);
+
             return t;
         };
     }

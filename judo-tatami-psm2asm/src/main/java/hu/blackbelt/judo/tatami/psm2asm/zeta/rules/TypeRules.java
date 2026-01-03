@@ -93,15 +93,13 @@ public class TypeRules {
                 l.setValue(m.getOrdinal());
                 l.setLiteral(m.getName());
                 l.setName(m.getName());
-                t.getELiterals().add(l);
+                Psm2AsmHelper.addEnumLiteral(t, l);
                 loopCount++;
             }
-            
-            // Add to container package
+
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
+            Psm2AsmHelper.addClassifier(containerPkg, t);
             
             return t;
         };
@@ -127,11 +125,9 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName("java.lang.String");
 
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
+            Psm2AsmHelper.addClassifier(containerPkg, t);
 
             return t;
         };
@@ -182,12 +178,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName(getIntegerClassName(s));
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -211,12 +205,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName(getDecimalClassName(s));
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -245,11 +237,9 @@ public class TypeRules {
                 }
             }
             
-            // Add to equivalent type
+            // Add to equivalent type (thread-safe)
             EDataType dataType = ctx.equivalent(s, EDataType.class);
-            if (dataType != null) {
-                dataType.getEAnnotations().add(t);
-            }
+            Psm2AsmHelper.addAnnotation(dataType, t);
             
             return t;
         };
@@ -275,12 +265,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName("java.lang.Boolean");
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -316,15 +304,13 @@ public class TypeRules {
             if (s.getMaxFileSize() > 0) {
                 a.getDetails().put("maxFileSize", String.valueOf(s.getMaxFileSize()));
             }
-            
-            t.getEAnnotations().add(a);
-            
-            // Add to container package
+
+            Psm2AsmHelper.addAnnotation(t, a);
+
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -349,12 +335,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName("java.time.LocalDate");
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -375,12 +359,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName("java.time.LocalDateTime");
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -401,12 +383,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName("java.time.LocalTime");
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }
@@ -455,12 +435,10 @@ public class TypeRules {
             t.setName(s.getName());
             t.setInstanceClassName("java.lang.Object");
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
+            Psm2AsmHelper.addClassifier(containerPkg, t);
+
             return t;
         };
     }

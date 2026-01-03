@@ -585,9 +585,56 @@ public final class Psm2AsmHelper {
     public static void addAnnotation(org.eclipse.emf.ecore.EModelElement element, EAnnotation annotation) {
         if (element != null && annotation != null) {
             synchronized (element) {
-                element.getEAnnotations().add(annotation);
+                // Insert annotation in sorted position to ensure deterministic ordering
+                // in parallel transformation execution
+                insertAnnotationSorted(element.getEAnnotations(), annotation);
             }
         }
+    }
+
+    /**
+     * Inserts an annotation into a list in sorted order.
+     * Sorting is based on source URI, then by details content (specifically 'owner' for behavior annotations).
+     * This ensures deterministic ordering regardless of parallel execution order.
+     */
+    private static void insertAnnotationSorted(org.eclipse.emf.common.util.EList<EAnnotation> annotations, EAnnotation newAnnotation) {
+        String newKey = getAnnotationSortKey(newAnnotation);
+
+        // Find the correct insertion position
+        int insertPos = 0;
+        for (int i = 0; i < annotations.size(); i++) {
+            String existingKey = getAnnotationSortKey(annotations.get(i));
+            if (newKey.compareTo(existingKey) > 0) {
+                insertPos = i + 1;
+            } else {
+                break;
+            }
+        }
+
+        if (insertPos >= annotations.size()) {
+            annotations.add(newAnnotation);
+        } else {
+            annotations.add(insertPos, newAnnotation);
+        }
+    }
+
+    /**
+     * Gets a sort key for an annotation based on its source and details.
+     * For behavior annotations, includes the 'owner' detail to ensure consistent ordering.
+     */
+    private static String getAnnotationSortKey(EAnnotation annotation) {
+        StringBuilder key = new StringBuilder();
+        key.append(annotation.getSource() != null ? annotation.getSource() : "");
+
+        // Include details in sort key, especially 'owner' for behavior annotations
+        if (annotation.getDetails() != null && !annotation.getDetails().isEmpty()) {
+            // Sort details by key for consistent comparison
+            annotation.getDetails().entrySet().stream()
+                    .sorted(java.util.Map.Entry.comparingByKey())
+                    .forEach(entry -> key.append("|").append(entry.getKey()).append("=").append(entry.getValue()));
+        }
+
+        return key.toString();
     }
 
     /**

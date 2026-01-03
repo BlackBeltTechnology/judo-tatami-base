@@ -104,12 +104,12 @@ public class Psm2AsmZetaTransformation {
         // Create transformation context
         TransformationContext context = createContext(registry);
 
-        // Create executor - disable parallel execution to avoid recursive update issues
-        // The transformation has complex dependencies between rules that require sequential execution
+        // Create executor - parallel mode enabled for better performance
+        // All rules now use synchronized collection helpers for thread-safe EMF access
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
-                .parallel(false)  // Sequential execution for complex rule dependencies
+                .parallel(true)
                 .build();
 
         // Execute transformation
@@ -281,8 +281,8 @@ public class Psm2AsmZetaTransformation {
                         for (EClass candidate : context.equivalents(superType, EClass.class)) {
                             if (superRefClassName.equals(candidate.getName())) {
                                 if (!refClass.getESuperTypes().contains(candidate)) {
-                                    refClass.getESuperTypes().add(candidate);
-                                    log.trace("Set reference class inheritance: {} extends {}", 
+                                    Psm2AsmHelper.addSuperType(refClass, candidate);
+                                    log.trace("Set reference class inheritance: {} extends {}",
                                             refClassName, superRefClassName);
                                 }
                                 break;

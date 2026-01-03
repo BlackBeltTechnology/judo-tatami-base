@@ -94,43 +94,39 @@ public class DataRules {
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             
-            // Add entity annotation inline
+            // Add entity annotation inline (thread-safe)
             EAnnotation entityAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/EntityAnnotationClass",
                     getAnnotationUri("entity"));
             addAnnotationDetail(entityAnnotation, "value", "true");
-            t.getEAnnotations().add(entityAnnotation);
-            
+            addAnnotation(t, entityAnnotation);
+
             // Add default representation annotation inline if applicable
             if (s.getDefaultRepresentation() != null) {
                 EAnnotation defaultRepAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/EntityDefaultRepresentationAnnotation",
                         getAnnotationUri("defaultRepresentation"));
                 addAnnotationDetail(defaultRepAnnotation, "value", getQualifiedName(s.getDefaultRepresentation()));
-                t.getEAnnotations().add(defaultRepAnnotation);
+                addAnnotation(t, defaultRepAnnotation);
             }
-            
+
             // Add documentation annotation inline if applicable
             if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
                 EAnnotation docAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/DocumentationAnnotation",
                         getAnnotationUri("documentation"));
                 addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
-                t.getEAnnotations().add(docAnnotation);
+                addAnnotation(t, docAnnotation);
             }
-            
-            // Add to container package
+
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
-            // Set up inheritance
+            addClassifier(containerPkg, t);
+
+            // Set up inheritance (thread-safe)
             for (EntityType superType : s.getSuperEntityTypes()) {
                 EClass superClass = ctx.equivalent(superType, EClass.class);
-                if (superClass != null) {
-                    t.getESuperTypes().add(superClass);
-                }
+                addSuperType(t, superClass);
             }
             
             return t;
@@ -166,16 +162,16 @@ public class DataRules {
                 t.setEType(type);
             }
             
-            // Add identifier annotation inline if applicable
+            // Add identifier annotation inline if applicable (thread-safe)
             if (s.isIdentifier()) {
                 EAnnotation idAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/IdentifierAnnotationForAttribute",
                         getAnnotationUri("identifier"));
                 addAnnotationDetail(idAnnotation, "value", "true");
-                t.getEAnnotations().add(idAnnotation);
+                addAnnotation(t, idAnnotation);
             }
-            
-            // Add string constraints annotation inline if applicable
+
+            // Add string constraints annotation inline if applicable (thread-safe)
             if (s.getDataType() instanceof StringType) {
                 StringType stringType = (StringType) s.getDataType();
                 EAnnotation constraintsAnnotation = createAnnotation(
@@ -185,10 +181,10 @@ public class DataRules {
                 if (stringType.getRegExp() != null && !stringType.getRegExp().isEmpty()) {
                     addAnnotationDetail(constraintsAnnotation, "pattern", stringType.getRegExp());
                 }
-                t.getEAnnotations().add(constraintsAnnotation);
+                addAnnotation(t, constraintsAnnotation);
             }
-            
-            // Add numeric constraints annotation inline if applicable
+
+            // Add numeric constraints annotation inline if applicable (thread-safe)
             if (s.getDataType() instanceof NumericType) {
                 NumericType numericType = (NumericType) s.getDataType();
                 EAnnotation constraintsAnnotation = createAnnotation(
@@ -196,23 +192,23 @@ public class DataRules {
                         getAnnotationUri("constraints"));
                 addAnnotationDetail(constraintsAnnotation, "precision", String.valueOf(numericType.getPrecision()));
                 addAnnotationDetail(constraintsAnnotation, "scale", String.valueOf(numericType.getScale()));
-                
+
                 // Add measured annotations if applicable
                 if (numericType instanceof MeasuredType) {
                     MeasuredType measuredType = (MeasuredType) numericType;
                     if (measuredType.getStoreUnit() != null) {
                         if (measuredType.getStoreUnit().eContainer() instanceof NamespaceElement) {
-                            addAnnotationDetail(constraintsAnnotation, "measure", 
+                            addAnnotationDetail(constraintsAnnotation, "measure",
                                 getQualifiedName((NamespaceElement) measuredType.getStoreUnit().eContainer()));
                         }
                         addAnnotationDetail(constraintsAnnotation, "unit", measuredType.getStoreUnit().getName());
                     }
                 }
-                t.getEAnnotations().add(constraintsAnnotation);
+                addAnnotation(t, constraintsAnnotation);
             }
-            
-            // Add custom type constraints annotation inline if applicable
-            if (s.getDataType() instanceof CustomType 
+
+            // Add custom type constraints annotation inline if applicable (thread-safe)
+            if (s.getDataType() instanceof CustomType
                     && !(s.getDataType() instanceof NumericType)
                     && !(s.getDataType() instanceof BooleanType)
                     && !(s.getDataType() instanceof EnumerationType)
@@ -222,16 +218,14 @@ public class DataRules {
                         "(psm/" + getId(s) + ")/CustomAttributeConstraints",
                         getAnnotationUri("constraints"));
                 addAnnotationDetail(constraintsAnnotation, "customType", qualifiedName);
-                t.getEAnnotations().add(constraintsAnnotation);
+                addAnnotation(t, constraintsAnnotation);
             }
-            
-            // Add to owning entity class
+
+            // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
             
             return t;
@@ -268,27 +262,34 @@ public class DataRules {
                 }
             }
             
-            // Add reverse cascade delete annotation inline if applicable
+            // Add reverse cascade delete annotation inline if applicable (thread-safe)
             if (s.isReverseCascadeDelete()) {
                 EAnnotation reverseCascadeAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/ReverseCascadeDeleteAnnotation",
                         getAnnotationUri("reverseCascadeDelete"));
                 addAnnotationDetail(reverseCascadeAnnotation, "value", "true");
-                t.getEAnnotations().add(reverseCascadeAnnotation);
+                addAnnotation(t, reverseCascadeAnnotation);
             }
-            
-            // Add to owning entity class
+
+            // Add documentation annotation inline if applicable (thread-safe)
+            if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
+                EAnnotation docAnnotation = createAnnotation(
+                        "(psm/" + getId(s) + ")/DocumentationAnnotation",
+                        getAnnotationUri("documentation"));
+                addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
+                addAnnotation(t, docAnnotation);
+            }
+
+            // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
-            
+
             // NOTE: EOpposite is set in post-processing to avoid recursive update
             // when processing bidirectional associations
-            
+
             return t;
         };
     }
@@ -321,15 +322,22 @@ public class DataRules {
                 }
             }
             
-            // Add to owning entity class
+            // Add documentation annotation inline if applicable (thread-safe)
+            if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
+                EAnnotation docAnnotation = createAnnotation(
+                        "(psm/" + getId(s) + ")/DocumentationAnnotation",
+                        getAnnotationUri("documentation"));
+                addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
+                addAnnotation(t, docAnnotation);
+            }
+
+            // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
-            
+
             return t;
         };
     }
@@ -354,13 +362,11 @@ public class DataRules {
             
             // Add sequence details
             addSequenceDetails(t, s);
-            
-            // Add to container package
+
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(containerPkg, t);
+
             return t;
         };
     }
@@ -378,19 +384,17 @@ public class DataRules {
             EAnnotation t = createAnnotation(
                     "(psm/" + getId(s) + ")/EntitySequence",
                     getAnnotationUri("sequence"));
-            
+
             // Add sequence details
             addSequenceDetails(t, s);
-            
-            // Add to owning entity class
+
+            // Add to owning entity class (thread-safe)
             EntityType owner = (EntityType) s.eContainer();
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEAnnotations().add(t);
-                }
+                addAnnotation(ownerClass, t);
             }
-            
+
             return t;
         };
     }
@@ -455,13 +459,11 @@ public class DataRules {
                     "(psm/" + getId(s) + ")/UnmappedDefaultOnlyAttributeAnnotation",
                     getAnnotationUri("unmappedDefaultOnly"));
             addAnnotationDetail(t, "value", String.valueOf(s.isUnmappedDefaultOnly()));
-            
-            // Add to the equivalent EAttribute
+
+            // Add to the equivalent EAttribute (thread-safe)
             EAttribute attr = ctx.equivalent(s, EAttribute.class);
-            if (attr != null) {
-                attr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(attr, t);
+
             return t;
         };
     }
@@ -470,10 +472,10 @@ public class DataRules {
      * rule AddUnmappedDefaultOnlyReferenceAnnotation
      *     transform s : JUDOPSM!AssociationEnd
      *     to t : ASM!EAnnotation
-     *     guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined() 
+     *     guard: s.eContainer.isDefined() and s.eContainer.defaultRepresentation.isDefined()
      *            and s.eContainer.defaultRepresentation.relations.exists(
      *                r | r.binding == s and r.defaultValue.isDefined())
-     * 
+     *
      * Adds unmappedDefaultOnly annotation to association ends that have default values
      * in the entity's default transfer object representation.
      */
@@ -484,7 +486,7 @@ public class DataRules {
     @Greedy
     public TransformFunction<AssociationEnd, EAnnotation> addUnmappedDefaultOnlyReferenceAnnotation() {
         return (s, ctx) -> {
-            // Guard: entity container with defaultRepresentation having transfer relation 
+            // Guard: entity container with defaultRepresentation having transfer relation
             // with this associationEnd as binding and a default value
             EObject container = s.eContainer();
             if (!(container instanceof EntityType)) {
@@ -495,26 +497,24 @@ public class DataRules {
             if (defaultRep == null) {
                 return null;
             }
-            
+
             // Check if any transfer relation binds to this associationEnd and has defaultValue
             boolean hasDefaultValue = defaultRep.getRelations().stream()
                     .anyMatch(r -> r.getBinding() == s && r.getDefaultValue() != null);
             if (!hasDefaultValue) {
                 return null;
             }
-            
+
             // Create annotation
             EAnnotation t = createAnnotation(
                     "(psm/" + getId(s) + ")/UnmappedDefaultOnlyReferenceAnnotation",
                     getAnnotationUri("unmappedDefaultOnly"));
             addAnnotationDetail(t, "value", String.valueOf(s.isUnmappedDefaultOnly()));
-            
-            // Add to the equivalent EReference
+
+            // Add to the equivalent EReference (thread-safe)
             EReference ref = ctx.equivalent(s, EReference.class);
-            if (ref != null) {
-                ref.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(ref, t);
+
             return t;
         };
     }

@@ -164,7 +164,8 @@ public class Asm2RdbmsZetaTransformation {
         // Create transformation context
         TransformationContext context = createContext(registry);
 
-        // Create executor - sequential execution for rule dependencies
+        // Create executor - sequential mode required due to EMF thread safety
+        // Parallel execution causes NPE in postProcess when accessing model elements
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
