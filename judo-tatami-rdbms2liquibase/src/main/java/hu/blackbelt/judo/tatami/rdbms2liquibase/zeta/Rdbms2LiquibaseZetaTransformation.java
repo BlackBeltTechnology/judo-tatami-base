@@ -75,7 +75,8 @@ public class Rdbms2LiquibaseZetaTransformation {
     private databaseChangeLog changeLog;
 
     // Cache for changeSets by logical file path (for index/unique constraint rules)
-    private final Map<String, ChangeSet> changeSetCache = new HashMap<>();
+    // Uses ConcurrentHashMap for thread-safety in parallel transformation
+    private final Map<String, ChangeSet> changeSetCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Builder
     public Rdbms2LiquibaseZetaTransformation(
@@ -119,11 +120,11 @@ public class Rdbms2LiquibaseZetaTransformation {
         // Create transformation context
         TransformationContext context = createContext(registry);
 
-        // Create executor - sequential execution for rule dependencies
+        // Create executor with parallel execution
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
-                .parallel(false)
+                .parallel(true)
                 .build();
 
         // Execute transformation
@@ -200,6 +201,7 @@ public class Rdbms2LiquibaseZetaTransformation {
     /**
      * Helper method to get or create a ChangeSet by ID and logical file path.
      * Used by IndexToCreateIndex and AddUniqueConstraints rules.
+     * Thread-safe for use in parallel transformations.
      *
      * @param id              the ChangeSet ID
      * @param logicalFilePath the logical file path
@@ -214,9 +216,22 @@ public class Rdbms2LiquibaseZetaTransformation {
             changeSet.setDbms(dialect);
             changeSet.setContext(modelVersion);
             changeSet.setLogicalFilePath(logicalFilePath);
-            changeLog.getChangeSet().add(changeSet);
+            // Thread-safe add to changeLog
+            addChangeSetThreadSafe(changeLog, changeSet);
             return changeSet;
         });
+    }
+
+    /**
+     * Thread-safe method to add a ChangeSet to the databaseChangeLog.
+     * Required because Zeta runs transformation rules in parallel and
+     * EMF ELists are not thread-safe.
+     *
+     * @param changeLog the databaseChangeLog to add to
+     * @param changeSet the ChangeSet to add
+     */
+    private static synchronized void addChangeSetThreadSafe(databaseChangeLog changeLog, ChangeSet changeSet) {
+        changeLog.getChangeSet().add(changeSet);
     }
 
     /**

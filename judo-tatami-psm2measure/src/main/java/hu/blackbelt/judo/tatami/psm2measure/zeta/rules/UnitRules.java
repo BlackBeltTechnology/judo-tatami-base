@@ -24,7 +24,6 @@ import hu.blackbelt.judo.meta.measure.BaseMeasure;
 import hu.blackbelt.judo.meta.measure.DurationType;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.Unit;
-import hu.blackbelt.judo.meta.psm.PsmUtils;
 import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
 import hu.blackbelt.judo.meta.psm.measure.DurationUnit;
 import hu.blackbelt.judo.zeta.annotation.Extends;
@@ -199,18 +198,15 @@ public class UnitRules {
 
     /**
      * Find the equivalent measure for a unit.
+     * Uses direct EMF containment relationship instead of stream search to ensure
+     * correct measure-unit association regardless of iteration order.
      */
     private Measure findEquivalentMeasure(hu.blackbelt.judo.meta.psm.measure.Unit unit, TransformationContext ctx) {
-        PsmUtils psmUtils = (PsmUtils) ctx.getAttribute("psmUtils");
-
-        // Find the PSM measure that contains this unit
-        hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure = psmUtils.all(
-                ctx.getSourceResourceSet(), hu.blackbelt.judo.meta.psm.measure.Measure.class)
-                .filter(m -> m.getUnits().contains(unit))
-                .findFirst()
-                .orElse(null);
-
-        if (psmMeasure != null) {
+        // Use direct EMF containment - the unit's parent is always its measure
+        org.eclipse.emf.ecore.EObject container = unit.eContainer();
+        if (container instanceof hu.blackbelt.judo.meta.psm.measure.Measure) {
+            hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure =
+                    (hu.blackbelt.judo.meta.psm.measure.Measure) container;
             // Get the equivalent measure from transformation context
             if (psmMeasure instanceof DerivedMeasure) {
                 return ctx.equivalent(psmMeasure, hu.blackbelt.judo.meta.measure.DerivedMeasure.class);

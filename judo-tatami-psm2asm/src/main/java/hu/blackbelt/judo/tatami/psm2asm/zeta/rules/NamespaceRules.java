@@ -159,12 +159,10 @@ public class NamespaceRules {
             t.setSource(getAnnotationUri("ModelVersion"));
             addAnnotationDetail(t, "value", s.getVersion());
             
-            // Add to package
+            // Add to package (thread-safe)
             EPackage pkg = ctx.equivalent(s, EPackage.class);
-            if (pkg != null) {
-                pkg.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(pkg, t);
+
             return t;
         };
     }
@@ -188,17 +186,26 @@ public class NamespaceRules {
             // Execute parent rule
             EPackage t = ctx.executeParentRule(NAMESPACE_TO_PACKAGE, s);
 
-            // Get parent package - for Package, the parent is always Model or Package
+            // Get namespace configuration from context
+            String ctxNsURI = ctx.getAttribute("nsURI");
+            String ctxNsPrefix = ctx.getAttribute("nsPrefix");
+
+            String baseUri = ctxNsURI != null ? ctxNsURI :
+                             (nsURI != null ? nsURI : "http://blackbelt.hu/judo");
+            String basePrefix = ctxNsPrefix != null ? ctxNsPrefix :
+                                (nsPrefix != null ? nsPrefix : "runtime");
+
+            // Compute nsURI and nsPrefix from source PSM hierarchy to avoid race condition
+            // where parent EPackage may not be fully initialized in parallel execution
+            t.setNsURI(computeNsUriFromSource(s, baseUri));
+            t.setNsPrefix(computeNsPrefixFromSource(s, basePrefix));
+
+            // Get parent package and add to it (thread-safe)
             EPackage parentPkg = getContainerPackage(s, ctx);
             if (parentPkg != null) {
-                // Set namespace URI and prefix based on parent
-                t.setNsURI(parentPkg.getNsURI() + "/" + s.getName());
-                t.setNsPrefix(parentPkg.getNsPrefix() + capitalize(s.getName()));
-                
-                // Add to parent
-                parentPkg.getESubpackages().add(t);
+                addSubPackage(parentPkg, t);
             }
-            
+
             return t;
         };
     }

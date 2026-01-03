@@ -184,10 +184,10 @@ public class TableRules {
                 t.getCreateTable().add(createTable);
             }
 
-            // Add to databaseChangeLog
+            // Add to databaseChangeLog (thread-safe)
             databaseChangeLog changeLog = ctx.getAttribute("changeLog");
             if (changeLog != null) {
-                changeLog.getChangeSet().add(t);
+                addChangeSetThreadSafe(changeLog, t);
             }
 
             return t;
@@ -224,10 +224,10 @@ public class TableRules {
             t.setContext(modelVersion);
             t.setLogicalFilePath("create-foreignkeys");
 
-            // Add to databaseChangeLog
+            // Add to databaseChangeLog (thread-safe)
             databaseChangeLog changeLog = ctx.getAttribute("changeLog");
             if (changeLog != null) {
-                changeLog.getChangeSet().add(t);
+                addChangeSetThreadSafe(changeLog, t);
             }
 
             return t;
@@ -264,13 +264,29 @@ public class TableRules {
             t.setContext(modelVersion);
             t.setLogicalFilePath("add-not-null");
 
-            // Add to databaseChangeLog
+            // Add to databaseChangeLog (thread-safe)
             databaseChangeLog changeLog = ctx.getAttribute("changeLog");
             if (changeLog != null) {
-                changeLog.getChangeSet().add(t);
+                addChangeSetThreadSafe(changeLog, t);
             }
 
             return t;
         };
+    }
+
+    // =========================================================================
+    // HELPER METHODS
+    // =========================================================================
+
+    /**
+     * Thread-safe method to add a ChangeSet to the databaseChangeLog.
+     * Required because Zeta runs transformation rules in parallel and
+     * EMF ELists are not thread-safe.
+     *
+     * @param changeLog the databaseChangeLog to add to
+     * @param changeSet the ChangeSet to add
+     */
+    private static synchronized void addChangeSetThreadSafe(databaseChangeLog changeLog, ChangeSet changeSet) {
+        changeLog.getChangeSet().add(changeSet);
     }
 }
