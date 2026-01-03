@@ -87,7 +87,8 @@ public class Asm2KeycloakZetaTransformation {
         // Create transformation context
         TransformationContext context = createContext(registry);
 
-        // Create executor with sequential execution
+        // Create executor - sequential mode for small models
+        // Keycloak models are typically small (few actor types)
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)

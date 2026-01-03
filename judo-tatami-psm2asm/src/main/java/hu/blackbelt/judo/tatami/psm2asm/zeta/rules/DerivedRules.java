@@ -168,15 +168,13 @@ public class DerivedRules {
                 t.setEType(type);
             }
             
-            // Add to owning entity class
+            // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
-            
+
             return t;
         };
     }
@@ -204,12 +202,10 @@ public class DerivedRules {
                 addAnnotationDetail(t, "pattern", stringType.getRegExp());
             }
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -246,12 +242,10 @@ public class DerivedRules {
                 }
             }
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -278,12 +272,10 @@ public class DerivedRules {
             String qualifiedName = getQualifiedName((NamespaceElement) s.getDataType());
             addAnnotationDetail(t, "customType", qualifiedName);
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -323,12 +315,10 @@ public class DerivedRules {
                 addAnnotationDetail(t, "setter.dialect", s.getSetterExpression().getDialect().toString());
             }
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -350,12 +340,10 @@ public class DerivedRules {
             t.setSource(getAnnotationUri("documentation"));
             addAnnotationDetail(t, "value", s.getDocumentation());
             
-            // Add to equivalent attribute
+            // Add to equivalent attribute (thread-safe)
             EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-            if (eAttr != null) {
-                eAttr.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eAttr, t);
+
             return t;
         };
     }
@@ -393,15 +381,22 @@ public class DerivedRules {
                 }
             }
             
-            // Add to owning entity class
+            // Add documentation annotation inline if applicable (thread-safe)
+            if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
+                EAnnotation docAnnotation = createAnnotation(
+                        "(psm/" + getId(s) + ")/DocumentationAnnotation",
+                        getAnnotationUri("documentation"));
+                addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
+                addAnnotation(t, docAnnotation);
+            }
+
+            // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
                 EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                if (ownerClass != null) {
-                    ownerClass.getEStructuralFeatures().add(t);
-                }
+                addStructuralFeature(ownerClass, t);
             }
-            
+
             return t;
         };
     }
@@ -441,12 +436,10 @@ public class DerivedRules {
                 addAnnotationDetail(t, "setter.dialect", s.getSetterExpression().getDialect().toString());
             }
             
-            // Add to equivalent reference
+            // Add to equivalent reference (thread-safe)
             EReference eRef = ctx.equivalent(s, EReference.class);
-            if (eRef != null) {
-                eRef.getEAnnotations().add(t);
-            }
-            
+            addAnnotation(eRef, t);
+
             return t;
         };
     }

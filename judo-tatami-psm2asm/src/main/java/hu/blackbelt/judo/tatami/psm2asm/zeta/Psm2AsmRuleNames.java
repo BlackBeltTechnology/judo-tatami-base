@@ -539,7 +539,13 @@ public final class Psm2AsmRuleNames {
     
     /** Create documentation annotation for input parameter. */
     public static final String CREATE_DOCUMENTATION_ANNOTATION_FOR_INPUT_PARAMETER = "CreateDocumentationAnnotationForInputParameter";
-    
+
     /** Create documentation annotation for output parameter. */
     public static final String CREATE_DOCUMENTATION_ANNOTATION_FOR_OUTPUT_PARAMETER = "CreateDocumentationAnnotationForOutputParameter";
+
+    /** Create documentation annotation for bound operation output parameter. */
+    public static final String CREATE_DOCUMENTATION_ANNOTATION_FOR_BOUND_OUTPUT_PARAMETER = "CreateDocumentationAnnotationForBoundOutputParameter";
+
+    /** Create documentation annotation for bound operation input parameter. */
+    public static final String CREATE_DOCUMENTATION_ANNOTATION_FOR_BOUND_INPUT_PARAMETER = "CreateDocumentationAnnotationForBoundInputParameter";
 }

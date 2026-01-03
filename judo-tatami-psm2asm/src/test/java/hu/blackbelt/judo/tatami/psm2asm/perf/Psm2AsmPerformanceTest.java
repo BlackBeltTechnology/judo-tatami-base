@@ -30,11 +30,9 @@ import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
 import hu.blackbelt.judo.meta.psm.type.StringType;
-import hu.blackbelt.judo.tatami.core.TransformationMode;
-import hu.blackbelt.judo.tatami.test.util.ModelComparator;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.EPackage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -61,8 +59,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Performance tests comparing ETL vs Zeta for PSM to ASM transformation.
- * 
- * Run with: mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmPerformanceTest -Dgroups=performance
+ * <p>
+ * Run with: mvn test -Pperformance -Dtest=Psm2AsmPerformanceTest
  */
 @Slf4j
 @Tag("performance")
@@ -100,7 +98,7 @@ public class Psm2AsmPerformanceTest {
 
     private void runComparisonTest(int entityCount, String testName) throws Exception {
         log.info("================================================================");
-        log.info("ETL vs ZETA vs ZETA-V2 Performance Comparison: {} ({} entities)", testName, entityCount);
+        log.info("ETL vs Zeta Performance Comparison: {} ({} entities)", testName, entityCount);
         log.info("================================================================");
 
         // Generate PSM model
@@ -115,17 +113,12 @@ public class Psm2AsmPerformanceTest {
         // Run ETL performance test
         log.info("");
         log.info("--- ETL Transformation ---");
-        PerformanceResult etlResult = runPerformanceTest(psmModel, TransformationMode.ETL, entityCount);
+        PerformanceResult etlResult = runEtlPerformanceTest(psmModel);
 
-        // Run Zeta V1 performance test
+        // Run Zeta performance test
         log.info("");
-        log.info("--- ZETA V1 Transformation ---");
-        PerformanceResult zetaResult = runPerformanceTest(psmModel, TransformationMode.ZETA, entityCount);
-
-        // Run Zeta V2 performance test
-        log.info("");
-        log.info("--- ZETA V2 Transformation (TransformationRegistry) ---");
-        PerformanceResult zetaV2Result = runPerformanceTestV2(psmModel, entityCount);
+        log.info("--- Zeta Transformation ---");
+        PerformanceResult zetaResult = runZetaPerformanceTest(psmModel);
 
         // Compare output models
         log.info("");
@@ -133,81 +126,47 @@ public class Psm2AsmPerformanceTest {
         compareOutputModels(psmModel);
 
         // Print comparison
-        printComparisonV2(testName, entityCount, totalElements, etlResult, zetaResult, zetaV2Result);
+        printComparison(testName, entityCount, totalElements, etlResult, zetaResult);
     }
 
     private void compareOutputModels(PsmModel psmModel) throws Exception {
-        // Execute all three transformations and compare results
-        AsmModel etlResult = executeTransformationWithResult(psmModel, TransformationMode.ETL);
-        AsmModel zetaResult = executeTransformationWithResult(psmModel, TransformationMode.ZETA);
-        AsmModel zetaV2Result = executeTransformationV2WithResult(psmModel);
+        AsmModel etlResult = executeEtlTransformation(psmModel);
+        AsmModel zetaResult = executeZetaTransformation(psmModel);
 
-        // Compare the models - count structural elements
-        if (!etlResult.getResourceSet().getResources().isEmpty() && 
-            !zetaResult.getResourceSet().getResources().isEmpty() &&
-            !zetaV2Result.getResourceSet().getResources().isEmpty()) {
-            
-            // For performance tests with synthetic models, we do a structural comparison
-            // rather than a full comparison since annotations may differ
-            org.eclipse.emf.ecore.EPackage etlPkg = (org.eclipse.emf.ecore.EPackage) 
-                    etlResult.getResourceSet().getResources().get(0).getContents().get(0);
-            org.eclipse.emf.ecore.EPackage zetaPkg = (org.eclipse.emf.ecore.EPackage) 
-                    zetaResult.getResourceSet().getResources().get(0).getContents().get(0);
-            org.eclipse.emf.ecore.EPackage zetaV2Pkg = (org.eclipse.emf.ecore.EPackage) 
-                    zetaV2Result.getResourceSet().getResources().get(0).getContents().get(0);
-            
+        if (!etlResult.getResourceSet().getResources().isEmpty() &&
+            !zetaResult.getResourceSet().getResources().isEmpty()) {
+
+            EPackage etlPkg = (EPackage) etlResult.getResourceSet().getResources().get(0).getContents().get(0);
+            EPackage zetaPkg = (EPackage) zetaResult.getResourceSet().getResources().get(0).getContents().get(0);
+
             int etlClassCount = etlPkg.getEClassifiers().size();
             int zetaClassCount = zetaPkg.getEClassifiers().size();
-            int zetaV2ClassCount = zetaV2Pkg.getEClassifiers().size();
-            
+
             log.info("ETL output: {} classifiers", etlClassCount);
-            log.info("Zeta V1 output: {} classifiers", zetaClassCount);
-            log.info("Zeta V2 output: {} classifiers", zetaV2ClassCount);
-            
-            if (etlClassCount == zetaClassCount && etlClassCount == zetaV2ClassCount) {
-                log.info("All output models have EQUIVALENT structure ({} classifiers)", etlClassCount);
+            log.info("Zeta output: {} classifiers", zetaClassCount);
+
+            if (etlClassCount == zetaClassCount) {
+                log.info("Output models have EQUIVALENT structure ({} classifiers)", etlClassCount);
             } else {
-                log.warn("Output models have DIFFERENT classifier counts: ETL={}, Zeta-V1={}, Zeta-V2={}", 
-                        etlClassCount, zetaClassCount, zetaV2ClassCount);
-                
-                // Find extra classifiers in V2
-                java.util.Set<String> etlNames = etlPkg.getEClassifiers().stream()
-                        .map(c -> c.getName()).collect(java.util.stream.Collectors.toSet());
-                java.util.Set<String> v2Names = zetaV2Pkg.getEClassifiers().stream()
-                        .map(c -> c.getName()).collect(java.util.stream.Collectors.toSet());
-                
-                java.util.Set<String> extraInV2 = new java.util.HashSet<>(v2Names);
-                extraInV2.removeAll(etlNames);
-                if (!extraInV2.isEmpty()) {
-                    log.warn("Extra classifiers in V2: {}", extraInV2);
-                }
-                
-                java.util.Set<String> missingInV2 = new java.util.HashSet<>(etlNames);
-                missingInV2.removeAll(v2Names);
-                if (!missingInV2.isEmpty()) {
-                    log.warn("Missing classifiers in V2: {}", missingInV2);
-                }
-                
-                // Check for duplicates in V2
-                java.util.List<String> v2NamesList = zetaV2Pkg.getEClassifiers().stream()
-                        .map(c -> c.getName()).collect(java.util.stream.Collectors.toList());
-                java.util.Map<String, Long> v2NameCounts = v2NamesList.stream()
-                        .collect(java.util.stream.Collectors.groupingBy(n -> n, java.util.stream.Collectors.counting()));
-                java.util.Map<String, Long> duplicates = v2NameCounts.entrySet().stream()
-                        .filter(e -> e.getValue() > 1)
-                        .collect(java.util.stream.Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                if (!duplicates.isEmpty()) {
-                    log.warn("Duplicate classifiers in V2: {}", duplicates);
-                }
+                log.warn("Output models have DIFFERENT classifier counts: ETL={}, Zeta={}",
+                        etlClassCount, zetaClassCount);
             }
-            
-            // Assert V2 produces equivalent output to ETL
-            assertEquals(etlClassCount, zetaV2ClassCount, 
-                    "Zeta V2 should produce same number of classifiers as ETL");
+
+            assertEquals(etlClassCount, zetaClassCount,
+                    "Zeta should produce same number of classifiers as ETL");
         }
     }
 
-    private AsmModel executeTransformationV2WithResult(PsmModel psmModel) throws Exception {
+    private AsmModel executeEtlTransformation(PsmModel psmModel) throws Exception {
+        AsmModel asmModel = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(asmModel)
+                .createTrace(false));
+        return asmModel;
+    }
+
+    private AsmModel executeZetaTransformation(PsmModel psmModel) throws Exception {
         AsmModel asmModel = buildAsmModel().build();
         Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
                 .psmModel(psmModel)
@@ -218,31 +177,11 @@ public class Psm2AsmPerformanceTest {
         return asmModel;
     }
 
-    private AsmModel executeTransformationWithResult(PsmModel psmModel, TransformationMode mode) throws Exception {
-        AsmModel asmModel = buildAsmModel().build();
-        
-        if (mode.isZeta()) {
-            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
-                    .psmModel(psmModel)
-                    .asmModel(asmModel)
-                    .modelName("PerformanceTest")
-                    .build();
-            transformation.execute();
-        } else {
-            executePsm2AsmTransformation(psm2AsmParameter()
-                    .psmModel(psmModel)
-                    .asmModel(asmModel)
-                    .createTrace(false));
-        }
-        
-        return asmModel;
-    }
-
-    private PerformanceResult runPerformanceTest(PsmModel psmModel, TransformationMode mode, int entityCount) throws Exception {
+    private PerformanceResult runEtlPerformanceTest(PsmModel psmModel) throws Exception {
         // Warmup
         log.info("Warming up ({} iterations)...", WARMUP_ITERATIONS);
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            executeTransformation(psmModel, mode);
+            executeEtlTransformation(psmModel);
         }
 
         // Measurement
@@ -250,28 +189,22 @@ public class Psm2AsmPerformanceTest {
         List<Long> times = new ArrayList<>();
         for (int i = 0; i < MEASUREMENT_ITERATIONS; i++) {
             long startTime = System.nanoTime();
-            executeTransformation(psmModel, mode);
+            executeEtlTransformation(psmModel);
             long endTime = System.nanoTime();
-            
+
             long timeMs = TimeUnit.NANOSECONDS.toMillis(endTime - startTime);
             times.add(timeMs);
             log.info("  Iteration {}: {}ms", i + 1, timeMs);
         }
 
-        // Calculate statistics
-        LongSummaryStatistics stats = times.stream().mapToLong(Long::longValue).summaryStatistics();
-        Collections.sort(times);
-        long median = times.get(times.size() / 2);
-        double stdDev = calculateStdDev(times, stats.getAverage());
-
-        return new PerformanceResult(mode, stats.getMin(), stats.getMax(), stats.getAverage(), median, stdDev);
+        return calculateResult(times);
     }
 
-    private PerformanceResult runPerformanceTestV2(PsmModel psmModel, int entityCount) throws Exception {
+    private PerformanceResult runZetaPerformanceTest(PsmModel psmModel) throws Exception {
         // Warmup
         log.info("Warming up ({} iterations)...", WARMUP_ITERATIONS);
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            executeTransformationV2(psmModel);
+            executeZetaTransformation(psmModel);
         }
 
         // Measurement
@@ -279,194 +212,76 @@ public class Psm2AsmPerformanceTest {
         List<Long> times = new ArrayList<>();
         for (int i = 0; i < MEASUREMENT_ITERATIONS; i++) {
             long startTime = System.nanoTime();
-            executeTransformationV2(psmModel);
+            executeZetaTransformation(psmModel);
             long endTime = System.nanoTime();
-            
+
             long timeMs = TimeUnit.NANOSECONDS.toMillis(endTime - startTime);
             times.add(timeMs);
             log.info("  Iteration {}: {}ms", i + 1, timeMs);
         }
 
-        // Calculate statistics
+        return calculateResult(times);
+    }
+
+    private PerformanceResult calculateResult(List<Long> times) {
         LongSummaryStatistics stats = times.stream().mapToLong(Long::longValue).summaryStatistics();
         Collections.sort(times);
         long median = times.get(times.size() / 2);
         double stdDev = calculateStdDev(times, stats.getAverage());
-
-        return new PerformanceResult(null, stats.getMin(), stats.getMax(), stats.getAverage(), median, stdDev);
+        return new PerformanceResult(stats.getMin(), stats.getMax(), stats.getAverage(), median, stdDev);
     }
 
-    private void executeTransformationV2(PsmModel psmModel) throws Exception {
-        AsmModel asmModel = buildAsmModel().build();
-        Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
-                .psmModel(psmModel)
-                .asmModel(asmModel)
-                .modelName("PerformanceTest")
-                .build();
-        transformation.execute();
-    }
-
-    private void executeTransformation(PsmModel psmModel, TransformationMode mode) throws Exception {
-        AsmModel asmModel = buildAsmModel().build();
-        
-        if (mode.isZeta()) {
-            // Execute Zeta transformation directly
-            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
-                    .psmModel(psmModel)
-                    .asmModel(asmModel)
-                    .modelName("PerformanceTest")
-                    .build();
-            transformation.execute();
-        } else {
-            // Execute ETL transformation directly
-            // Note: executePsm2AsmTransformation is the ETL-only static method,
-            // distinct from Psm2AsmWork which supports both modes via TransformationMode.
-            // This ensures ETL execution regardless of system property settings.
-            executePsm2AsmTransformation(psm2AsmParameter()
-                    .psmModel(psmModel)
-                    .asmModel(asmModel)
-                    .createTrace(false));
-        }
-    }
-
-    private void printComparison(String testName, int entityCount, int totalElements, 
+    private void printComparison(String testName, int entityCount, int totalElements,
                                   PerformanceResult etlResult, PerformanceResult zetaResult) {
         log.info("");
         log.info("================================================================");
-        log.info("COMPARISON RESULTS: {} ({} entities, {} elements)", testName, entityCount, totalElements);
+        log.info("RESULTS: {} ({} entities, {} elements)", testName, entityCount, totalElements);
         log.info("================================================================");
         log.info("");
-        log.info("                    ETL              ZETA           Difference");
+        log.info("                    ETL              Zeta           Speedup");
         log.info("----------------------------------------------------------------");
-        log.info("Min:          {}ms       {}ms       {}ms ({}%)", 
-                String.format("%8d", etlResult.min), 
-                String.format("%8d", zetaResult.min), 
-                String.format("%+8.1f", (double)(zetaResult.min - etlResult.min)),
-                String.format("%+.1f", percentDiff(etlResult.min, zetaResult.min)));
-        log.info("Max:          {}ms       {}ms       {}ms ({}%)", 
-                String.format("%8d", etlResult.max), 
+        log.info("Min:          {}ms       {}ms       {}x",
+                String.format("%8d", etlResult.min),
+                String.format("%8d", zetaResult.min),
+                String.format("%6.1f", (double) etlResult.min / zetaResult.min));
+        log.info("Max:          {}ms       {}ms       {}x",
+                String.format("%8d", etlResult.max),
                 String.format("%8d", zetaResult.max),
-                String.format("%+8.1f", (double)(zetaResult.max - etlResult.max)),
-                String.format("%+.1f", percentDiff(etlResult.max, zetaResult.max)));
-        log.info("Avg:          {}ms       {}ms       {}ms ({}%)", 
-                String.format("%8.1f", etlResult.avg), 
+                String.format("%6.1f", (double) etlResult.max / zetaResult.max));
+        log.info("Avg:          {}ms       {}ms       {}x",
+                String.format("%8.1f", etlResult.avg),
                 String.format("%8.1f", zetaResult.avg),
-                String.format("%+8.1f", zetaResult.avg - etlResult.avg),
-                String.format("%+.1f", percentDiff(etlResult.avg, zetaResult.avg)));
-        log.info("Median:       {}ms       {}ms       {}ms ({}%)", 
-                String.format("%8d", etlResult.median), 
+                String.format("%6.1f", etlResult.avg / zetaResult.avg));
+        log.info("Median:       {}ms       {}ms       {}x",
+                String.format("%8d", etlResult.median),
                 String.format("%8d", zetaResult.median),
-                String.format("%+8.1f", (double)(zetaResult.median - etlResult.median)),
-                String.format("%+.1f", percentDiff(etlResult.median, zetaResult.median)));
-        log.info("StdDev:       {}ms       {}ms", 
-                String.format("%8.1f", etlResult.stdDev), 
+                String.format("%6.1f", (double) etlResult.median / zetaResult.median));
+        log.info("StdDev:       {}ms       {}ms",
+                String.format("%8.1f", etlResult.stdDev),
                 String.format("%8.1f", zetaResult.stdDev));
         log.info("");
-        
+
         double etlThroughput = totalElements / (etlResult.avg / 1000.0);
         double zetaThroughput = totalElements / (zetaResult.avg / 1000.0);
-        log.info("Throughput:   {}/s       {}/s       {}/s ({}%)", 
-                String.format("%8.0f", etlThroughput), 
-                String.format("%8.0f", zetaThroughput),
-                String.format("%+8.0f", zetaThroughput - etlThroughput),
-                String.format("%+.1f", percentDiff(etlThroughput, zetaThroughput)));
+        log.info("Throughput:   {}/s       {}/s",
+                String.format("%8.0f", etlThroughput),
+                String.format("%8.0f", zetaThroughput));
         log.info("");
-        
-        if (zetaResult.avg < etlResult.avg) {
-            double speedup = etlResult.avg / zetaResult.avg;
-            log.info(">>> ZETA is {}x FASTER than ETL <<<", String.format("%.2f", speedup));
-        } else if (zetaResult.avg > etlResult.avg) {
-            double slowdown = zetaResult.avg / etlResult.avg;
-            log.info(">>> ZETA is {}x SLOWER than ETL <<<", String.format("%.2f", slowdown));
+
+        double speedup = etlResult.avg / zetaResult.avg;
+        if (speedup > 1) {
+            log.info(">>> Zeta is {}x FASTER than ETL <<<", String.format("%.2f", speedup));
+        } else if (speedup < 1) {
+            log.info(">>> Zeta is {}x SLOWER than ETL <<<", String.format("%.2f", 1.0 / speedup));
         } else {
-            log.info(">>> ETL and ZETA have EQUAL performance <<<");
+            log.info(">>> ETL and Zeta have EQUAL performance <<<");
         }
         log.info("================================================================\n");
 
-        // Assert Zeta is not significantly slower (allow 50% tolerance for now since Zeta is placeholder)
-        assertTrue(zetaResult.avg < etlResult.avg * 1.5, 
-                "Zeta transformation is significantly slower than ETL: " + 
+        // Assert Zeta is not significantly slower (allow 50% tolerance)
+        assertTrue(zetaResult.avg < etlResult.avg * 1.5,
+                "Zeta transformation is significantly slower than ETL: " +
                 zetaResult.avg + "ms vs " + etlResult.avg + "ms");
-    }
-
-    private void printComparisonV2(String testName, int entityCount, int totalElements, 
-                                   PerformanceResult etlResult, PerformanceResult zetaResult, 
-                                   PerformanceResult zetaV2Result) {
-        log.info("");
-        log.info("================================================================================");
-        log.info("COMPARISON RESULTS: {} ({} entities, {} elements)", testName, entityCount, totalElements);
-        log.info("================================================================================");
-        log.info("");
-        log.info("                    ETL              ZETA-V1          ZETA-V2");
-        log.info("--------------------------------------------------------------------------------");
-        log.info("Min:          {}ms       {}ms       {}ms", 
-                String.format("%8d", etlResult.min), 
-                String.format("%8d", zetaResult.min), 
-                String.format("%8d", zetaV2Result.min));
-        log.info("Max:          {}ms       {}ms       {}ms", 
-                String.format("%8d", etlResult.max), 
-                String.format("%8d", zetaResult.max),
-                String.format("%8d", zetaV2Result.max));
-        log.info("Avg:          {}ms       {}ms       {}ms", 
-                String.format("%8.1f", etlResult.avg), 
-                String.format("%8.1f", zetaResult.avg),
-                String.format("%8.1f", zetaV2Result.avg));
-        log.info("Median:       {}ms       {}ms       {}ms", 
-                String.format("%8d", etlResult.median), 
-                String.format("%8d", zetaResult.median),
-                String.format("%8d", zetaV2Result.median));
-        log.info("StdDev:       {}ms       {}ms       {}ms", 
-                String.format("%8.1f", etlResult.stdDev), 
-                String.format("%8.1f", zetaResult.stdDev),
-                String.format("%8.1f", zetaV2Result.stdDev));
-        log.info("");
-        
-        double etlThroughput = totalElements / (etlResult.avg / 1000.0);
-        double zetaThroughput = totalElements / (zetaResult.avg / 1000.0);
-        double zetaV2Throughput = totalElements / (zetaV2Result.avg / 1000.0);
-        log.info("Throughput:   {}/s       {}/s       {}/s", 
-                String.format("%8.0f", etlThroughput), 
-                String.format("%8.0f", zetaThroughput),
-                String.format("%8.0f", zetaV2Throughput));
-        log.info("");
-        
-        // Compare V1 to ETL
-        if (zetaResult.avg < etlResult.avg) {
-            double speedup = etlResult.avg / zetaResult.avg;
-            log.info(">>> ZETA-V1 is {}x FASTER than ETL <<<", String.format("%.2f", speedup));
-        } else if (zetaResult.avg > etlResult.avg) {
-            double slowdown = zetaResult.avg / etlResult.avg;
-            log.info(">>> ZETA-V1 is {}x SLOWER than ETL <<<", String.format("%.2f", slowdown));
-        }
-        
-        // Compare V2 to ETL
-        if (zetaV2Result.avg < etlResult.avg) {
-            double speedup = etlResult.avg / zetaV2Result.avg;
-            log.info(">>> ZETA-V2 is {}x FASTER than ETL <<<", String.format("%.2f", speedup));
-        } else if (zetaV2Result.avg > etlResult.avg) {
-            double slowdown = zetaV2Result.avg / etlResult.avg;
-            log.info(">>> ZETA-V2 is {}x SLOWER than ETL <<<", String.format("%.2f", slowdown));
-        }
-        
-        // Compare V2 to V1
-        if (zetaV2Result.avg < zetaResult.avg) {
-            double speedup = zetaResult.avg / zetaV2Result.avg;
-            log.info(">>> ZETA-V2 is {}x FASTER than ZETA-V1 <<<", String.format("%.2f", speedup));
-        } else if (zetaV2Result.avg > zetaResult.avg) {
-            double slowdown = zetaV2Result.avg / zetaResult.avg;
-            log.info(">>> ZETA-V2 is {}x SLOWER than ZETA-V1 <<<", String.format("%.2f", slowdown));
-        }
-        
-        log.info("================================================================================\n");
-
-        // Assert Zeta V2 is not significantly slower than ETL (allow 50% tolerance)
-        assertTrue(zetaV2Result.avg < etlResult.avg * 1.5, 
-                "Zeta V2 transformation is significantly slower than ETL: " + 
-                zetaV2Result.avg + "ms vs " + etlResult.avg + "ms");
-    }
-
-    private double percentDiff(double baseline, double value) {
-        return ((value - baseline) / baseline) * 100.0;
     }
 
     private PsmModel generatePsmModel(int entityCount) {
@@ -551,15 +366,13 @@ public class Psm2AsmPerformanceTest {
     }
 
     private static class PerformanceResult {
-        final TransformationMode mode;
         final long min;
         final long max;
         final double avg;
         final long median;
         final double stdDev;
 
-        PerformanceResult(TransformationMode mode, long min, long max, double avg, long median, double stdDev) {
-            this.mode = mode;
+        PerformanceResult(long min, long max, double avg, long median, double stdDev) {
             this.min = min;
             this.max = max;
             this.avg = avg;

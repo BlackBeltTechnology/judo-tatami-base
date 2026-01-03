@@ -89,32 +89,30 @@ public class StaticRules {
                 t.setName(Character.toUpperCase(name.charAt(0)) + name.substring(1));
             }
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
-            // Add transferObjectType annotation inline
+            addClassifier(containerPkg, t);
+
+            // Add transferObjectType annotation inline (thread-safe)
             EAnnotation toAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/TransferObjectTypeAnnotationClassForStaticData",
                     getAnnotationUri("transferObjectType"));
             addAnnotationDetail(toAnnotation, "value", "true");
-            t.getEAnnotations().add(toAnnotation);
-            
-            // Add staticQuery annotation inline
+            addAnnotation(t, toAnnotation);
+
+            // Add staticQuery annotation inline (thread-safe)
             EAnnotation staticQueryAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/StaticDataQueryAnnotation",
                     getAnnotationUri("staticQuery"));
-            t.getEAnnotations().add(staticQueryAnnotation);
-            
+            addAnnotation(t, staticQueryAnnotation);
+
             // Create and add the static query attribute
             EAttribute attr = EcorePackage.eINSTANCE.getEcoreFactory().createEAttribute();
             attr.setName(s.getName());
             attr.setLowerBound(s.isRequired() ? 1 : 0);
             attr.setDerived(true);
             attr.setChangeable(false);
-            
+
             // Set type
             if (s.getDataType() != null) {
                 EClassifier type = ctx.equivalent(s.getDataType(), EClassifier.class);
@@ -122,17 +120,17 @@ public class StaticRules {
                     attr.setEType(type);
                 }
             }
-            
-            t.getEStructuralFeatures().add(attr);
-            
-            // Add expression annotation for the attribute
+
+            addStructuralFeature(t, attr);
+
+            // Add expression annotation for the attribute (thread-safe)
             if (s.getGetterExpression() != null) {
                 EAnnotation exprAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/DataReferenceBindingForStaticData",
                         getAnnotationUri("expression"));
                 addAnnotationDetail(exprAnnotation, "getter", s.getGetterExpression().getExpression());
                 addAnnotationDetail(exprAnnotation, "getter.dialect", s.getGetterExpression().getDialect().toString());
-                
+
                 // Add parameter type if defined
                 if (s.getGetterExpression().getParameterType() != null) {
                     EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
@@ -140,10 +138,10 @@ public class StaticRules {
                         addAnnotationDetail(exprAnnotation, "getter.parameter", getClassifierFQName(paramType));
                     }
                 }
-                
-                attr.getEAnnotations().add(exprAnnotation);
-                
-                // Add parameterized annotation if has parameter type
+
+                addAnnotation(attr, exprAnnotation);
+
+                // Add parameterized annotation if has parameter type (thread-safe)
                 if (s.getGetterExpression().getParameterType() != null) {
                     EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
                     if (paramType != null) {
@@ -152,7 +150,7 @@ public class StaticRules {
                                 getAnnotationUri("parameterized"));
                         addAnnotationDetail(paramAnnotation, "value", "true");
                         addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
-                        attr.getEAnnotations().add(paramAnnotation);
+                        addAnnotation(attr, paramAnnotation);
                     }
                 }
             }
@@ -193,36 +191,34 @@ public class StaticRules {
                 t.setName(Character.toUpperCase(name.charAt(0)) + name.substring(1));
             }
             
-            // Add to container package
+            // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
-            if (containerPkg != null) {
-                containerPkg.getEClassifiers().add(t);
-            }
-            
-            // Add transferObjectType annotation inline
+            addClassifier(containerPkg, t);
+
+            // Add transferObjectType annotation inline (thread-safe)
             EAnnotation toAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/TransferObjectTypeAnnotationClassForStaticNavigation",
                     getAnnotationUri("transferObjectType"));
             addAnnotationDetail(toAnnotation, "value", "true");
-            t.getEAnnotations().add(toAnnotation);
-            
-            // Add staticQuery annotation inline
+            addAnnotation(t, toAnnotation);
+
+            // Add staticQuery annotation inline (thread-safe)
             EAnnotation staticQueryAnnotation = createAnnotation(
                     "(psm/" + getId(s) + ")/StaticNavigationQueryAnnotation",
                     getAnnotationUri("staticQuery"));
-            t.getEAnnotations().add(staticQueryAnnotation);
-            
+            addAnnotation(t, staticQueryAnnotation);
+
             // Create and add the static query navigation EReference
             EReference ref = EcorePackage.eINSTANCE.getEcoreFactory().createEReference();
             ref.setName(s.getName());
             ref.setContainment(false);
-            
+
             // Set cardinality
             if (s.getCardinality() != null) {
                 ref.setLowerBound(s.getCardinality().getLower());
                 ref.setUpperBound(s.getCardinality().getUpper());
             }
-            
+
             // Set type to the mapped transfer object for the default representation
             MappedTransferObjectType defaultRep = s.getTarget().getDefaultRepresentation();
             if (defaultRep != null) {
@@ -231,20 +227,20 @@ public class StaticRules {
                     ref.setEType(targetClass);
                 }
             }
-            
+
             ref.setDerived(true);
             ref.setChangeable(false);
-            
-            t.getEStructuralFeatures().add(ref);
-            
-            // Add expression annotation for the reference
+
+            addStructuralFeature(t, ref);
+
+            // Add expression annotation for the reference (thread-safe)
             if (s.getGetterExpression() != null) {
                 EAnnotation exprAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/NavigationReferenceBindingForStaticNavigation",
                         getAnnotationUri("expression"));
                 addAnnotationDetail(exprAnnotation, "getter", s.getGetterExpression().getExpression());
                 addAnnotationDetail(exprAnnotation, "getter.dialect", s.getGetterExpression().getDialect().toString());
-                
+
                 // Add parameter type if defined
                 if (s.getGetterExpression().getParameterType() != null) {
                     EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
@@ -252,12 +248,12 @@ public class StaticRules {
                         addAnnotationDetail(exprAnnotation, "getter.parameter", getClassifierFQName(paramType));
                     }
                 }
-                
+
                 // Add setter if defined
                 if (s.getSetterExpression() != null) {
                     addAnnotationDetail(exprAnnotation, "setter", s.getSetterExpression().getExpression());
                     addAnnotationDetail(exprAnnotation, "setter.dialect", s.getSetterExpression().getDialect().toString());
-                    
+
                     if (s.getSetterExpression().getParameterType() != null) {
                         EClass setterParamType = ctx.equivalent(s.getSetterExpression().getParameterType(), EClass.class);
                         if (setterParamType != null) {
@@ -265,10 +261,10 @@ public class StaticRules {
                         }
                     }
                 }
-                
-                ref.getEAnnotations().add(exprAnnotation);
-                
-                // Add parameterized annotation if has parameter type and is ReferenceAccessor
+
+                addAnnotation(ref, exprAnnotation);
+
+                // Add parameterized annotation if has parameter type and is ReferenceAccessor (thread-safe)
                 // Guard: s.isKindOf(JUDOPSM!ReferenceAccessor) and s.getterExpression.parameterType.isDefined()
                 if (s instanceof ReferenceAccessor && s.getGetterExpression().getParameterType() != null) {
                     EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
@@ -278,7 +274,7 @@ public class StaticRules {
                                 getAnnotationUri("parameterized"));
                         addAnnotationDetail(paramAnnotation, "value", "true");
                         addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
-                        ref.getEAnnotations().add(paramAnnotation);
+                        addAnnotation(ref, paramAnnotation);
                     }
                 }
             }

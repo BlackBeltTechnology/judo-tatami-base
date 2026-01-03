@@ -89,9 +89,8 @@ public class Psm2MeasureZetaTransformation {
         // Create transformation context
         TransformationContext context = createContext(registry);
 
-        // Create executor with sequential execution
-        // Note: parallel(true) causes ConcurrentModificationException on EMF collections
-        // which are not thread-safe when adding elements to Resource.getContents()
+        // Create executor - sequential mode for small models
+        // Parallel overhead outweighs benefits for measure models
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)

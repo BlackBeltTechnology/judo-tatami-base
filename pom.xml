@@ -120,7 +120,7 @@
         <jacoco.version>0.8.12</jacoco.version>
 
         <!-- Zeta Framework -->
-        <judo-zeta-version>1.0.0.20251231_124423_2295144d_feature_JNG_6349_AddZetaValidatiob</judo-zeta-version>
+        <judo-zeta-version>1.0.0.20260102_171606_8417bc25_feature_JNG_6349_AddZetaValidatiob</judo-zeta-version>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>

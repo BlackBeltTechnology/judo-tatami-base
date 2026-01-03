@@ -522,7 +522,15 @@ public class ModelComparator {
             }
             
             // Skip EAnnotation comparison in STRUCTURAL and LENIENT modes
-            if (mode != ComparisonMode.STRICT && !list1.isEmpty() && list1.get(0) instanceof EAnnotation) {
+            // Use eClass().getName() check instead of instanceof for reliable EMF type detection
+            if (mode != ComparisonMode.STRICT && !list1.isEmpty() && isEAnnotation(list1.get(0))) {
+                return;
+            }
+
+            // Special handling for EAnnotation lists in STRICT mode - compare as sets
+            // This handles the case where annotations have the same content but different ordering
+            if (!list1.isEmpty() && isEAnnotation(list1.get(0))) {
+                compareAnnotationSets(list1, list2, path, differences, mode);
                 return;
             }
 
@@ -590,6 +598,22 @@ public class ModelComparator {
                     val1 != null ? val1.getClass().getSimpleName() : "null",
                     val2 != null ? val2.getClass().getSimpleName() : "null"));
         }
+    }
+
+    /**
+     * Checks if an EObject is an EAnnotation.
+     * Uses eClass().getName() for reliable EMF type detection across different class loaders.
+     */
+    private static boolean isEAnnotation(EObject obj) {
+        if (obj == null) {
+            return false;
+        }
+        // Check by interface first (most reliable)
+        if (obj instanceof EAnnotation) {
+            return true;
+        }
+        // Fall back to name-based check for proxies or cross-class-loader scenarios
+        return "EAnnotation".equals(obj.eClass().getName());
     }
 
     /**
@@ -677,6 +701,101 @@ public class ModelComparator {
                 }
             }
         }
+    }
+
+    /**
+     * Compares two lists of EAnnotation as sets (order-independent).
+     * Uses annotation signature (source + sorted details) for matching.
+     */
+    @SuppressWarnings("unchecked")
+    private static void compareAnnotationSets(EList<EObject> list1, EList<EObject> list2,
+                                               String path, List<Difference> differences,
+                                               ComparisonMode mode) {
+        // Build signature sets for each list
+        Set<String> sigs1 = new LinkedHashSet<>();
+        Set<String> sigs2 = new LinkedHashSet<>();
+
+        for (EObject obj : list1) {
+            sigs1.add(getAnnotationSignatureFromEObject(obj));
+        }
+        for (EObject obj : list2) {
+            sigs2.add(getAnnotationSignatureFromEObject(obj));
+        }
+
+        // Compare as sets
+        Set<String> missing = new LinkedHashSet<>(sigs1);
+        missing.removeAll(sigs2);
+        Set<String> extra = new LinkedHashSet<>(sigs2);
+        extra.removeAll(sigs1);
+
+        // Report differences
+        for (String sig : missing) {
+            differences.add(new MissingElement(path, "EAnnotation: " + sig));
+        }
+        for (String sig : extra) {
+            differences.add(new ExtraElement(path, "EAnnotation: " + sig));
+        }
+    }
+
+    /**
+     * Gets a signature string for an EAnnotation from a generic EObject.
+     * Handles both EAnnotation interface and EMF-based annotation objects.
+     * Used for set-based comparison of annotations.
+     */
+    @SuppressWarnings("unchecked")
+    private static String getAnnotationSignatureFromEObject(EObject obj) {
+        StringBuilder sig = new StringBuilder();
+
+        // Get source attribute - try interface first, then reflective access
+        String source = null;
+        if (obj instanceof EAnnotation) {
+            source = ((EAnnotation) obj).getSource();
+        } else {
+            source = getAttributeValue(obj, "source");
+        }
+        sig.append(source != null ? source : "");
+
+        // Get details - try interface first, then reflective access
+        List<Map.Entry<String, String>> detailEntries = new ArrayList<>();
+        if (obj instanceof EAnnotation) {
+            org.eclipse.emf.common.util.EMap<String, String> details = ((EAnnotation) obj).getDetails();
+            if (details != null && !details.isEmpty()) {
+                detailEntries.addAll(details.entrySet());
+            }
+        } else {
+            // Fallback: access details via reflection on the EObject
+            EStructuralFeature detailsFeature = obj.eClass().getEStructuralFeature("details");
+            if (detailsFeature != null) {
+                Object detailsVal = obj.eGet(detailsFeature);
+                if (detailsVal instanceof EList) {
+                    EList<EObject> detailsList = (EList<EObject>) detailsVal;
+                    for (EObject entry : detailsList) {
+                        String key = getAttributeValue(entry, "key");
+                        String value = getAttributeValue(entry, "value");
+                        if (key != null) {
+                            final String k = key;
+                            final String v = value != null ? value : "";
+                            detailEntries.add(new Map.Entry<String, String>() {
+                                @Override public String getKey() { return k; }
+                                @Override public String getValue() { return v; }
+                                @Override public String setValue(String value) { throw new UnsupportedOperationException(); }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort details by key, then by value for entries with same key
+        if (!detailEntries.isEmpty()) {
+            detailEntries.sort(Comparator.comparing((Map.Entry<String, String> e) -> e.getKey())
+                                         .thenComparing(e -> e.getValue() != null ? e.getValue() : ""));
+            for (Map.Entry<String, String> entry : detailEntries) {
+                sig.append("|").append(entry.getKey()).append("=").append(entry.getValue());
+            }
+        }
+
+        return sig.toString();
     }
 
     private static void matchAndCompareByContent(List<EObject> list1, List<EObject> list2, 
@@ -813,11 +932,25 @@ public class ModelComparator {
      * Gets a unique identifier for an object (tries name, id, uuid, source, key attributes).
      */
     private static String getIdentifier(EObject obj) {
-        // For EAnnotation, use 'source' attribute as identifier
+        // For EAnnotation, use 'source' attribute + details as identifier
+        // This ensures annotations with same source but different details are matched correctly
         if (obj instanceof EAnnotation) {
-            String source = ((EAnnotation) obj).getSource();
+            EAnnotation ann = (EAnnotation) obj;
+            String source = ann.getSource();
             if (source != null) {
-                return "EAnnotation:" + source;
+                StringBuilder id = new StringBuilder("EAnnotation:").append(source);
+                // Include details in identifier for uniqueness (e.g., behavior annotations with different owners)
+                // Sort by key, then by value for entries with same key to ensure consistent identifiers
+                org.eclipse.emf.common.util.EMap<String, String> details = ann.getDetails();
+                if (details != null && !details.isEmpty()) {
+                    List<Map.Entry<String, String>> sorted = new ArrayList<>(details.entrySet());
+                    sorted.sort(Comparator.comparing((Map.Entry<String, String> e) -> e.getKey())
+                                          .thenComparing(e -> e.getValue() != null ? e.getValue() : ""));
+                    for (Map.Entry<String, String> entry : sorted) {
+                        id.append("|").append(entry.getKey()).append("=").append(entry.getValue());
+                    }
+                }
+                return id.toString();
             }
         }
 
@@ -871,6 +1004,27 @@ public class ModelComparator {
     private static String getContentSignature(EObject obj) {
         StringBuilder sb = new StringBuilder();
         sb.append(obj.eClass().getName());
+
+        // Special handling for EAnnotation - include source and all details
+        if (obj instanceof EAnnotation) {
+            EAnnotation ann = (EAnnotation) obj;
+            String source = ann.getSource();
+            if (source != null) {
+                sb.append("|source=").append(source);
+            }
+            // Include all details in signature for uniqueness
+            // Sort by key, then by value for entries with same key
+            org.eclipse.emf.common.util.EMap<String, String> details = ann.getDetails();
+            if (details != null && !details.isEmpty()) {
+                List<Map.Entry<String, String>> sorted = new ArrayList<>(details.entrySet());
+                sorted.sort(Comparator.comparing((Map.Entry<String, String> e) -> e.getKey())
+                                      .thenComparing(e -> e.getValue() != null ? e.getValue() : ""));
+                for (Map.Entry<String, String> entry : sorted) {
+                    sb.append("|").append(entry.getKey()).append("=").append(entry.getValue());
+                }
+            }
+            return sb.toString();
+        }
 
         // First try common identifier attributes
         for (String attr : Arrays.asList("name", "id", "uuid", "sqlName", "logicalFilePath")) {

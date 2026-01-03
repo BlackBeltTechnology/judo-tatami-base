@@ -83,28 +83,30 @@ public class RealisticPerformanceTest {
         log.info("  Total Elements: {}", totalElements);
         log.info("");
 
-        // Warmup
+        // Warmup - use fresh models to avoid parallel execution state issues
         log.info("--- Warmup ---");
         log.info("Warming up ETL...");
-        executeTransformation(psmModel, TransformationMode.ETL);
+        executeTransformation(generator.generate(entityCount), TransformationMode.ETL);
         log.info("Warming up ZETA...");
-        executeTransformation(psmModel, TransformationMode.ZETA);
+        executeTransformation(generator.generate(entityCount), TransformationMode.ZETA);
         log.info("Warmup complete");
         log.info("");
 
-        // ETL measurement
+        // ETL measurement - use fresh model for each run to avoid parallel execution state issues
         log.info("--- ETL Transformation (measured) ---");
+        PsmModel etlPsmModel = generator.generate(entityCount);
         long etlStart = System.currentTimeMillis();
-        AsmModel etlResult = executeTransformation(psmModel, TransformationMode.ETL);
+        AsmModel etlResult = executeTransformation(etlPsmModel, TransformationMode.ETL);
         long etlTime = System.currentTimeMillis() - etlStart;
         int etlClassifiers = countClassifiers(etlResult);
         log.info("ETL completed in {}ms, produced {} classifiers", etlTime, etlClassifiers);
 
-        // Zeta measurement
+        // Zeta measurement - use fresh model for each run to avoid parallel execution state issues
         log.info("");
         log.info("--- ZETA Transformation (measured) ---");
+        PsmModel zetaPsmModel = generator.generate(entityCount);
         long zetaStart = System.currentTimeMillis();
-        AsmModel zetaResult = executeTransformation(psmModel, TransformationMode.ZETA);
+        AsmModel zetaResult = executeTransformation(zetaPsmModel, TransformationMode.ZETA);
         long zetaTime = System.currentTimeMillis() - zetaStart;
         int zetaClassifiers = countClassifiers(zetaResult);
         log.info("Zeta completed in {}ms, produced {} classifiers", zetaTime, zetaClassifiers);

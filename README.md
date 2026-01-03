@@ -65,6 +65,70 @@ mvn clean test
 mvn clean install -DskipTests
 ```
 
+## External Model Testing
+
+The project supports parametrized testing of ETL and ZETA transformations against external model files. This enables testing with real-world models without hardcoding paths.
+
+### Configuration
+
+Create `external-model-tests.properties` in your module's `src/test/resources/`:
+
+```properties
+# Format: <model-name>=<path>[;<param>=<value>]*
+
+# Simple format (relative path from module root)
+rackinspect=../../../rackinspect/application/model/target/generated-resources/model
+
+# Extended format with parameters
+myproject=/opt/models/myproject;dialect=postgresql;warmup=true;iterations=3
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `dialect` | `hsqldb` | Database dialect (for RDBMS transformations) |
+| `warmup` | `false` | Run warmup before measurement |
+| `iterations` | `1` | Number of iterations for averaging |
+
+### Expected Model Files
+
+| Test Class | Model Type | Expected File |
+|------------|------------|---------------|
+| `Psm2AsmExternalModelTest` | PSM | `<name>-psm.model` |
+| `Psm2MeasureExternalModelTest` | PSM | `<name>-psm.model` |
+| `Asm2RdbmsExternalModelTest` | ASM | `<name>-asm.model` |
+| `Asm2KeycloakExternalModelTest` | ASM | `<name>-asm.model` |
+| `Rdbms2LiquibaseExternalModelTest` | RDBMS | `<name>-rdbms_<dialect>.model` |
+
+### Running Tests
+
+```bash
+# Run external model tests for a specific module
+mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmExternalModelTest -Pperformance
+
+# Run with STRICT comparison mode
+mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmExternalModelTest -Pperformance -Djudo.test.comparison.mode=STRICT
+
+# Run all external model tests
+mvn test -Pperformance -Dtest=*ExternalModelTest
+
+# Override module base directory
+mvn test -Pperformance -Dtest=*ExternalModelTest -Djudo.test.module.root=/path/to/module
+```
+
+### Path Resolution
+
+1. Absolute paths (starting with `/`) are used as-is
+2. Relative paths are resolved from the module root directory
+3. Module root is detected via JUnit's classpath or can be overridden with `-Djudo.test.module.root`
+
+### Behavior
+
+- If the properties file is missing: Tests skip gracefully (0 test cases)
+- If the model directory doesn't exist: That model is skipped with a warning
+- If the model file is missing in an existing directory: Test **fails** with a clear error
+
 ## Dual Transformation Architecture
 
 This project supports two transformation engines:
