@@ -22,8 +22,10 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.psm.data.EntityType;
+import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
+import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EAnnotation;
@@ -211,6 +213,64 @@ public final class Psm2AsmHelper {
         }
         // else: this is the root Model, just add its name
         sb.append(namespace.getName());
+    }
+
+    // =========================================================================
+    // NAMESPACE URI METHODS
+    // =========================================================================
+
+    /**
+     * Computes the full nsURI for a PSM Package by traversing the source hierarchy.
+     * This is used instead of relying on the target EPackage's nsURI which may not
+     * be set yet in parallel transformation execution.
+     *
+     * @param pkg     the PSM Package to compute nsURI for
+     * @param baseUri the base URI prefix (from context "nsURI" attribute)
+     * @return the full namespace URI
+     */
+    public static String computeNsUriFromSource(Package pkg, String baseUri) {
+        StringBuilder sb = new StringBuilder();
+        buildNsUriPath(pkg, sb);
+        // The path starts from the model name, so we prepend the baseUri
+        return baseUri + sb.toString();
+    }
+
+    /**
+     * Recursively builds the nsURI path from PSM Package hierarchy.
+     * Path format: /modelName/package1/package2/.../packageN
+     */
+    private static void buildNsUriPath(Namespace namespace, StringBuilder sb) {
+        if (namespace.eContainer() instanceof Namespace) {
+            buildNsUriPath((Namespace) namespace.eContainer(), sb);
+        }
+        sb.append("/").append(namespace.getName());
+    }
+
+    /**
+     * Computes the full nsPrefix for a PSM Package by traversing the source hierarchy.
+     * This is used instead of relying on the target EPackage's nsPrefix which may not
+     * be set yet in parallel transformation execution.
+     *
+     * @param pkg        the PSM Package to compute nsPrefix for
+     * @param basePrefix the base prefix (from context "nsPrefix" attribute)
+     * @return the full namespace prefix
+     */
+    public static String computeNsPrefixFromSource(Package pkg, String basePrefix) {
+        StringBuilder sb = new StringBuilder();
+        buildNsPrefixPath(pkg, sb);
+        // The path starts from the model name (capitalized), so we prepend the basePrefix
+        return basePrefix + sb.toString();
+    }
+
+    /**
+     * Recursively builds the nsPrefix path from PSM Package hierarchy.
+     * Capitalizes each namespace name segment.
+     */
+    private static void buildNsPrefixPath(Namespace namespace, StringBuilder sb) {
+        if (namespace.eContainer() instanceof Namespace) {
+            buildNsPrefixPath((Namespace) namespace.eContainer(), sb);
+        }
+        sb.append(capitalize(namespace.getName()));
     }
 
     // =========================================================================
@@ -416,6 +476,146 @@ public final class Psm2AsmHelper {
         }
         sb.append(".").append(classifier.getName());
         return sb.toString();
+    }
+
+    // =========================================================================
+    // THREAD-SAFE COLLECTION OPERATIONS
+    // =========================================================================
+    //
+    // IMPORTANT: We synchronize on the CONTAINER OBJECT, not the EList itself.
+    // EMF's EList.add() internally calls contains() which iterates through all elements.
+    // Synchronizing only on the list doesn't prevent concurrent modification during
+    // iteration because EMF may access the underlying array directly.
+    // By synchronizing on the container, we serialize ALL operations on that object's
+    // collections, preventing race conditions in EMF's internal iteration logic.
+    //
+
+    /**
+     * Thread-safe add of a classifier to a package.
+     * EMF ELists are not thread-safe, so concurrent adds from parallel transformation
+     * threads can cause ArrayIndexOutOfBoundsException or ConcurrentModificationException.
+     * <p>
+     * This method also prevents duplicate classifiers with the same name, which can occur
+     * when parallel threads race to transform the same source element before the framework's
+     * cache is updated.
+     *
+     * @param pkg the target package
+     * @param classifier the classifier to add
+     */
+    public static void addClassifier(EPackage pkg, EClassifier classifier) {
+        if (pkg != null && classifier != null) {
+            synchronized (pkg) {
+                // Prevent duplicate classifiers - can occur due to race conditions in parallel execution
+                // where multiple threads transform the same source element before cache is updated
+                String name = classifier.getName();
+                if (name != null) {
+                    boolean exists = pkg.getEClassifiers().stream()
+                            .anyMatch(c -> name.equals(c.getName()));
+                    if (exists) {
+                        return; // Skip duplicate
+                    }
+                }
+                pkg.getEClassifiers().add(classifier);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of an operation to a class.
+     *
+     * @param eClass the target class
+     * @param operation the operation to add
+     */
+    public static void addOperation(org.eclipse.emf.ecore.EClass eClass, org.eclipse.emf.ecore.EOperation operation) {
+        if (eClass != null && operation != null) {
+            synchronized (eClass) {
+                eClass.getEOperations().add(operation);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of a structural feature (attribute or reference) to a class.
+     *
+     * @param eClass the target class
+     * @param feature the structural feature to add
+     */
+    public static void addStructuralFeature(org.eclipse.emf.ecore.EClass eClass, org.eclipse.emf.ecore.EStructuralFeature feature) {
+        if (eClass != null && feature != null) {
+            synchronized (eClass) {
+                eClass.getEStructuralFeatures().add(feature);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of a sub-package to a package.
+     *
+     * @param parent the parent package
+     * @param child the child package to add
+     */
+    public static void addSubPackage(EPackage parent, EPackage child) {
+        if (parent != null && child != null) {
+            synchronized (parent) {
+                parent.getESubpackages().add(child);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of a super type to a class.
+     *
+     * @param eClass the target class
+     * @param superType the super type to add
+     */
+    public static void addSuperType(org.eclipse.emf.ecore.EClass eClass, org.eclipse.emf.ecore.EClass superType) {
+        if (eClass != null && superType != null) {
+            synchronized (eClass) {
+                eClass.getESuperTypes().add(superType);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of an annotation to a model element.
+     *
+     * @param element the target element
+     * @param annotation the annotation to add
+     */
+    public static void addAnnotation(org.eclipse.emf.ecore.EModelElement element, EAnnotation annotation) {
+        if (element != null && annotation != null) {
+            synchronized (element) {
+                element.getEAnnotations().add(annotation);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of an enum literal to an enum.
+     *
+     * @param eEnum the target enum
+     * @param literal the literal to add
+     */
+    public static void addEnumLiteral(org.eclipse.emf.ecore.EEnum eEnum, org.eclipse.emf.ecore.EEnumLiteral literal) {
+        if (eEnum != null && literal != null) {
+            synchronized (eEnum) {
+                eEnum.getELiterals().add(literal);
+            }
+        }
+    }
+
+    /**
+     * Thread-safe add of a parameter to an operation.
+     *
+     * @param operation the target operation
+     * @param parameter the parameter to add
+     */
+    public static void addParameter(org.eclipse.emf.ecore.EOperation operation, org.eclipse.emf.ecore.EParameter parameter) {
+        if (operation != null && parameter != null) {
+            synchronized (operation) {
+                operation.getEParameters().add(parameter);
+            }
+        }
     }
 
     // =========================================================================

@@ -402,6 +402,7 @@ public class OperationRules {
      *     to t : ASM!EOperation
      */
     @TransformRule(name = CREATE_BOUND_TRANSFER_OPERATION, description = "Transform BoundTransferOperation to EOperation")
+    @Greedy
     @Transform(type = BoundTransferOperation.class)
     @To(type = EOperation.class)
     public TransformFunction<BoundTransferOperation, EOperation> createBoundTransferOperation() {
@@ -467,6 +468,7 @@ public class OperationRules {
      *     to t : ASM!EOperation
      */
     @TransformRule(name = CREATE_UNBOUND_OPERATION, description = "Transform UnboundOperation to EOperation")
+    @Greedy
     @Transform(type = UnboundOperation.class)
     @To(type = EOperation.class)
     public TransformFunction<UnboundOperation, EOperation> createUnboundOperation() {

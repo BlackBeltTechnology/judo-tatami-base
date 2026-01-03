@@ -326,13 +326,13 @@ public class FieldRules {
             // Execute parent rule to get base FK constraint setup
             AddForeignKeyConstraint t = ctx.executeParentRule(FOREIGN_KEY_FIELD_TO_ADD_FK_CONSTRAINT, s);
 
-            // Add to FK ChangeSet using named equivalent lookup
+            // Add to FK ChangeSet using named equivalent lookup (thread-safe)
             // Note: Column is already added by IdentifierFieldToCreateTableColumn (RdbmsForeignKey extends RdbmsIdentifierField)
             RdbmsTable table = getTable(s);
             if (table != null) {
                 ChangeSet fkChangeSet = ctx.equivalent(table, TABLE_TO_CREATE_FOREIGN_KEYS_CHANGESET);
                 if (fkChangeSet != null) {
-                    fkChangeSet.getAddForeignKeyConstraint().add(t);
+                    addForeignKeyConstraintThreadSafe(fkChangeSet, t);
                 }
             }
 
@@ -363,12 +363,12 @@ public class FieldRules {
             // Execute parent rule to get base not-null constraint setup
             AddNotNullConstraint t = ctx.executeParentRule(FIELD_TO_ADD_NOT_NULL, s);
 
-            // Add to NotNull ChangeSet using named equivalent lookup
+            // Add to NotNull ChangeSet using named equivalent lookup (thread-safe)
             RdbmsTable table = getTable(s);
             if (table != null) {
                 ChangeSet notNullChangeSet = ctx.equivalent(table, TABLE_TO_ADD_NOT_NULL_CHANGESET);
                 if (notNullChangeSet != null) {
-                    notNullChangeSet.getAddNotNullConstraint().add(t);
+                    addNotNullConstraintThreadSafe(notNullChangeSet, t);
                 }
             }
 
@@ -415,14 +415,14 @@ public class FieldRules {
                 t.getColumn().add(column);
             }
 
-            // Get or create ChangeSet using helper from context
+            // Get or create ChangeSet using helper from context (thread-safe)
             @SuppressWarnings("unchecked")
             BiFunction<String, String, ChangeSet> getOrCreateChangeSet = ctx.getAttribute("getOrCreateChangeSet");
             if (getOrCreateChangeSet != null) {
                 ChangeSet changeSet = getOrCreateChangeSet.apply(
                         "create-indexes-in-" + table.getSqlName(),
                         "create-indexes");
-                changeSet.getCreateIndex().add(t);
+                addCreateIndexThreadSafe(changeSet, t);
             }
 
             return t;
@@ -471,7 +471,7 @@ public class FieldRules {
                     ChangeSet changeSet = getOrCreateChangeSet.apply(
                             "add-unique-constraints-to-" + table.getSqlName(),
                             "add-unique-constraints");
-                    changeSet.getAddUniqueConstraint().add(addUnique);
+                    addUniqueConstraintThreadSafe(changeSet, addUnique);
                 }
 
                 if (firstAddUnique == null) {
@@ -483,5 +483,45 @@ public class FieldRules {
 
             return firstAddUnique;
         };
+    }
+
+    // =========================================================================
+    // THREAD-SAFETY HELPER METHODS
+    // =========================================================================
+
+    /**
+     * Thread-safe method to add a FK constraint to a ChangeSet.
+     * Required because Zeta runs transformation rules in parallel and
+     * EMF ELists are not thread-safe.
+     */
+    private static synchronized void addForeignKeyConstraintThreadSafe(ChangeSet changeSet, AddForeignKeyConstraint constraint) {
+        changeSet.getAddForeignKeyConstraint().add(constraint);
+    }
+
+    /**
+     * Thread-safe method to add a not-null constraint to a ChangeSet.
+     * Required because Zeta runs transformation rules in parallel and
+     * EMF ELists are not thread-safe.
+     */
+    private static synchronized void addNotNullConstraintThreadSafe(ChangeSet changeSet, AddNotNullConstraint constraint) {
+        changeSet.getAddNotNullConstraint().add(constraint);
+    }
+
+    /**
+     * Thread-safe method to add a create index to a ChangeSet.
+     * Required because Zeta runs transformation rules in parallel and
+     * EMF ELists are not thread-safe.
+     */
+    private static synchronized void addCreateIndexThreadSafe(ChangeSet changeSet, CreateIndex index) {
+        changeSet.getCreateIndex().add(index);
+    }
+
+    /**
+     * Thread-safe method to add a unique constraint to a ChangeSet.
+     * Required because Zeta runs transformation rules in parallel and
+     * EMF ELists are not thread-safe.
+     */
+    private static synchronized void addUniqueConstraintThreadSafe(ChangeSet changeSet, AddUniqueConstraint constraint) {
+        changeSet.getAddUniqueConstraint().add(constraint);
     }
 }
