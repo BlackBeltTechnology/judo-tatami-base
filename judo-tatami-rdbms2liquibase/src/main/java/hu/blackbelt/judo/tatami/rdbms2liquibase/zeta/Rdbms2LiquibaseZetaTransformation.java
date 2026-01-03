@@ -120,11 +120,12 @@ public class Rdbms2LiquibaseZetaTransformation {
         // Create transformation context
         TransformationContext context = createContext(registry);
 
-        // Create executor with parallel execution
+        // Create executor - parallel disabled due to race conditions in changeSet creation
+        // causing non-deterministic changeSet counts (see fix-parallel-transformation-issues)
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
-                .parallel(true)
+                .parallel(false)
                 .build();
 
         // Execute transformation

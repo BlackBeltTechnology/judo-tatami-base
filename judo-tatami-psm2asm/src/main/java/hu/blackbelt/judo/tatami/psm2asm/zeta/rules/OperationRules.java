@@ -221,15 +221,13 @@ public class OperationRules {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("instanceRepresentation"));
-            
-            // Get the instance representation type
+
+            // Get the instance representation type from PSM source (not ASM target)
+            // to ensure complete package hierarchy is available during parallel execution
             if (s.getInstanceRepresentation() != null) {
-                EClass instanceRep = ctx.equivalent(s.getInstanceRepresentation(), EClass.class);
-                if (instanceRep != null) {
-                    addAnnotationDetail(t, "value", getClassifierFQName(instanceRep));
-                }
+                addAnnotationDetail(t, "value", getQualifiedName(s.getInstanceRepresentation()));
             }
-            
+
             // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
             addAnnotation(eOp, t);
@@ -586,15 +584,20 @@ public class OperationRules {
     
     /**
      * Map behaviour owner to the FQ name expected by ASM.
+     * <p>
+     * Uses PSM source elements to compute FQNames instead of ASM target elements,
+     * because the ASM package hierarchy may not be fully established during parallel
+     * transformation execution.
+     * </p>
      */
     private String mapBehaviourOwner(TransferOperationBehaviour behaviour, TransformationContext ctx) {
         if (behaviour.getOwner() == null) {
             return "";
         }
-        
+
         TransferOperationBehaviourType type = behaviour.getBehaviourType();
         EObject owner = behaviour.getOwner();
-        
+
         switch (type) {
             case GET_TEMPLATE:
             case GET_PRINCIPAL:
@@ -603,60 +606,87 @@ public class OperationRules {
             case UPDATE_INSTANCE:
             case VALIDATE_UPDATE:
             case DELETE_INSTANCE:
-                // Use classifier FQ name
+                // Use classifier FQ name from PSM source
                 if (owner instanceof TransferObjectType) {
-                    EClass ownerClass = ctx.equivalent(owner, EClass.class);
-                    if (ownerClass != null) {
-                        return getClassifierFQName(ownerClass);
-                    }
+                    return getQualifiedName((TransferObjectType) owner);
                 }
                 break;
             case GET_UPLOAD_TOKEN:
-                // Use attribute FQ name
+                // Use attribute FQ name from PSM source
                 if (owner instanceof TransferAttribute) {
-                    EAttribute ownerAttr = ctx.equivalent(owner, EAttribute.class);
-                    if (ownerAttr != null) {
-                        return getAttributeFQName(ownerAttr);
-                    }
+                    return getPsmAttributeFQName((TransferAttribute) owner);
                 }
                 break;
             case GET_RANGE:
                 if (owner instanceof TransferObjectRelation) {
-                    EReference ownerRef = ctx.equivalent(owner, EReference.class);
-                    if (ownerRef != null) {
-                        return getReferenceFQName(ownerRef);
-                    }
+                    return getPsmReferenceFQName((TransferObjectRelation) owner);
                 } else if (owner instanceof TransferOperation) {
-                    EOperation ownerOp = ctx.equivalent(owner, EOperation.class);
-                    if (ownerOp != null) {
-                        return getOperationFQName(ownerOp);
-                    }
+                    return getPsmOperationFQName((TransferOperation) owner);
                 }
                 break;
             case VALIDATE_OPERATION_INPUT:
                 if (owner instanceof TransferOperation) {
-                    EOperation ownerOp = ctx.equivalent(owner, EOperation.class);
-                    if (ownerOp != null) {
-                        return getOperationFQName(ownerOp);
-                    }
+                    return getPsmOperationFQName((TransferOperation) owner);
                 }
                 break;
             default:
-                // Default: use reference FQ name
+                // Default: use reference FQ name from PSM source
                 if (owner instanceof TransferObjectRelation) {
-                    EReference ownerRef = ctx.equivalent(owner, EReference.class);
-                    if (ownerRef != null) {
-                        return getReferenceFQName(ownerRef);
-                    }
+                    return getPsmReferenceFQName((TransferObjectRelation) owner);
                 }
                 break;
         }
-        
+
         // Fallback to qualified name for NamespaceElement
         if (owner instanceof NamespaceElement) {
             return getQualifiedName((NamespaceElement) owner);
         }
         return "";
+    }
+
+    /**
+     * Gets the fully qualified name of a PSM TransferObjectRelation.
+     * Format: container_FQN#relation_name
+     */
+    private String getPsmReferenceFQName(TransferObjectRelation relation) {
+        if (relation == null) {
+            return "";
+        }
+        EObject container = relation.eContainer();
+        if (container instanceof TransferObjectType) {
+            return getQualifiedName((TransferObjectType) container) + "#" + relation.getName();
+        }
+        return relation.getName();
+    }
+
+    /**
+     * Gets the fully qualified name of a PSM TransferOperation.
+     * Format: container_FQN#operation_name
+     */
+    private String getPsmOperationFQName(TransferOperation operation) {
+        if (operation == null) {
+            return "";
+        }
+        EObject container = operation.eContainer();
+        if (container instanceof TransferObjectType) {
+            return getQualifiedName((TransferObjectType) container) + "#" + operation.getName();
+        }
+        return operation.getName();
+    }
+
+    /**
+     * Gets the fully qualified name of a PSM TransferAttribute.
+     * Format: container_FQN#attribute_name
+     */
+    private String getPsmAttributeFQName(TransferAttribute attribute) {
+        if (attribute == null) {
+            return "";
+        }
+        EObject container = attribute.eContainer();
+        if (container instanceof TransferObjectType) {
+            return getQualifiedName((TransferObjectType) container) + "#" + attribute.getName();
+        }
+        return attribute.getName();
     }
 
     /**
@@ -1361,9 +1391,9 @@ public class OperationRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("inputRange"));
 
-            // Get the FQ name of the inputRange reference equivalent
-            EReference inputRangeRef = ctx.equivalent(s.getInputRange(), EReference.class);
-            addAnnotationDetail(t, "value", getReferenceFQName(inputRangeRef));
+            // Use PSM source element for FQ name to ensure complete package hierarchy
+            // during parallel execution
+            addAnnotationDetail(t, "value", getPsmReferenceFQName(s.getInputRange()));
 
             // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);

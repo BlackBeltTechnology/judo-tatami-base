@@ -141,9 +141,11 @@ public class Psm2MeasureExternalModelTest extends AbstractExternalModelTest {
         log.info("--- Model Comparison ---");
         log.info("Comparison mode: {}", ModelComparator.getConfiguredMode());
 
+        // Use Resource-level comparison for order-independent matching of root elements
+        // (measure models have multiple root elements - one per measure)
         ModelComparator.ComparisonResult result = ModelComparator.compare(
-                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
-                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                etlResult.getResourceSet().getResources().get(0),
+                zetaResult.getResourceSet().getResources().get(0),
                 ModelComparator.getConfiguredMode()
         );
 
