@@ -38,6 +38,7 @@ import hu.blackbelt.judo.zeta.transformation.core.TransformationExecutor;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationRegistry;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationResult;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationMetrics;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -94,31 +95,51 @@ public class Psm2AsmZetaTransformation {
     public TransformationTrace execute() {
         log.info("Starting PSM to ASM Zeta transformation  for model: {}", modelName);
         long startTime = System.currentTimeMillis();
+        long phaseStart;
 
-        // Clear helper caches from previous runs
+        // Phase 1: Clear helper caches
+        phaseStart = System.currentTimeMillis();
         Psm2AsmHelper.clearCaches();
+        log.info("Phase 1 - Clear caches: {}ms", System.currentTimeMillis() - phaseStart);
 
-        // Create registry and register all rule classes
+        // Phase 2: Create registry and register all rule classes
+        phaseStart = System.currentTimeMillis();
         TransformationRegistry registry = createRegistry();
+        log.info("Phase 2 - Create registry: {}ms", System.currentTimeMillis() - phaseStart);
 
-        // Create transformation context
+        // Phase 3: Create transformation context
+        phaseStart = System.currentTimeMillis();
         TransformationContext context = createContext(registry);
+        log.info("Phase 3 - Create context: {}ms", System.currentTimeMillis() - phaseStart);
 
-        // Create executor - parallel mode enabled for better performance
-        // All rules now use synchronized collection helpers for thread-safe EMF access
+        // Phase 4: Create executor
+        phaseStart = System.currentTimeMillis();
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
                 .parallel(true)
                 .build();
+        log.info("Phase 4 - Create executor: {}ms", System.currentTimeMillis() - phaseStart);
 
-        // Execute transformation
+        // Enable profiling
+        TransformationMetrics.reset();
+        TransformationMetrics.enable();
+
+        // Phase 5: Execute transformation
+        phaseStart = System.currentTimeMillis();
         log.info("Starting executor.transform()");
         TransformationResult result = executor.transform();
-        log.info("Finished executor.transform()");
+        long transformTime = System.currentTimeMillis() - phaseStart;
+        log.info("Phase 5 - executor.transform(): {}ms", transformTime);
 
-        // Post-processing: set up inheritance relationships that require all classes to exist
+        // Print metrics report
+        log.info("=== TRANSFORMATION METRICS ===\n{}", TransformationMetrics.getReport());
+        TransformationMetrics.disable();
+
+        // Phase 6: Post-processing
+        phaseStart = System.currentTimeMillis();
         postProcess(context);
+        log.info("Phase 6 - postProcess(): {}ms", System.currentTimeMillis() - phaseStart);
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("PSM to ASM Zeta transformation  completed in {}ms", duration);
@@ -187,6 +208,7 @@ public class Psm2AsmZetaTransformation {
         context.setTargetPackage(EcorePackage.eINSTANCE);
         context.setTransformationRegistry(registry);
         context.setUseStructuredIds(true);
+        context.setEtlCompatibilityMode(true);
         // Note: autoAddRootElements is intentionally disabled (default: false)
         // We add root elements in postProcess after all rules complete, so that
         // addToResource can recursively apply pending XMI IDs to all children
@@ -217,10 +239,10 @@ public class Psm2AsmZetaTransformation {
      */
     private void postProcess(TransformationContext context) {
         hu.blackbelt.judo.meta.psm.PsmUtils psmUtils = new hu.blackbelt.judo.meta.psm.PsmUtils(psmModel.getResourceSet());
+        long stepStart;
 
         // 1. Add root packages to the ASM model resource and apply pending XMI IDs
-        // Note: addToResource only sets the ID for the root element when staging is disabled,
-        // so we need to manually apply pending IDs to all children recursively
+        stepStart = System.currentTimeMillis();
         XMIResource xmiResource = asmModel.getResource() instanceof XMIResource
                 ? (XMIResource) asmModel.getResource() : null;
 
@@ -228,14 +250,14 @@ public class Psm2AsmZetaTransformation {
             EPackage rootPkg = context.equivalent(model, EPackage.class);
             if (rootPkg != null && !asmModel.getResource().getContents().contains(rootPkg)) {
                 context.addToResource(rootPkg);
-                // Apply pending XMI IDs to all children recursively
                 applyPendingXmiIds(rootPkg, context, xmiResource);
                 log.debug("Added root package '{}' to ASM resource", rootPkg.getName());
             }
         });
-        
+        log.info("  postProcess step 1 (add root packages): {}ms", System.currentTimeMillis() - stepStart);
+
         // 2. Set EOpposite for bidirectional associations
-        // This is done in post-processing to avoid recursive update issues
+        stepStart = System.currentTimeMillis();
         psmUtils.all(psmModel.getResourceSet(), AssociationEnd.class).forEach(assocEnd -> {
             if (assocEnd.getPartner() != null) {
                 EReference ref = context.equivalent(assocEnd, EReference.class);
@@ -246,9 +268,10 @@ public class Psm2AsmZetaTransformation {
                 }
             }
         });
-        
+        log.info("  postProcess step 2 (set EOpposite): {}ms", System.currentTimeMillis() - stepStart);
+
         // 3. Set target types for TransferObjectRelations
-        // This is done in post-processing to avoid recursive update issues
+        stepStart = System.currentTimeMillis();
         psmUtils.all(psmModel.getResourceSet(), TransferObjectRelation.class).forEach(relation -> {
             if (relation.getTarget() != null) {
                 EReference ref = context.equivalent(relation, EReference.class);
@@ -259,12 +282,12 @@ public class Psm2AsmZetaTransformation {
                 }
             }
         });
-        
-        // 4. Set up inheritance for Reference classes (Entity__Reference extends Parent__Reference)
-        // This must be done in post-processing to ensure all reference classes exist first
+        log.info("  postProcess step 3 (set TransferObjectRelation types): {}ms", System.currentTimeMillis() - stepStart);
+
+        // 4. Set up inheritance for Reference classes
+        stepStart = System.currentTimeMillis();
         psmUtils.all(psmModel.getResourceSet(), EntityType.class).forEach(entityType -> {
             if (!entityType.getSuperEntityTypes().isEmpty()) {
-                // Find the reference class for this entity by looking at equivalents
                 String refClassName = entityType.getName() + "__Reference";
                 EClass refClass = null;
                 for (EClass candidate : context.equivalents(entityType, EClass.class)) {
@@ -273,9 +296,8 @@ public class Psm2AsmZetaTransformation {
                         break;
                     }
                 }
-                
+
                 if (refClass != null) {
-                    // Set up inheritance from each super type's reference class
                     for (EntityType superType : entityType.getSuperEntityTypes()) {
                         String superRefClassName = superType.getName() + "__Reference";
                         for (EClass candidate : context.equivalents(superType, EClass.class)) {
@@ -292,12 +314,13 @@ public class Psm2AsmZetaTransformation {
                 }
             }
         });
-        
+        log.info("  postProcess step 4 (Reference class inheritance): {}ms", System.currentTimeMillis() - stepStart);
+
         // 5. Enrich model with annotations (exposedBy, etc.)
-        // This is the same post-processing step that ETL calls
+        stepStart = System.currentTimeMillis();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         asmUtils.enrichWithAnnotations();
-        log.debug("Enriched ASM model with annotations");
+        log.info("  postProcess step 5 (enrichWithAnnotations): {}ms", System.currentTimeMillis() - stepStart);
     }
 
     /**

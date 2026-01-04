@@ -26,7 +26,6 @@ import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.Unit;
 import hu.blackbelt.judo.meta.psm.measure.DerivedMeasure;
 import hu.blackbelt.judo.meta.psm.measure.DurationUnit;
-import hu.blackbelt.judo.zeta.annotation.Extends;
 import hu.blackbelt.judo.zeta.annotation.Guard;
 import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
@@ -115,7 +114,6 @@ public class UnitRules {
      *     extends CreateUnit
      */
     @TransformRule(name = DURATION_UNIT, description = "Transform DurationUnit with duration type mapping")
-    @Extends(UNIT)
     @Transform(type = DurationUnit.class)
     @To(type = hu.blackbelt.judo.meta.measure.DurationUnit.class)
     public TransformFunction<DurationUnit, hu.blackbelt.judo.meta.measure.DurationUnit> createDurationUnit() {
@@ -208,11 +206,13 @@ public class UnitRules {
             hu.blackbelt.judo.meta.psm.measure.Measure psmMeasure =
                     (hu.blackbelt.judo.meta.psm.measure.Measure) container;
             // Get the equivalent measure from transformation context
+            Measure result;
             if (psmMeasure instanceof DerivedMeasure) {
-                return ctx.equivalent(psmMeasure, hu.blackbelt.judo.meta.measure.DerivedMeasure.class);
+                result = ctx.equivalent(psmMeasure, hu.blackbelt.judo.meta.measure.DerivedMeasure.class);
             } else {
-                return ctx.equivalent(psmMeasure, BaseMeasure.class);
+                result = ctx.equivalent(psmMeasure, BaseMeasure.class);
             }
+            return result;
         }
         return null;
     }
