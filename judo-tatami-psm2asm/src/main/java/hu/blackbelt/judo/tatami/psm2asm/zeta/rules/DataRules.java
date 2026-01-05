@@ -106,16 +106,19 @@ public class DataRules {
                 EAnnotation defaultRepAnnotation = createAnnotation(
                         "(psm/" + getId(s) + ")/EntityDefaultRepresentationAnnotation",
                         getAnnotationUri("defaultRepresentation"));
-                addAnnotationDetail(defaultRepAnnotation, "value", getQualifiedName(s.getDefaultRepresentation()));
+                // Use dot notation for defaultRepresentation value (matches ETL)
+                String defaultRepValue = getQualifiedName(s.getDefaultRepresentation()).replace("::", ".");
+                addAnnotationDetail(defaultRepAnnotation, "value", defaultRepValue);
                 addAnnotation(t, defaultRepAnnotation);
             }
 
             // Add documentation annotation inline if applicable
-            if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
+            // Note: ETL guard trims documentation: s.documentation.isDefined() and s.documentation.trim().length() > 0
+            if (s.getDocumentation() != null && !s.getDocumentation().trim().isEmpty()) {
                 EAnnotation docAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/DocumentationAnnotation",
+                        "(psm/" + getId(s) + ")/DocumentationAnnotationForEntityType",
                         getAnnotationUri("documentation"));
-                addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
+                addAnnotationDetail(docAnnotation, "value", s.getDocumentation().trim());
                 addAnnotation(t, docAnnotation);
             }
 
@@ -388,10 +391,10 @@ public class DataRules {
             // Add sequence details
             addSequenceDetails(t, s);
 
-            // Add to owning entity class (thread-safe)
+            // Add to owning entity class using named equivalent (thread-safe)
             EntityType owner = (EntityType) s.eContainer();
             if (owner != null) {
-                EClass ownerClass = ctx.equivalent(owner, EClass.class);
+                EClass ownerClass = ctx.equivalent(owner, EClass.class, CREATE_ENTITY_CLASS);
                 addAnnotation(ownerClass, t);
             }
 

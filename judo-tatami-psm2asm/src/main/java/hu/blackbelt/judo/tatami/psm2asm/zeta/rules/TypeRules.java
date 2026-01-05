@@ -225,22 +225,30 @@ public class TypeRules {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("measured"));
-            
+
             // Add unit detail
             if (s.getStoreUnit() != null) {
                 t.getDetails().put("unit", s.getStoreUnit().getName());
-                
+
                 // Add measure detail (namespace of the unit)
                 if (s.getStoreUnit().eContainer() instanceof NamespaceElement) {
                     String measure = namespaceElementToString((NamespaceElement) s.getStoreUnit().eContainer());
                     t.getDetails().put("measure", measure);
                 }
             }
-            
-            // Add to equivalent type (thread-safe)
-            EDataType dataType = ctx.equivalent(s, EDataType.class);
-            Psm2AsmHelper.addAnnotation(dataType, t);
-            
+
+            // Add to equivalent type using named rule (thread-safe)
+            // First try to find the target via the integer or decimal rule
+            EDataType dataType = null;
+            if (Psm2AsmHelper.isInteger(s)) {
+                dataType = ctx.equivalent(s, EDataType.class, CREATE_INTEGER_TYPE);
+            } else if (Psm2AsmHelper.isDecimal(s)) {
+                dataType = ctx.equivalent(s, EDataType.class, CREATE_DECIMAL_TYPE);
+            }
+            if (dataType != null) {
+                Psm2AsmHelper.addAnnotation(dataType, t);
+            }
+
             return t;
         };
     }
@@ -292,24 +300,41 @@ public class TypeRules {
             EDataType t = ctx.createTarget(EDataType.class);
             t.setName(s.getName());
             t.setInstanceClassName("byte[]");
-            
-            // Add constraints annotation
-            EAnnotation a = ctx.create(EAnnotation.class);
-            a.setSource(getAnnotationUri("constraints"));
-            
-            if (s.getMimeTypes() != null && !s.getMimeTypes().isEmpty()) {
-                a.getDetails().put("mimeTypes", String.join(",", s.getMimeTypes()));
-            }
-            
-            if (s.getMaxFileSize() > 0) {
-                a.getDetails().put("maxFileSize", String.valueOf(s.getMaxFileSize()));
-            }
-
-            Psm2AsmHelper.addAnnotation(t, a);
 
             // Add to container package (thread-safe)
             EPackage containerPkg = Psm2AsmHelper.getContainerPackage(s, ctx);
             Psm2AsmHelper.addClassifier(containerPkg, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateBinaryConstraintsAnnotation
+     *     transform s : JUDOPSM!BinaryType
+     *     to t : ASM!EAnnotation
+     */
+    @TransformRule(name = CREATE_BINARY_CONSTRAINTS_ANNOTATION, description = "Add constraints annotation to BinaryType")
+    @Transform(type = BinaryType.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BinaryType, EAnnotation> createBinaryConstraintsAnnotation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("constraints"));
+
+            if (s.getMimeTypes() != null && !s.getMimeTypes().isEmpty()) {
+                t.getDetails().put("mimeTypes", String.join(",", s.getMimeTypes()));
+            }
+
+            if (s.getMaxFileSize() > 0) {
+                t.getDetails().put("maxFileSize", String.valueOf(s.getMaxFileSize()));
+            }
+
+            // Add to equivalent BinaryType using named rule (thread-safe)
+            EDataType binaryType = ctx.equivalent(s, EDataType.class, CREATE_BINARY_TYPE);
+            if (binaryType != null) {
+                Psm2AsmHelper.addAnnotation(binaryType, t);
+            }
 
             return t;
         };

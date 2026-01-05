@@ -158,9 +158,9 @@ public class NamespaceRules {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("ModelVersion"));
             addAnnotationDetail(t, "value", s.getVersion());
-            
-            // Add to package (thread-safe)
-            EPackage pkg = ctx.equivalent(s, EPackage.class);
+
+            // Add to package using named equivalent (thread-safe)
+            EPackage pkg = ctx.equivalent(s, EPackage.class, MODEL_TO_PACKAGE);
             addAnnotation(pkg, t);
 
             return t;
