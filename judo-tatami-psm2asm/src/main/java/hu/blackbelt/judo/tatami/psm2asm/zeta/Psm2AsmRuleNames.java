@@ -79,6 +79,9 @@ public final class Psm2AsmRuleNames {
     
     /** Transform BinaryType to EDataType. */
     public static final String CREATE_BINARY_TYPE = "CreateBinaryType";
+
+    /** Create constraints annotation for BinaryType. */
+    public static final String CREATE_BINARY_CONSTRAINTS_ANNOTATION = "CreateBinaryConstraintsAnnotation";
     
     /** Transform XMLType to EDataType. */
     public static final String CREATE_XML_TYPE = "CreateXMLType";
@@ -548,4 +551,14 @@ public final class Psm2AsmRuleNames {
 
     /** Create documentation annotation for bound operation input parameter. */
     public static final String CREATE_DOCUMENTATION_ANNOTATION_FOR_BOUND_INPUT_PARAMETER = "CreateDocumentationAnnotationForBoundInputParameter";
+
+    // =====================================================
+    // BoundTransferOperation Annotation Rules
+    // =====================================================
+
+    /** Create instance representation annotation for bound transfer operation. */
+    public static final String CREATE_INSTANCE_REPRESENTATION_OF_BOUND_TRANSFER_OPERATION = "CreateInstanceRepresentationOfBoundTransferOperation";
+
+    /** Create behaviour annotation for bound transfer operation. */
+    public static final String CREATE_BEHAVIOUR_ANNOTATION_FOR_BOUND_TRANSFER_OPERATION = "CreateBehaviourAnnotationForBoundTransferOperation";
 }

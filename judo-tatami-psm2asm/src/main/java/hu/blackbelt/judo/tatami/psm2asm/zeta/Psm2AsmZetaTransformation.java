@@ -176,10 +176,13 @@ public class Psm2AsmZetaTransformation {
         // Phase 7: Operation rules
         registry.register(OperationRules.class);
 
+        // Phase 7b: BoundTransferOperation annotation rules (must be after OperationRules)
+        registry.register(BoundTransferOperationAnnotationRules.class);
+
         // Phase 8: Actor rules
         registry.register(ActorRules.class);
 
-        log.debug("Registered {} rule classes with TransformationRegistry", 7);
+        log.debug("Registered {} rule classes with TransformationRegistry", 8);
         return registry;
     }
 
@@ -319,8 +322,182 @@ public class Psm2AsmZetaTransformation {
         // 5. Enrich model with annotations (exposedBy, etc.)
         stepStart = System.currentTimeMillis();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
+
+        // Debug: Log model state before enrichWithAnnotations
+        logModelStateBeforeEnrich(asmModel.getResourceSet(), "Zeta");
+
         asmUtils.enrichWithAnnotations();
+
+        // Debug: Log model state after enrichWithAnnotations
+        logModelStateAfterEnrich(asmModel.getResourceSet(), "Zeta");
+
         log.info("  postProcess step 5 (enrichWithAnnotations): {}ms", System.currentTimeMillis() - stepStart);
+    }
+
+    /**
+     * Remove duplicate annotations (same source and identical details).
+     * This fixes issues where enrichWithAnnotations adds duplicate annotations.
+     */
+    private int removeDuplicateAnnotations(ResourceSet resourceSet) {
+        int totalRemoved = 0;
+
+        for (var resource : resourceSet.getResources()) {
+            var iterator = resource.getAllContents();
+            while (iterator.hasNext()) {
+                var content = iterator.next();
+                if (content instanceof org.eclipse.emf.ecore.EModelElement) {
+                    totalRemoved += removeDuplicateAnnotations((org.eclipse.emf.ecore.EModelElement) content);
+                }
+            }
+        }
+
+        return totalRemoved;
+    }
+
+    /**
+     * Remove duplicate annotations from a single element.
+     */
+    private int removeDuplicateAnnotations(org.eclipse.emf.ecore.EModelElement element) {
+        var annotations = element.getEAnnotations();
+        if (annotations.size() <= 1) {
+            return 0;
+        }
+
+        // Build a map of unique annotation signatures
+        java.util.Map<String, org.eclipse.emf.ecore.EAnnotation> uniqueAnnotations = new java.util.LinkedHashMap<>();
+
+        for (var annotation : annotations) {
+            // Build a signature from source and sorted details
+            StringBuilder signature = new StringBuilder();
+            signature.append(annotation.getSource());
+            var sortedDetails = annotation.getDetails().stream()
+                    .sorted(java.util.Comparator.comparing(java.util.Map.Entry::getKey))
+                    .toList();
+            for (var detail : sortedDetails) {
+                signature.append("|").append(detail.getKey()).append("=").append(detail.getValue());
+            }
+
+            String signatureStr = signature.toString();
+            if (!uniqueAnnotations.containsKey(signatureStr)) {
+                uniqueAnnotations.put(signatureStr, annotation);
+            }
+        }
+
+        if (uniqueAnnotations.size() < annotations.size()) {
+            annotations.clear();
+            annotations.addAll(uniqueAnnotations.values());
+            return annotations.size() - uniqueAnnotations.size();
+        }
+        return 0;
+    }
+
+    /**
+     * Log the model state before enrichWithAnnotations is called.
+     * This helps compare ETL vs Zeta model states.
+     */
+    private void logModelStateBeforeEnrich(ResourceSet resourceSet, String label) {
+        // Count annotations per element type
+        int entityAnnotations = 0;
+        int operationAnnotations = 0;
+        int parameterAnnotations = 0;
+        int attributeAnnotations = 0;
+        int referenceAnnotations = 0;
+        int otherAnnotations = 0;
+
+        // Count annotations by type on operations
+        Map<String, Integer> operationAnnotationCounts = new HashMap<>();
+
+        for (var resource : resourceSet.getResources()) {
+            var iterator = resource.getAllContents();
+            while (iterator.hasNext()) {
+                var content = iterator.next();
+                if (content instanceof org.eclipse.emf.ecore.EModelElement) {
+                    var element = (org.eclipse.emf.ecore.EModelElement) content;
+                    int count = element.getEAnnotations().size();
+                    if (count > 0) {
+                        if (content instanceof org.eclipse.emf.ecore.EClass) {
+                            entityAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EOperation) {
+                            operationAnnotations += count;
+                            for (var ann : element.getEAnnotations()) {
+                                String source = ann.getSource();
+                                operationAnnotationCounts.merge(source, 1, Integer::sum);
+                            }
+                        } else if (content instanceof org.eclipse.emf.ecore.EParameter) {
+                            parameterAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EAttribute) {
+                            attributeAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EReference) {
+                            referenceAnnotations += count;
+                        } else {
+                            otherAnnotations += count;
+                        }
+                    }
+                }
+            }
+        }
+
+        log.info("=== {} MODEL STATE BEFORE enrichWithAnnotations ===", label);
+        log.info("  EClass annotations: {}", entityAnnotations);
+        log.info("  EOperation annotations: {}", operationAnnotations);
+        log.info("  EParameter annotations: {}", parameterAnnotations);
+        log.info("  EAttribute annotations: {}", attributeAnnotations);
+        log.info("  EReference annotations: {}", referenceAnnotations);
+        log.info("  Other annotations: {}", otherAnnotations);
+        log.info("  Total: {}", entityAnnotations + operationAnnotations + parameterAnnotations +
+                attributeAnnotations + referenceAnnotations + otherAnnotations);
+        log.info("  Operation annotation counts: {}", operationAnnotationCounts);
+    }
+
+    /**
+     * Log the model state after enrichWithAnnotations is called.
+     */
+    private void logModelStateAfterEnrich(ResourceSet resourceSet, String label) {
+        // Count annotations per element type
+        int entityAnnotations = 0;
+        int operationAnnotations = 0;
+        int parameterAnnotations = 0;
+        int attributeAnnotations = 0;
+        int referenceAnnotations = 0;
+        int otherAnnotations = 0;
+
+        for (var resource : resourceSet.getResources()) {
+            var iterator = resource.getAllContents();
+            while (iterator.hasNext()) {
+                var content = iterator.next();
+                if (content instanceof org.eclipse.emf.ecore.EModelElement) {
+                    var element = (org.eclipse.emf.ecore.EModelElement) content;
+                    int count = element.getEAnnotations().size();
+                    if (count > 0) {
+                        if (content instanceof org.eclipse.emf.ecore.EClass) {
+                            entityAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EOperation) {
+                            operationAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EParameter) {
+                            parameterAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EAttribute) {
+                            attributeAnnotations += count;
+                        } else if (content instanceof org.eclipse.emf.ecore.EReference) {
+                            referenceAnnotations += count;
+                        } else {
+                            otherAnnotations += count;
+                        }
+                    }
+                }
+            }
+        }
+
+        log.info("=== {} MODEL STATE AFTER enrichWithAnnotations ===", label);
+        log.info("  EClass annotations: {} (added: {})", entityAnnotations,
+                entityAnnotations > 0 ? "+" + entityAnnotations : "0");
+        log.info("  EOperation annotations: {} (added: {})", operationAnnotations,
+                operationAnnotations > 0 ? "+" + operationAnnotations : "0");
+        log.info("  EParameter annotations: {} (added: {})", parameterAnnotations,
+                parameterAnnotations > 0 ? "+" + parameterAnnotations : "0");
+        log.info("  EAttribute annotations: {} (added: {})", attributeAnnotations,
+                attributeAnnotations > 0 ? "+" + attributeAnnotations : "0");
+        log.info("  EReference annotations: {} (added: {})", referenceAnnotations,
+                referenceAnnotations > 0 ? "+" + referenceAnnotations : "0");
     }
 
     /**
@@ -348,6 +525,16 @@ public class Psm2AsmZetaTransformation {
             // Recursively process this child's children
             applyPendingXmiIds(child, context, xmiResource);
         }
+    }
+
+    /**
+     * Get a human-readable name for an EObject.
+     */
+    private String getElementName(EObject element) {
+        if (element instanceof org.eclipse.emf.ecore.ENamedElement) {
+            return ((org.eclipse.emf.ecore.ENamedElement) element).getName();
+        }
+        return element.eClass().getName();
     }
 
     /**

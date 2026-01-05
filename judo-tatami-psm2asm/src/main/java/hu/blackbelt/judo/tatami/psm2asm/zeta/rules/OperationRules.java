@@ -124,7 +124,7 @@ public class OperationRules {
      * Guard: transfer operation has behaviour
      */
     public boolean hasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
+        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
             return ((TransferOperation) source).getBehaviour() != null;
         }
         return false;
@@ -618,7 +618,11 @@ public class OperationRules {
                 }
                 break;
             case GET_RANGE:
-                if (owner instanceof TransferObjectRelation) {
+                // For getReferenceRange, the owner is the TransferObjectType and the relation
+                // comes from behaviour.getRelation()
+                if (owner instanceof TransferObjectType && behaviour.getRelation() != null) {
+                    return getQualifiedName((TransferObjectType) owner) + "#" + behaviour.getRelation().getName();
+                } else if (owner instanceof TransferObjectRelation) {
                     return getPsmReferenceFQName((TransferObjectRelation) owner);
                 } else if (owner instanceof TransferOperation) {
                     return getPsmOperationFQName((TransferOperation) owner);
@@ -631,7 +635,11 @@ public class OperationRules {
                 break;
             default:
                 // Default: use reference FQ name from PSM source
-                if (owner instanceof TransferObjectRelation) {
+                // For LIST, CREATE_INSTANCE, etc. operations, the owner is the TransferObjectType
+                // and the relation name comes from behaviour.getRelation()
+                if (owner instanceof TransferObjectType && behaviour.getRelation() != null) {
+                    return getQualifiedName((TransferObjectType) owner) + "#" + behaviour.getRelation().getName();
+                } else if (owner instanceof TransferObjectRelation) {
                     return getPsmReferenceFQName((TransferObjectRelation) owner);
                 }
                 break;
@@ -741,7 +749,7 @@ public class OperationRules {
      * Guard: transfer operation has implementation
      */
     public boolean hasImplementation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
+        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
             return ((TransferOperation) source).getImplementation() != null;
         }
         return false;
@@ -751,7 +759,7 @@ public class OperationRules {
      * Guard: transfer operation has no implementation and no behaviour
      */
     public boolean hasNoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
+        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
             TransferOperation op = (TransferOperation) source;
             return op.getImplementation() == null && op.getBehaviour() == null;
         }
@@ -1105,7 +1113,7 @@ public class OperationRules {
      * Guard: transfer operation has no implementation but has behaviour
      */
     public boolean hasNoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
+        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
             TransferOperation op = (TransferOperation) source;
             return op.getImplementation() == null && op.getBehaviour() != null;
         }
