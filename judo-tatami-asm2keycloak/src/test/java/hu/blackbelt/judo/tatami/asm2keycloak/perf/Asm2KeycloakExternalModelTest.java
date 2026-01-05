@@ -163,7 +163,7 @@ public class Asm2KeycloakExternalModelTest extends AbstractExternalModelTest {
         }
     }
 
-    static Stream<ExternalModelConfig> externalModels() {
+    public static Stream<ExternalModelConfig> externalModels() {
         return loadModelConfigs(Asm2KeycloakExternalModelTest.class);
     }
 

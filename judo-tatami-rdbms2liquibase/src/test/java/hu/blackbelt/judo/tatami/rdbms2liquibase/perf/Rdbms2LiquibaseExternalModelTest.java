@@ -168,7 +168,7 @@ public class Rdbms2LiquibaseExternalModelTest extends AbstractExternalModelTest 
         }
     }
 
-    static Stream<ExternalModelConfig> externalModels() {
+    public static Stream<ExternalModelConfig> externalModels() {
         return loadModelConfigs(Rdbms2LiquibaseExternalModelTest.class);
     }
 

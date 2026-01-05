@@ -166,7 +166,7 @@ public class Asm2RdbmsExternalModelTest extends AbstractExternalModelTest {
         }
     }
 
-    static Stream<ExternalModelConfig> externalModels() {
+    public static Stream<ExternalModelConfig> externalModels() {
         return loadModelConfigs(Asm2RdbmsExternalModelTest.class);
     }
 

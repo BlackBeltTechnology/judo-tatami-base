@@ -158,7 +158,7 @@ public class Psm2MeasureExternalModelTest extends AbstractExternalModelTest {
         }
     }
 
-    static Stream<ExternalModelConfig> externalModels() {
+    public static Stream<ExternalModelConfig> externalModels() {
         return loadModelConfigs(Psm2MeasureExternalModelTest.class);
     }
 

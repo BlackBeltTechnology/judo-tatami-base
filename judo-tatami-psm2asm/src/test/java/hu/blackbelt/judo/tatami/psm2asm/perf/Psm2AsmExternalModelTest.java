@@ -29,6 +29,7 @@ import hu.blackbelt.judo.tatami.test.util.AbstractExternalModelTest;
 import hu.blackbelt.judo.tatami.test.util.ExternalModelConfig;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EPackage;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Tag;
@@ -151,13 +152,79 @@ public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
         if (result.isEquivalent()) {
             log.info("SUCCESS: ETL and Zeta models are EQUIVALENT");
         } else {
+            // Debug: Print annotation details for first entity class
+            log.error("Debugging annotation differences...");
+            printAnnotationComparison(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0)
+            );
+
             log.error("Models have {} difference(s):\n{}",
                     result.getDifferenceList().size(), result.getSummary());
             fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
         }
     }
 
-    static Stream<ExternalModelConfig> externalModels() {
+    private void printAnnotationComparison(Object etlRoot, Object zetaRoot) {
+        if (etlRoot instanceof EPackage && zetaRoot instanceof EPackage) {
+            printAnnotationsRecursive((EPackage) etlRoot, (EPackage) zetaRoot, "");
+        }
+    }
+
+    private void printAnnotationsRecursive(EPackage etlPkg, EPackage zetaPkg, String path) {
+        String fullPath = path.isEmpty() ? etlPkg.getName() : path + "." + etlPkg.getName();
+
+        // Compare entity classes (not interfaces, enums, or data types)
+        for (var etlClassifier : etlPkg.getEClassifiers()) {
+            if (etlClassifier instanceof org.eclipse.emf.ecore.EClass) {
+                var zetaClassifier = zetaPkg.getEClassifier(etlClassifier.getName());
+                if (zetaClassifier instanceof org.eclipse.emf.ecore.EClass) {
+                    var etlClass = (org.eclipse.emf.ecore.EClass) etlClassifier;
+                    var zetaClass = (org.eclipse.emf.ecore.EClass) zetaClassifier;
+
+                    // Print annotations for first few entity classes
+                    if (etlClass.getName().equals("User") ||
+                        etlClass.getName().equals("Address") ||
+                        etlClass.getName().equals("Partner")) {
+                        log.info("=== {} annotations ===", fullPath + "." + etlClass.getName());
+                        log.info("ETL: {} annotations", etlClass.getEAnnotations().size());
+                        for (var ann : etlClass.getEAnnotations()) {
+                            String value = ann.getDetails().get("value");
+                            log.info("  - {} = {}", ann.getSource(), value);
+                        }
+                        log.info("Zeta: {} annotations", zetaClass.getEAnnotations().size());
+                        for (var ann : zetaClass.getEAnnotations()) {
+                            String value = ann.getDetails().get("value");
+                            log.info("  - {} = {}", ann.getSource(), value);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Recurse into subpackages
+        for (var etlSub : etlPkg.getESubpackages()) {
+            var zetaSub = findSubpackage(zetaPkg, etlSub.getName());
+            if (zetaSub != null) {
+                printAnnotationsRecursive(etlSub, zetaSub, fullPath);
+            }
+        }
+    }
+
+    private EPackage findSubpackage(EPackage pkg, String name) {
+        for (var sub : pkg.getESubpackages()) {
+            if (sub.getName().equals(name)) {
+                return sub;
+            }
+            var found = findSubpackage(sub, name);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    public static Stream<ExternalModelConfig> externalModels() {
         return loadModelConfigs(Psm2AsmExternalModelTest.class);
     }
 
@@ -173,6 +240,8 @@ public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
         context.put(Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter()
                 .transformationMode(mode)
                 .createTrace(false)
+                .parallel(false)  // Sequential execution for SNAPSHOT
+                .useCache(true)
                 .build());
 
         Psm2AsmWork work = new Psm2AsmWork(context);
