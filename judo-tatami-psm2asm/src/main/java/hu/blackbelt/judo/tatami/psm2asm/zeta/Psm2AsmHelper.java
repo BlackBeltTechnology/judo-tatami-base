@@ -25,7 +25,9 @@ import hu.blackbelt.judo.meta.psm.data.EntityType;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
+import hu.blackbelt.judo.meta.psm.namespace.NamedElement;
 import hu.blackbelt.judo.meta.psm.namespace.Package;
+import hu.blackbelt.judo.meta.psm.service.TransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EAnnotation;
@@ -448,6 +450,22 @@ public final class Psm2AsmHelper {
                 return (EntityType) container;
             }
             container = container.eContainer();
+        }
+        return null;
+    }
+
+    /**
+     * Gets the rule name for transforming a classifier type to EClass.
+     * Returns CREATE_ENTITY_CLASS for EntityType, CREATE_TRANSFER_OBJECT_TYPE_CLASS for TransferObjectType.
+     *
+     * @param type the type to get the rule name for
+     * @return the rule name constant for the appropriate transformation
+     */
+    public static String getEClassRuleName(NamedElement type) {
+        if (type instanceof EntityType) {
+            return "CreateEntityClass";
+        } else if (type instanceof TransferObjectType) {
+            return "CreateTransferObjectTypeClass";
         }
         return null;
     }

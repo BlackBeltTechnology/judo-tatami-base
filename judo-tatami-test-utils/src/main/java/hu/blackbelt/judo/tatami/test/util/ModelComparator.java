@@ -573,9 +573,9 @@ public class ModelComparator {
         if (val1 instanceof List && val2 instanceof List) {
             List<?> list1 = (List<?>) val1;
             List<?> list2 = (List<?>) val2;
-            
+
             if (list1.size() != list2.size()) {
-                differences.add(new ValueMismatch(path, 
+                differences.add(new ValueMismatch(path,
                         "size=" + list1.size(), "size=" + list2.size()));
                 return;
             }
@@ -641,14 +641,20 @@ public class ModelComparator {
         if (val1 instanceof EList && val2 instanceof EList) {
             EList<EObject> list1 = (EList<EObject>) val1;
             EList<EObject> list2 = (EList<EObject>) val2;
-            
+
             // Handle empty vs null as equivalent
             if (list1.isEmpty() && list2.isEmpty()) {
                 return;
             }
-            
+
+            // Skip EAnnotation comparison in STRUCTURAL and LENIENT modes
+            // This must happen BEFORE the size check to avoid reporting annotation count differences
+            if (mode != ComparisonMode.STRICT && !list1.isEmpty() && isEAnnotation(list1.get(0))) {
+                return;
+            }
+
             if (list1.size() != list2.size()) {
-                differences.add(new ValueMismatch(path, 
+                differences.add(new ValueMismatch(path,
                         "size=" + list1.size(), "size=" + list2.size()));
                 // Continue to report individual differences
             }
@@ -665,16 +671,10 @@ public class ModelComparator {
                 }
                 return;
             }
-            
-            // Skip EAnnotation comparison in STRUCTURAL and LENIENT modes
-            // Use eClass().getName() check instead of instanceof for reliable EMF type detection
-            if (mode != ComparisonMode.STRICT && !list1.isEmpty() && isEAnnotation(list1.get(0))) {
-                return;
-            }
 
             // Special handling for EAnnotation lists in STRICT mode - compare as sets
             // This handles the case where annotations have the same content but different ordering
-            if (!list1.isEmpty() && isEAnnotation(list1.get(0))) {
+            if (mode == ComparisonMode.STRICT && !list1.isEmpty() && isEAnnotation(list1.get(0))) {
                 compareAnnotationSets(list1, list2, path, differences, mode);
                 return;
             }

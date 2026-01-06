@@ -41,7 +41,7 @@ import static hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsRuleNames.*;
  * <p>
  * Rules:
  * <ul>
- *   <li>EClassToRdbmsTable (@Primary) - transforms entity EClass to RdbmsTable</li>
+ *   <li>EClassToRdbmsTable - transforms entity EClass to RdbmsTable</li>
  *   <li>EClassToTableIdField - creates ID field for entity table</li>
  *   <li>EClassToTableTypeField - creates TYPE field for entity table</li>
  *   <li>EClassToTableVersionField - creates VERSION field for entity table</li>
@@ -126,7 +126,6 @@ public class ClassRules {
     // =========================================================================
 
     /**
-     * @primary
      * rule EClassToRdbmsTable
      *     transform s : ASM!EClass
      *     to t : RDBMS!RdbmsTable {
@@ -134,14 +133,11 @@ public class ClassRules {
      *         s.root().equivalent("rootPackegeToModel").rdbmsTables.add(t);
      *     }
      * <p>
-     * Key ETL patterns:
-     * - @primary annotation marks this as the default equivalent for EClass
-     * - Uses named equivalent lookup to get the RdbmsModel
-     * - Sets up inheritance using named equivalent lookup for parent tables
+     * ETL DIFFERENCE: ETL uses @primary annotation for default equivalent.
+     * Zeta uses explicit named equivalent via ctx.equivalent(source, RULE_NAME).
      * </p>
      */
     @TransformRule(name = ECLASS_TO_RDBMS_TABLE, description = "Transform entity EClass to RdbmsTable")
-    @Primary
     @Guard(method = "isEntityType")
     @Transform(type = EClass.class)
     @To(type = RdbmsTable.class)
@@ -159,15 +155,14 @@ public class ClassRules {
             t.setName(utils.getClassifierFQName(s));
             t.setUuid("(asm/" + getId(s) + ")/Table");
 
-            // Add to model using named equivalent (matches ETL: s.root().equivalent("rootPackegeToModel"))
+            // Add to model using named equivalent (ETL: s.root().equivalent("rootPackegeToModel"))
             EPackage rootPackage = getRootPackage(s);
             RdbmsModel model = ctx.equivalent(rootPackage, ROOT_PACKAGE_TO_MODEL);
             if (model != null) {
                 model.getRdbmsTables().add(t);
             }
 
-            // Set up inheritance using named equivalent lookup
-            // Matches ETL: t.parents.add(sup.equivalent("EClassToRdbmsTable"))
+            // Set up inheritance using named equivalent lookup (ETL: sup.equivalent("EClassToRdbmsTable"))
             for (EClass superType : s.getESuperTypes()) {
                 if (superType.getEAnnotation("http://blackbelt.hu/judo/meta/ExtendedMetadata/entity") != null) {
                     RdbmsTable parentTable = ctx.equivalent(superType, ECLASS_TO_RDBMS_TABLE);
@@ -213,7 +208,7 @@ public class ClassRules {
             t.setSqlName("ID");
             fillTypeFromContext(t, "java.util.UUID", ctx);
 
-            // Add to table using named equivalent lookup
+            // Add to table using named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
@@ -250,12 +245,13 @@ public class ClassRules {
             t.setMandatory(true);
             fillTypeFromContext(t, "java.lang.String", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }
@@ -279,12 +275,13 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.lang.Integer", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }
@@ -308,6 +305,7 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.lang.String", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
@@ -337,12 +335,13 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.util.UUID", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }
@@ -366,12 +365,13 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.time.LocalDateTime", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }
@@ -395,12 +395,13 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.lang.String", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }
@@ -424,12 +425,13 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.util.UUID", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }
@@ -453,12 +455,13 @@ public class ClassRules {
             t.setMandatory(false);
             fillTypeFromContext(t, "java.time.LocalDateTime", ctx);
 
+            // Use named equivalent (ETL: s.equivalent("EClassToRdbmsTable"))
             RdbmsTable table = ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE);
             if (table != null) {
                 table.getFields().add(t);
             }
 
-            
+
             return t;
         };
     }

@@ -124,7 +124,7 @@ public class OperationRules {
      * Guard: transfer operation has behaviour
      */
     public boolean hasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
+        if (source instanceof TransferOperation) {
             return ((TransferOperation) source).getBehaviour() != null;
         }
         return false;
@@ -747,9 +747,11 @@ public class OperationRules {
 
     /**
      * Guard: transfer operation has implementation
+     * ETL DIFFERENCE: ETL uses s.implementation.isDefined() which matches both TransferOperation and UnboundOperation.
+     * Zeta guard matches the same semantics - no need to exclude UnboundOperation.
      */
     public boolean hasImplementation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
+        if (source instanceof TransferOperation) {
             return ((TransferOperation) source).getImplementation() != null;
         }
         return false;
@@ -757,9 +759,11 @@ public class OperationRules {
 
     /**
      * Guard: transfer operation has no implementation and no behaviour
+     * ETL DIFFERENCE: ETL uses not s.implementation.isDefined() and not s.behaviour.isDefined().
+     * Zeta guard matches the same semantics for all TransferOperation subtypes.
      */
     public boolean hasNoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
+        if (source instanceof TransferOperation) {
             TransferOperation op = (TransferOperation) source;
             return op.getImplementation() == null && op.getBehaviour() == null;
         }
@@ -1113,7 +1117,7 @@ public class OperationRules {
      * Guard: transfer operation has no implementation but has behaviour
      */
     public boolean hasNoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation && !(source instanceof UnboundOperation)) {
+        if (source instanceof TransferOperation) {
             TransferOperation op = (TransferOperation) source;
             return op.getImplementation() == null && op.getBehaviour() != null;
         }

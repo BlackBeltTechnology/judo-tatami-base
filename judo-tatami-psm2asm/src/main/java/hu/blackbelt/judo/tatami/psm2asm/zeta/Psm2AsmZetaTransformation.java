@@ -117,7 +117,7 @@ public class Psm2AsmZetaTransformation {
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
-                .parallel(true)
+                .parallel(false)
                 .build();
         log.info("Phase 4 - Create executor: {}ms", System.currentTimeMillis() - phaseStart);
 

@@ -27,6 +27,9 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
+import hu.blackbelt.judo.meta.psm.type.CustomType;
+import hu.blackbelt.judo.meta.psm.type.NumericType;
+import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
@@ -113,9 +116,20 @@ public class StaticRules {
             attr.setDerived(true);
             attr.setChangeable(false);
 
-            // Set type
+            // Set type using named equivalent based on actual type (ETL pattern: s.dataType.equivalent(...))
             if (s.getDataType() != null) {
-                EClassifier type = ctx.equivalent(s.getDataType(), EClassifier.class);
+                EClassifier type = null;
+                if (s.getDataType() instanceof StringType) {
+                    type = ctx.equivalent(s.getDataType(), CREATE_STRING_TYPE);
+                } else if (s.getDataType() instanceof NumericType) {
+                    if (isInteger((NumericType) s.getDataType())) {
+                        type = ctx.equivalent(s.getDataType(), CREATE_INTEGER_TYPE);
+                    } else {
+                        type = ctx.equivalent(s.getDataType(), CREATE_DECIMAL_TYPE);
+                    }
+                } else if (s.getDataType() instanceof CustomType) {
+                    type = ctx.equivalent(s.getDataType(), CREATE_CUSTOM_TYPE);
+                }
                 if (type != null) {
                     attr.setEType(type);
                 }
@@ -131,9 +145,9 @@ public class StaticRules {
                 addAnnotationDetail(exprAnnotation, "getter", s.getGetterExpression().getExpression());
                 addAnnotationDetail(exprAnnotation, "getter.dialect", s.getGetterExpression().getDialect().toString());
 
-                // Add parameter type if defined
+                // Add parameter type if defined using named equivalent (ETL: paramType.equivalent("CreateEntityClass"))
                 if (s.getGetterExpression().getParameterType() != null) {
-                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
+                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), CREATE_ENTITY_CLASS);
                     if (paramType != null) {
                         addAnnotationDetail(exprAnnotation, "getter.parameter", getClassifierFQName(paramType));
                     }
@@ -143,7 +157,7 @@ public class StaticRules {
 
                 // Add parameterized annotation if has parameter type (thread-safe)
                 if (s.getGetterExpression().getParameterType() != null) {
-                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
+                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), CREATE_ENTITY_CLASS);
                     if (paramType != null) {
                         EAnnotation paramAnnotation = createAnnotation(
                                 "(psm/" + getId(s) + ")/TransferAttributeParameterizedAnnotationForStaticData",
@@ -154,7 +168,7 @@ public class StaticRules {
                     }
                 }
             }
-            
+
             return t;
         };
     }
