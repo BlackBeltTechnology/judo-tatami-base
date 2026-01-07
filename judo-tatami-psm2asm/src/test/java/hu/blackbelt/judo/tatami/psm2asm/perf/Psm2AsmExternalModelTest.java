@@ -240,7 +240,7 @@ public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
         context.put(Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter()
                 .transformationMode(mode)
                 .createTrace(false)
-                .parallel(false)  // Sequential execution for SNAPSHOT
+                .parallel(false)  // Sequential execution - Zeta is faster without parallel overhead
                 .useCache(true)
                 .build());
 
