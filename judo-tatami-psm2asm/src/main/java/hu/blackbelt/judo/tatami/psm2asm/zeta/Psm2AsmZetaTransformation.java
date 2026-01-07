@@ -332,6 +332,243 @@ public class Psm2AsmZetaTransformation {
         logModelStateAfterEnrich(asmModel.getResourceSet(), "Zeta");
 
         log.info("  postProcess step 5 (enrichWithAnnotations): {}ms", System.currentTimeMillis() - stepStart);
+
+        // 6. Fix null eType for EAttributes (extension transfer object type fixup)
+        // This addresses cross-resource type reference issues where ctx.equivalent() returns null
+        stepStart = System.currentTimeMillis();
+        int fixedCount = fixNullAttributeTypes(context, psmUtils, asmUtils);
+        log.info("  postProcess step 6 (fix null eType): {}ms, fixed {} attributes",
+                System.currentTimeMillis() - stepStart, fixedCount);
+    }
+
+    /**
+     * Fix EAttributes with null eType by looking up the type by name.
+     * <p>
+     * This addresses an issue where extension transfer object types (_default_, _binding_)
+     * have attributes whose dataType references don't match the type instances transformed
+     * by TypeRules, causing ctx.equivalent() to return null.
+     * </p>
+     * <p>
+     * The approach is to iterate through all EAttributes in the target model, find those
+     * with null eType, and use the trace to look up the PSM source and determine the
+     * correct type.
+     * </p>
+     *
+     * @param context  the transformation context
+     * @param psmUtils PSM utilities for iterating source model
+     * @param asmUtils ASM utilities for finding types by name
+     * @return the number of attributes fixed
+     */
+    private int fixNullAttributeTypes(TransformationContext context,
+            hu.blackbelt.judo.meta.psm.PsmUtils psmUtils, AsmUtils asmUtils) {
+        int fixedCount = 0;
+
+        // Build a map of type names to EClassifiers in the target model
+        Map<String, org.eclipse.emf.ecore.EClassifier> typesByName = new HashMap<>();
+        for (var resource : asmModel.getResourceSet().getResources()) {
+            var iterator = resource.getAllContents();
+            while (iterator.hasNext()) {
+                var content = iterator.next();
+                if (content instanceof org.eclipse.emf.ecore.EDataType) {
+                    org.eclipse.emf.ecore.EDataType dataType = (org.eclipse.emf.ecore.EDataType) content;
+                    typesByName.put(dataType.getName(), dataType);
+                } else if (content instanceof org.eclipse.emf.ecore.EEnum) {
+                    org.eclipse.emf.ecore.EEnum enumType = (org.eclipse.emf.ecore.EEnum) content;
+                    typesByName.put(enumType.getName(), enumType);
+                }
+            }
+        }
+        log.debug("Built type lookup map with {} types", typesByName.size());
+
+        // Build a map of PSM TransferAttribute by attribute name for reverse lookup
+        // The ASM extension class name matches the PSM attribute name (for _default_ and _binding_ types)
+        Map<String, hu.blackbelt.judo.meta.psm.service.TransferAttribute> psmAttrByName = new HashMap<>();
+        for (hu.blackbelt.judo.meta.psm.service.TransferAttribute psmAttr :
+                psmUtils.all(psmModel.getResourceSet(), hu.blackbelt.judo.meta.psm.service.TransferAttribute.class).toList()) {
+            String attrName = psmAttr.getName();
+            if (attrName != null && (attrName.contains("_default_") || attrName.contains("_binding_"))) {
+                psmAttrByName.put(attrName, psmAttr);
+            }
+        }
+        log.debug("Built PSM TransferAttribute lookup map with {} _default_/_binding_ attributes", psmAttrByName.size());
+
+        // Iterate through all EAttributes in the target model
+        int nullTypeCount = 0;
+        for (var resource : asmModel.getResourceSet().getResources()) {
+            var iterator = resource.getAllContents();
+            while (iterator.hasNext()) {
+                var content = iterator.next();
+                if (content instanceof org.eclipse.emf.ecore.EAttribute) {
+                    org.eclipse.emf.ecore.EAttribute asmAttr = (org.eclipse.emf.ecore.EAttribute) content;
+                    if (asmAttr.getEType() == null) {
+                        nullTypeCount++;
+
+                        // The ASM extension class name matches the PSM attribute name
+                        // For classes like _simpleReviewReport_default_ReviewReportInput,
+                        // there's a PSM TransferAttribute with name _simpleReviewReport_default_ReviewReportInput
+                        String ownerClassName = asmAttr.getEContainingClass() != null
+                                ? asmAttr.getEContainingClass().getName() : null;
+
+                        log.debug("Found EAttribute with null eType: '{}' in '{}', PSM match by class name: {}",
+                                asmAttr.getName(), ownerClassName,
+                                ownerClassName != null && psmAttrByName.containsKey(ownerClassName));
+
+                        hu.blackbelt.judo.meta.psm.service.TransferAttribute psmAttr = null;
+                        if (ownerClassName != null && (ownerClassName.contains("_default_") || ownerClassName.contains("_binding_"))) {
+                            // For extension types, look up PSM attribute by the class name
+                            psmAttr = psmAttrByName.get(ownerClassName);
+                        }
+
+                        if (psmAttr != null && psmAttr.getDataType() instanceof hu.blackbelt.judo.meta.psm.type.Primitive) {
+                            hu.blackbelt.judo.meta.psm.type.Primitive psmDataType = psmAttr.getDataType();
+                            String typeName = getAsmTypeName(psmDataType);
+                            org.eclipse.emf.ecore.EClassifier asmType = typesByName.get(typeName);
+
+                            if (asmType != null) {
+                                asmAttr.setEType(asmType);
+                                fixedCount++;
+                                log.info("Fixed eType for attribute '{}' in '{}' -> {}",
+                                        asmAttr.getName(), ownerClassName, typeName);
+                            } else {
+                                log.warn("Could not find type '{}' for attribute '{}' in '{}'",
+                                        typeName, asmAttr.getName(), ownerClassName);
+                            }
+                        } else if (psmAttr != null) {
+                            log.info("PSM attribute '{}' has non-Primitive dataType: {}",
+                                    psmAttr.getName(), psmAttr.getDataType());
+                        } else if (ownerClassName != null && ownerClassName.contains("_binding_")) {
+                            // For _binding_ extension types, try to infer type from the containing class
+                            // These are typically Boolean values from validation bindings
+                            // Search for a PrimitiveAccessor with matching name pattern
+                            String typeName = inferTypeForBindingClass(context, psmUtils, ownerClassName);
+                            if (typeName != null) {
+                                org.eclipse.emf.ecore.EClassifier asmType = typesByName.get(typeName);
+                                if (asmType != null) {
+                                    asmAttr.setEType(asmType);
+                                    fixedCount++;
+                                    log.info("Fixed eType for binding attribute '{}' in '{}' -> {} (inferred)",
+                                            asmAttr.getName(), ownerClassName, typeName);
+                                }
+                            } else {
+                                log.warn("Could not infer type for binding class '{}' (attr: {})",
+                                        ownerClassName, asmAttr.getName());
+                            }
+                        } else if (ownerClassName != null && ownerClassName.contains("_default_")) {
+                            log.warn("Could not find PSM TransferAttribute for class '{}' (attr: {}), map has key: {}",
+                                    ownerClassName, asmAttr.getName(), psmAttrByName.containsKey(ownerClassName));
+                        }
+                    }
+                }
+            }
+        }
+
+        log.info("Found {} EAttributes with null eType, fixed {}", nullTypeCount, fixedCount);
+        return fixedCount;
+    }
+
+    /**
+     * Infer the type for a _binding_ extension class by searching PSM PrimitiveAccessor elements.
+     * <p>
+     * The naming pattern is _<propertyName>_binding_<TransferObjectType>.
+     * We search for PrimitiveAccessor elements that match the property name prefix.
+     * </p>
+     *
+     * @param context  the transformation context
+     * @param psmUtils PSM utilities for iterating source model
+     * @param className the binding class name like "_falseFlag_binding_ReviewReportInput"
+     * @return the ASM type name or null if not found
+     */
+    private String inferTypeForBindingClass(TransformationContext context,
+            hu.blackbelt.judo.meta.psm.PsmUtils psmUtils, String className) {
+        // Extract the property name from the pattern _<propertyName>_binding_<type>
+        // e.g., "_falseFlag_binding_ReviewReportInput" -> "falseFlag"
+        int bindingIdx = className.indexOf("_binding_");
+        if (bindingIdx <= 1) {
+            return null; // Invalid pattern
+        }
+        String propertyName = className.substring(1, bindingIdx); // Remove leading _ and get until _binding_
+
+        log.debug("Looking for PrimitiveAccessor with name '{}' for binding class '{}'", propertyName, className);
+
+        // Search PrimitiveAccessor elements for one with matching name
+        for (hu.blackbelt.judo.meta.psm.derived.PrimitiveAccessor accessor :
+                psmUtils.all(psmModel.getResourceSet(), hu.blackbelt.judo.meta.psm.derived.PrimitiveAccessor.class).toList()) {
+            if (propertyName.equals(accessor.getName()) && accessor.getDataType() instanceof hu.blackbelt.judo.meta.psm.type.Primitive) {
+                hu.blackbelt.judo.meta.psm.type.Primitive dataType = accessor.getDataType();
+                String typeName = getAsmTypeName(dataType);
+                log.debug("Found PrimitiveAccessor '{}' with dataType '{}' -> '{}'", accessor.getName(), dataType, typeName);
+                return typeName;
+            }
+        }
+
+        // Also check StaticData elements
+        for (hu.blackbelt.judo.meta.psm.derived.StaticData staticData :
+                psmUtils.all(psmModel.getResourceSet(), hu.blackbelt.judo.meta.psm.derived.StaticData.class).toList()) {
+            if (propertyName.equals(staticData.getName()) && staticData.getDataType() instanceof hu.blackbelt.judo.meta.psm.type.Primitive) {
+                hu.blackbelt.judo.meta.psm.type.Primitive dataType = staticData.getDataType();
+                String typeName = getAsmTypeName(dataType);
+                log.debug("Found StaticData '{}' with dataType '{}' -> '{}'", staticData.getName(), dataType, typeName);
+                return typeName;
+            }
+        }
+
+        // Also check TransferAttribute elements with binding expressions
+        for (hu.blackbelt.judo.meta.psm.service.TransferAttribute attr :
+                psmUtils.all(psmModel.getResourceSet(), hu.blackbelt.judo.meta.psm.service.TransferAttribute.class).toList()) {
+            if (propertyName.equals(attr.getName()) && attr.getDataType() instanceof hu.blackbelt.judo.meta.psm.type.Primitive) {
+                hu.blackbelt.judo.meta.psm.type.Primitive dataType = attr.getDataType();
+                String typeName = getAsmTypeName(dataType);
+                log.debug("Found TransferAttribute '{}' with dataType '{}' -> '{}'", attr.getName(), dataType, typeName);
+                return typeName;
+            }
+        }
+
+        // Also check DataProperty elements (derived properties)
+        for (hu.blackbelt.judo.meta.psm.derived.DataProperty dataProp :
+                psmUtils.all(psmModel.getResourceSet(), hu.blackbelt.judo.meta.psm.derived.DataProperty.class).toList()) {
+            if (propertyName.equals(dataProp.getName()) && dataProp.getDataType() instanceof hu.blackbelt.judo.meta.psm.type.Primitive) {
+                hu.blackbelt.judo.meta.psm.type.Primitive dataType = dataProp.getDataType();
+                String typeName = getAsmTypeName(dataType);
+                log.debug("Found DataProperty '{}' with dataType '{}' -> '{}'", dataProp.getName(), dataType, typeName);
+                return typeName;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the ASM type name for a PSM Primitive type.
+     * This maps PSM type kinds to their ASM EDataType/EEnum names.
+     */
+    private String getAsmTypeName(hu.blackbelt.judo.meta.psm.type.Primitive psmType) {
+        if (psmType.isString()) {
+            return "String";
+        } else if (psmType.isInteger()) {
+            return "Integer";
+        } else if (psmType.isDecimal()) {
+            return "Decimal";
+        } else if (psmType.isBoolean()) {
+            return "Boolean";
+        } else if (psmType.isDate()) {
+            return "Date";
+        } else if (psmType.isTimestamp()) {
+            return "Timestamp";
+        } else if (psmType.isTime()) {
+            return "Time";
+        } else if (psmType.isEnumeration()) {
+            // For enumerations, use the actual type name
+            return psmType.getName();
+        } else if (psmType instanceof hu.blackbelt.judo.meta.psm.type.BinaryType) {
+            return "Binary";
+        } else if (psmType instanceof hu.blackbelt.judo.meta.psm.type.PasswordType) {
+            return "Password";
+        } else if (psmType instanceof hu.blackbelt.judo.meta.psm.type.XMLType) {
+            return "XML";
+        } else {
+            // Custom type - use the actual name
+            return psmType.getName();
+        }
     }
 
     /**

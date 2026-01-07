@@ -164,7 +164,7 @@ public class DataRules {
             if (type != null) {
                 t.setEType(type);
             }
-            
+
             // Add identifier annotation inline if applicable (thread-safe)
             if (s.isIdentifier()) {
                 EAnnotation idAnnotation = createAnnotation(

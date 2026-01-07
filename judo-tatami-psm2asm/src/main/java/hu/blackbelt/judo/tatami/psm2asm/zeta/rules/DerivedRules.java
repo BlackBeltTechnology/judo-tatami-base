@@ -167,7 +167,7 @@ public class DerivedRules {
             if (type != null) {
                 t.setEType(type);
             }
-            
+
             // Add to owning entity class (thread-safe)
             EntityType owner = getEntityType(s);
             if (owner != null) {
