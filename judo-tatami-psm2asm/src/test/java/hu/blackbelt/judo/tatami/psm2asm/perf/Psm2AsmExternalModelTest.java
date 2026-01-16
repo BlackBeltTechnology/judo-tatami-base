@@ -25,6 +25,8 @@ import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2asm.Psm2AsmWork;
+import hu.blackbelt.judo.tatami.test.profiler.Profile;
+import hu.blackbelt.judo.tatami.test.profiler.ProfilingExtension;
 import hu.blackbelt.judo.tatami.test.util.AbstractExternalModelTest;
 import hu.blackbelt.judo.tatami.test.util.ExternalModelConfig;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
@@ -33,6 +35,7 @@ import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EPackage;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -60,6 +63,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 @Slf4j
 @Tag("performance")
+@ExtendWith(ProfilingExtension.class)
+@Profile(event = "cpu", thresholdMs = 1000)
 public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
 
     @ParameterizedTest(name = "{0}")

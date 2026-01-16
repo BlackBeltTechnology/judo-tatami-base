@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # Judo Tatami Base - Project Documentation
 
 ## Project Overview
@@ -71,6 +90,269 @@ judo-tatami-<source>2<target>/
         ├── <Source>2<Target>Test.java
         └── <Source>2<Target>WorkTest.java
 ```
+
+--
+
+## ⚠️ CRITICAL: Before Implementing Fixes - Check TRANSFORMATION_PATTERNS.md
+
+**ALWAYS read `TRANSFORMATION_PATTERNS.md` before attempting to fix transformation issues.**
+
+This file documents:
+- **Patterns that DON'T work** - avoid retrying failed approaches
+- **Patterns that DO work** - proven solutions
+- **Regression risks** - what can break when making changes
+- **Pattern clusters** - similar transformation types grouped together
+
+### Development Workflow for Transformation Fixes
+
+1. **Check TRANSFORMATION_PATTERNS.md first** - see if the problem/solution is documented
+2. **Identify similar pattern cluster** - group related transformations before fixing
+3. **Test on ONE case first** - pick ONE transformation from the cluster to test the fix
+4. **Run targeted test** - e.g., `mvn test -Dtest=Psm2AsmServiceTest#testBoundOperation`
+5. **Verify success** - check element counts, annotation counts, no new errors
+6. **Apply to rest of cluster** - only after confirming the fix works on one case
+7. **Run full test suite** - verify no regressions: `mvn test`
+8. **Document results** - update TRANSFORMATION_PATTERNS.md with findings (success OR failure)
+9. **DO NOT commit automatically** - wait for user to review and decide on commit
+
+### Testing Strategy (IMPORTANT)
+
+**Two-phase testing approach:**
+
+**Phase 1: Simple JUnit Tests (Quick Feedback)**
+```bash
+# Fast iteration during development
+mvn test -Dtest=Psm2AsmServiceTest#testBoundOperation
+mvn test -Dtest=Psm2AsmServiceTest
+mvn test -pl judo-tatami-psm2asm
+```
+- Use for quick feedback during development
+- Checks basic functionality and element counts
+- Fast execution, good for iterating on fixes
+
+**Phase 2: External Model with Strict Comparison (Thorough Validation)**
+```bash
+# Strict comparison with ETL baseline
+mvn test -Dtest=Psm2AsmExternalModelTest -Pperformance
+```
+- Use external real-world model (RackInspect)
+- Enables strict comparison between ETL and ZETA output
+- Detects subtle differences that simple tests miss
+- **MUST pass before considering fix complete**
+
+**What strict comparison catches:**
+- Elements created with wrong IDs
+- Elements in wrong containers
+- Missing elements that simple count checks miss
+- Missing annotations
+- Discriminator mismatches
+
+**Testing workflow:**
+```
+1. Make fix
+2. Run simple JUnit test (Phase 1) → iterate until passing
+3. Run strict External Model test (Phase 2) → verify models match
+4. If Phase 2 fails → analyze differences → fix → repeat
+5. Both phases pass → document in TRANSFORMATION_PATTERNS.md
+6. WAIT for user to decide on commit (DO NOT commit automatically)
+```
+
+### Pattern Group Fix Application (CRITICAL WORKFLOW)
+
+**DO NOT commit automatically - always wait for user to review and decide on commit.**
+
+**When fixing transformations in a pattern group, follow this strict order:**
+
+```
+Step 1: Fix ONE transformation only
+        │
+        ▼
+Step 2: Test with External Model (strict compare)
+        │
+        ├── FAIL → Fix issues → repeat Step 2
+        │
+        ▼ PASS
+Step 3: Apply same fix to OTHER transformations in pattern group
+        │
+        ▼
+Step 4: Test with External Model again (full strict compare)
+        │
+        ├── ALL PASS → Document solution → WAIT for user to decide on commit
+        │
+        ▼ SOME FAIL
+Step 5: Analyze failing transformations
+        │
+        ├── Same root cause? → Fix and repeat Step 4
+        │
+        ▼ Different behavior detected
+Step 6: SPLIT pattern group
+        │
+        ├── Create new pattern group for failing transformations
+        ├── Document behavior difference
+        ▼
+Step 7: Repeat process for new pattern group (back to Step 1)
+```
+
+**Key rules:**
+1. **NEVER apply fix to all transformations before testing one** - verify solution works first
+2. **ALWAYS use External Model with strict compare** - simple tests are not enough
+3. **When some transformations fail after group-wide fix:**
+   - Don't force the same solution on all
+   - Analyze WHY they fail differently
+   - Split into separate pattern groups if behavior differs
+4. **Document every split** - captures incremental understanding of the codebase
+
+**Example scenario:**
+```
+Pattern Group: "TransferObjectType Rules" (10 rules)
+
+1. Fix rule #1 (CreateMappedTransferObjectTypeClass)
+2. Test External Model → PASS
+3. Apply fix to rules #2-#10
+4. Test External Model → rules #2-#7 PASS, rules #8-#10 FAIL
+5. Analyze: rules #8-#10 use different annotation pattern
+6. Split:
+   - Group A: "TransferObjectType Rules - Standard" (#1-#7) → fix works
+   - Group B: "TransferObjectType Rules - Custom Annotation" (#8-#10) → needs different fix
+7. Repeat process for Group B
+```
+
+### Problem Tracking Rule (CRITICAL)
+
+**Track ALL problems persistently - NEVER remove documented problems even when "solved".**
+
+Why this matters:
+- Solutions can bring back previously solved problems
+- Some problems have underlying architectural paradoxes
+- Tracking history helps identify root causes
+- Prevents circular debugging (solving A breaks B, fixing B breaks A)
+
+**Problem tracking workflow:**
+1. **Document every problem** encountered during transformation fixes
+2. **Group similar problems** - same symptoms often have same root cause
+3. **Track current state** - mark as ACTIVE, RESOLVED, or RECURRING
+4. **Never delete** - resolved problems may resurface with new changes
+5. **Analyze paradoxes** - when fixing A breaks B and vice versa, document the architectural conflict
+
+**Problem Group Structure:**
+```
+## Problem Group: [Name]
+Status: ACTIVE | RESOLVED | RECURRING
+Related Rules: [list of affected rules]
+Symptoms: [what you observe]
+Root Cause: [why it happens]
+Architectural Conflict: [if applicable - describe the paradox]
+Solutions Tried: [list with outcomes]
+Current Resolution: [what's working now, if any]
+```
+
+**Detecting Architectural Paradoxes:**
+- Same fix solves problem A but causes problem B
+- Two requirements are mutually exclusive
+- Circular dependencies between transformation rules
+- When detected: STOP and document the paradox before attempting more fixes
+
+---
+
+### ETL vs ZETA Difference Tracking (CRITICAL)
+
+**Always compare ZETA implementation with original ETL to identify framework differences.**
+
+Why this matters:
+- ZETA should produce identical output to ETL
+- Differences indicate either implementation bugs OR framework limitations
+- Post-processing functions not in ETL are RED FLAGS - they compensate for ZETA limitations
+- Proper tracking enables Zeta framework improvements or documented workarounds
+
+**What to track:**
+1. **Post-process functions** - Any cleanup/fix code after transformation that ETL doesn't need
+2. **Workarounds** - Code that exists only because ZETA behaves differently than ETL
+3. **Missing features** - ETL capabilities not available in ZETA
+4. **Behavioral differences** - Same rule produces different results
+
+**When you find a difference:**
+1. Document in TRANSFORMATION_PATTERNS.md under "ETL vs ZETA Differences"
+2. Reference the specific ETL file and line
+3. Describe the expected ETL behavior
+4. Describe the actual ZETA behavior
+5. Note if workaround exists or if framework fix needed
+
+**Post-Process Function Red Flags:**
+```java
+// RED FLAG: This function exists because ZETA creates different output than ETL
+private void fixNullETypes(AsmModel asmModel) { ... }
+
+// RED FLAG: This function exists because ZETA doesn't set references correctly
+private void setEOpposites(AsmModel asmModel) { ... }
+
+// RED FLAG: This function exists because ZETA containment differs from ETL
+private void addRootPackages(AsmModel asmModel) { ... }
+```
+
+Each post-process function should be documented with:
+- Why it's needed (what ZETA does wrong)
+- What ETL does instead (correct behavior)
+- Whether it's a ZETA framework issue or implementation issue
+- Proposed fix for ZETA framework (if applicable)
+
+---
+
+### Pattern Splitting Rule
+
+**When items in a cluster behave differently, SPLIT the cluster into new patterns:**
+
+- If a fix works for items A, B but NOT for C, D → split into two separate patterns
+- Different behaviors indicate different underlying mechanics
+- Splitting helps incremental understanding - each pattern becomes simpler
+- Document WHY they behave differently (containment vs reference, annotation pattern, etc.)
+
+Example:
+```
+Original Cluster: "Operation Rules" (10 rules)
+  ↓ Fix applied, 6 rules fixed, 4 still have issues
+  ↓ SPLIT into:
+
+Pattern 1A: "Operation Rules - Bound Operations" (6 rules)
+  - Operations bound to entity methods
+  - @Greedy with standard annotation pattern
+
+Pattern 1B: "Operation Rules - Unbound Operations" (4 rules)
+  - Standalone operations without entity binding
+  - Different annotation requirements
+```
+
+### Key Files for Transformation Debugging
+
+```
+TRANSFORMATION_PATTERNS.md              # Patterns documentation (THIS IS CRITICAL)
+BOTTLENECK_ANALYSIS.md                  # Performance bottleneck analysis
+PERFORMANCE_REPORT.md                   # Benchmark results
+
+judo-tatami-psm2asm/
+├── src/main/java/.../zeta/
+│   ├── Psm2AsmRuleNames.java           # All rule name constants
+│   ├── Psm2AsmZetaTransformation.java  # Main transformation + cleanup logic
+│   └── rules/
+│       ├── NamespaceRules.java         # Package transformations
+│       ├── DataRules.java              # Data type transformations
+│       ├── TransferObjectRules.java    # Transfer object transformations
+│       ├── OperationRules.java         # Operation transformations
+│       ├── DerivedRules.java           # Derived attribute transformations
+│       └── StaticRules.java            # Static data transformations
+├── src/test/java/.../
+│   ├── Psm2AsmServiceTest.java         # Service/operation test
+│   ├── Psm2AsmDualTransformationTest.java  # ETL vs ZETA comparison test
+│   └── perf/
+│       └── Psm2AsmExternalModelTest.java   # External model benchmark test
+
+judo-zeta/transformation-core/
+├── src/main/java/.../core/
+│   ├── ElementResolutionCache.java     # Transformation cache (performance critical)
+│   ├── TransformationContext.java      # Context with equivalent(), createTarget()
+│   └── TransformationExecutor.java     # Main executor with parallel/sequential mode
+```
+
+---
 
 ## Technology Stack
 
@@ -176,12 +458,7 @@ public class Psm2AsmWork {
 - **judo-tatami-jsl** - JSL to PSM workflow using these transformations
 - **judo-community** - Parent aggregator project
 
-## OpenSpec Usage
-
-This project uses OpenSpec for change management. See `openspec/AGENTS.md` for:
-- Creating proposals
-- Change workflow
-- Spec format conventions
+---
 
 ## ETL-Zeta Model Comparison
 
@@ -316,120 +593,174 @@ public TransformFunction<MappedTransferObjectType, EClass> createMappedTransferO
 
 ### Common Issues and Solutions
 
-#### Missing Classifiers (e.g., "46 classifiers missing")
+**See `TRANSFORMATION_PATTERNS.md` for documented transformation issues and solutions.**
 
-**Symptom**: Zeta output has fewer classifiers than ETL output.
+The TRANSFORMATION_PATTERNS.md file contains:
+- Known issues with symptoms and root causes
+- Proven solutions and patterns that work
+- Patterns that DON'T work (to avoid retrying)
+- Pattern clusters for related transformations
 
-**Diagnosis**: 
-1. Run comparison test to identify which classifiers are missing
-2. Check package names - often missing in generated packages like `_generated_navigations`
-3. Compare ETL rules in `static.etl`, `transferObject.etl`, etc.
-
-**Solution**: Ensure all source types from ETL are covered in Zeta:
-- `StaticData` → covered by `StaticRules.java`
-- `StaticNavigation` → must also be covered (often overlooked!)
-- Check for `@Greedy` rules that transform base types
-
-**Example**: The `_generated_navigations` package contains `StaticNavigation` elements that need the following rules:
-- `CreateUnmappedTransferObjectForStaticNavigation`
-- `CreateStaticNavigationQueryAnnotation`
-- `CreateStaticQueryNavigation`
-- `CreateNavigationReferenceBindingForStaticNavigation`
-- `CreateTransferObjectRelationParameterizedAnnotationForStaticNavigation`
-
-#### Missing Annotations
-
-**Symptom**: Model comparison shows missing annotations like `unmappedDefaultOnly`, `eExceptions`.
-
-**Common causes**:
-1. Guard condition too restrictive
-2. Missing rule for specific annotation type
-3. Expression/parameter type lookup returning null
-
-**Diagnosis**: Check the ETL rule guards and ensure Zeta implementation matches exactly.
-
-#### Missing eExceptions on Operations
-
-**Symptom**: Bound operations have empty `eExceptions` list in Zeta output.
-
-**Cause**: The faults-to-exceptions loop from ETL's `CreateOperation` abstract rule was not ported.
-
-**Solution**: Add fault handling in operation creation rules:
-```java
-// Add faults as exceptions (from CreateOperation abstract rule in ETL)
-for (var fault : s.getFaults()) {
-    if (fault.getType() != null) {
-        EClass faultType = ctx.equivalent(fault.getType(), EClass.class);
-        if (faultType != null) {
-            t.getEExceptions().add(faultType);
-        }
-    }
-}
-```
-
-#### Annotations with Complex Guard Conditions
-
-**Symptom**: Annotations like `unmappedDefaultOnly` missing for attributes/references.
-
-**Cause**: ETL guard conditions navigate through entity's `defaultRepresentation` to check for bindings with `defaultValue`.
-
-**Solution**: For annotations that depend on related transfer objects:
-```java
-@TransformRule(name = "AddUnmappedDefaultOnlyAttributeAnnotation")
-@Transform(type = Attribute.class)
-@To(type = EAnnotation.class)
-@Greedy
-public TransformFunction<Attribute, EAnnotation> addUnmappedDefaultOnlyAttributeAnnotation() {
-    return (s, ctx) -> {
-        // Guard: container must be EntityType with defaultRepresentation
-        if (!(s.eContainer() instanceof EntityType entity) ||
-            entity.getDefaultRepresentation() == null) {
-            return null;
-        }
-
-        // Guard: must have binding with defaultValue in defaultRepresentation
-        boolean hasBindingWithDefault = entity.getDefaultRepresentation().getAttributes().stream()
-                .anyMatch(a -> a.getBinding() == s && a.getDefaultValue() != null);
-        if (!hasBindingWithDefault) {
-            return null;
-        }
-
-        // Create annotation...
-    };
-}
-```
-
-**Key insight**: When porting ETL guards that use `exists()` or similar collection operations, translate to Java streams with `anyMatch()`, `filter()`, or `findFirst()`.
+**Always check TRANSFORMATION_PATTERNS.md before attempting to fix transformation issues.**
 
 ### Performance Testing
 
-Performance tests use the RackInspect real-world model:
+Performance tests use the RackInspect real-world model. See the **Testing Strategy** section above for the two-phase testing approach.
 
 ```bash
-# Run performance tests
-mvn test -pl judo-tatami-psm2asm -Dtest=RackInspectPerformanceTest -Pperformance
+# Run external model benchmark (strict ETL vs ZETA comparison)
+mvn test -Dtest=Psm2AsmExternalModelTest -Pperformance
 
 # Run all performance tests
 mvn test -Pperformance -Dgroups=performance
 ```
 
 Expected results:
-- **Psm2Asm**: ~30-45x faster than ETL
+- **Psm2Asm**: ~8-10x faster than ETL (with sequential mode optimization)
 - **Rdbms2Liquibase**: ~40-50x faster than ETL
 
 ### Adding New Zeta Rules
 
+Follow the **Development Workflow for Transformation Fixes** in the CRITICAL section above:
+
 1. Add rule name constant to `*RuleNames.java`
 2. Implement rule in appropriate `*Rules.java` class
 3. Register the rules class in transformation initialization
-4. Run comparison tests to verify equivalence
+4. **Phase 1**: Run targeted JUnit test for quick feedback
+5. **Phase 2**: Run `Psm2AsmExternalModelTest -Pperformance` for strict comparison
+6. Document results in `TRANSFORMATION_PATTERNS.md`
+
+## JVM Profiler Integration
+
+The `judo-tatami-test-utils` module provides a JUnit 5 profiling extension using async-profiler for performance analysis of transformation tests.
+
+### Quick Start
+
+```java
+import hu.blackbelt.judo.tatami.test.profiler.Profile;
+
+@Profile
+class Psm2AsmPerformanceTest {
+
+    @Test
+    void testLargeModelTransformation() {
+        // This test will be automatically profiled
+        Psm2AsmWork work = new Psm2AsmWork(largeModel);
+        work.execute();
+    }
+}
+```
+
+### Configuration via System Properties
+
+```bash
+# Enable/disable profiling globally
+-Djudo.test.profiler.enabled=true
+
+# Output directory (default: target/profiler-output/)
+-Djudo.test.profiler.outputPath=target/profiler-output/
+
+# Output format: collapsed | flamegraph | jfr (default: collapsed)
+-Djudo.test.profiler.format=collapsed
+
+# Profiling event: cpu | wall | alloc | lock (default: cpu)
+-Djudo.test.profiler.event=cpu
+
+# Minimum test duration to trigger profiling (ms)
+-Djudo.test.profiler.thresholdMs=100
+
+# Sampling interval in nanoseconds (default: 1000000 = 1ms)
+-Djudo.test.profiler.interval=1000000
+```
+
+### Running Profiled Tests
+
+```bash
+# Profile specific tests
+mvn test -pl judo-tatami-psm2asm -Dtest=*PerformanceTest -Djudo.test.profiler.enabled=true
+
+# Profile Zeta vs ETL comparison
+mvn test -pl judo-tatami-psm2asm \
+    -Dtest=Psm2AsmDualTransformationTest \
+    -Djudo.test.profiler.enabled=true \
+    -Djudo.test.profiler.thresholdMs=50
+```
+
+### Output Formats
+
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| `collapsed` | `.txt` | LLM analysis (token-efficient) |
+| `flamegraph` | `.svg` | Visual analysis |
+| `jfr` | `.jfr` | JDK Mission Control |
+
+### LLM Analysis Workflow
+
+The collapsed format is optimized for external LLM tools:
+
+```bash
+# 1. Run profiled tests
+mvn test -Dtest=Psm2AsmPerformanceTest -Djudo.test.profiler.enabled=true
+
+# 2. Ask Claude Code/Cursor/Copilot to analyze:
+# "Analyze target/profiler-output/Psm2AsmPerformanceTest_testLargeModel.txt
+#  and suggest optimizations"
+```
+
+### Optional Integrated LLM Analyzer
+
+For automated analysis during test runs (disabled by default):
+
+```bash
+# Enable with OpenRouter
+mvn test -Dtest=*PerformanceTest \
+    -Djudo.test.profiler.enabled=true \
+    -Djudo.test.profiler.llm.enabled=true \
+    -Djudo.test.profiler.llm.provider=openrouter
+
+# Supported providers: openai, anthropic, openrouter, deepseek, minimax, groq, together, ollama
+```
+
+### Environment Prerequisites
+
+**Linux:**
+```bash
+# Allow profiling (requires root)
+echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+```
+
+**GitHub Actions:**
+```yaml
+- name: Configure perf_event
+  run: echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+
+- name: Run profiled tests
+  run: mvn test -Djudo.test.profiler.enabled=true
+
+- name: Upload profiles
+  uses: actions/upload-artifact@v4
+  with:
+    name: profiler-output
+    path: '**/target/profiler-output/'
+```
+
+### Full Specification
+
+See [judo-tatami-test-utils/JVM_PROFILER_SPEC.md](judo-tatami-test-utils/JVM_PROFILER_SPEC.md) for complete documentation including:
+- Multi-provider LLM support
+- Native library bundling
+- Advanced configuration options
+- Token management strategies
 
 ## Important Notes
 
-1. **ETL files are the source of truth** for transformation logic
-2. **Tests use the Northwind demo model** from judo-meta-psm
-3. **OSGi compatibility** is maintained through Felix bundle plugin
-4. **Transformation traces** allow mapping between source and target elements
-5. **Validation modules** use Java WorkClass pattern (not EVL)
-6. **Model comparison** uses `ModelComparator` with configurable modes and detailed reporting
-7. **Zeta rules must cover all source types** - check both main types and subtypes (e.g., StaticData AND StaticNavigation)
+1. **Read the CRITICAL section first** - follow the transformation fix workflow before making changes
+2. **Check TRANSFORMATION_PATTERNS.md** - see documented patterns before implementing fixes
+3. **ETL files are the source of truth** for transformation logic - ZETA must produce identical output
+4. **Two-phase testing is mandatory** - JUnit tests + External Model strict comparison
+5. **DO NOT commit automatically** - always wait for user to review and decide
+6. **Tests use the Northwind demo model** from judo-meta-psm for unit tests
+7. **External model tests use RackInspect** for thorough validation
+8. **Document all findings** in TRANSFORMATION_PATTERNS.md (successes AND failures)
+9. **OSGi compatibility** is maintained through Felix bundle plugin
+10. **JVM Profiler** outputs collapsed format optimized for LLM analysis

@@ -38,6 +38,27 @@
             <artifactId>hu.blackbelt.judo.meta.measure.model</artifactId>
         </dependency>
 
+        <!-- JUnit 5 API for profiler extension -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+
+        <!-- async-profiler loader (handles native library extraction) -->
+        <dependency>
+            <groupId>me.bechberger</groupId>
+            <artifactId>ap-loader-all</artifactId>
+            <version>3.0-9</version>
+        </dependency>
+
+        <!-- Optional: LangChain4j for LLM integration -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.35.0</version>
+            <optional>true</optional>
+        </dependency>
+
     </dependencies>
 
     <build>
