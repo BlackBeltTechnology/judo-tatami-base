@@ -450,8 +450,84 @@ public final class Psm2AsmRuleNames {
     /** Create custom implementation annotation. */
     public static final String CREATE_CUSTOM_IMPLEMENTATION_ANNOTATION = "CreateCustomImplementationAnnotation";
 
-    /** Create bound annotation for transfer operation. */
+    /** Create bound annotation for transfer operation (legacy). */
     public static final String CREATE_BOUND_ANNOTATION_FOR_TRANSFER_OPERATION = "CreateBoundAnnotationForTransferOperation";
+
+    /** Create bound annotation for BoundTransferOperation. */
+    public static final String CREATE_BOUND_ANNOTATION_FOR_BOUND_TRANSFER_OPERATION = "CreateBoundAnnotationForBoundTransferOperation";
+
+    /** Create bound annotation for UnboundOperation. */
+    public static final String CREATE_BOUND_ANNOTATION_FOR_UNBOUND_OPERATION = "CreateBoundAnnotationForUnboundOperation";
+
+    // =====================================================
+    // Split TransferOperation Rules (Type-optimized)
+    // =====================================================
+
+    /** Create operation permissions for BoundTransferOperation. */
+    public static final String CREATE_OPERATION_PERMISSIONS_FOR_BTO = "CreateOperationPermissionsForBoundTransferOperation";
+
+    /** Create operation permissions for UnboundOperation. */
+    public static final String CREATE_OPERATION_PERMISSIONS_FOR_UO = "CreateOperationPermissionsForUnboundOperation";
+
+    /** Create immutable flag for BoundTransferOperation. */
+    public static final String CREATE_IMMUTABLE_FLAG_FOR_BTO = "CreateImmutableFlagForBoundTransferOperation";
+
+    /** Create immutable flag for UnboundOperation. */
+    public static final String CREATE_IMMUTABLE_FLAG_FOR_UO = "CreateImmutableFlagForUnboundOperation";
+
+    /** Create output parameter name for BoundTransferOperation. */
+    public static final String CREATE_OUTPUT_PARAMETER_NAME_FOR_BTO = "CreateOutputParameterNameForBoundTransferOperation";
+
+    /** Create output parameter name for UnboundOperation. */
+    public static final String CREATE_OUTPUT_PARAMETER_NAME_FOR_UO = "CreateOutputParameterNameForUnboundOperation";
+
+    /** Create behaviour annotation for BoundTransferOperation. */
+    public static final String CREATE_BEHAVIOUR_ANNOTATION_FOR_BTO = "CreateBehaviourAnnotationForBoundTransferOp";
+
+    /** Create behaviour annotation for UnboundOperation. */
+    public static final String CREATE_BEHAVIOUR_ANNOTATION_FOR_UO = "CreateBehaviourAnnotationForUnboundOperation";
+
+    /** Create stateful annotation with implementation for BoundTransferOperation. */
+    public static final String CREATE_STATEFUL_ANNOTATION_ON_BTO = "CreateStatefulAnnotationOnBoundTransferOperation";
+
+    /** Create stateful annotation with implementation for UnboundOperation. */
+    public static final String CREATE_STATEFUL_ANNOTATION_ON_UO = "CreateStatefulAnnotationOnUnboundOp";
+
+    /** Create stateful annotation default for BoundTransferOperation. */
+    public static final String CREATE_STATEFUL_ANNOTATION_DEFAULT_FOR_BTO = "CreateStatefulAnnotationDefaultForBoundTransferOp";
+
+    /** Create stateful annotation default for UnboundOperation. */
+    public static final String CREATE_STATEFUL_ANNOTATION_DEFAULT_FOR_UO = "CreateStatefulAnnotationDefaultForUnboundOp";
+
+    /** Create custom implementation annotation for BoundTransferOperation. */
+    public static final String CREATE_CUSTOM_IMPLEMENTATION_FOR_BTO = "CreateCustomImplementationForBoundTransferOp";
+
+    /** Create custom implementation annotation for UnboundOperation (via TransferOperation path). */
+    public static final String CREATE_CUSTOM_IMPLEMENTATION_FOR_UO = "CreateCustomImplementationForUnboundOp";
+
+    /** Create stateful annotation with behaviour for BoundTransferOperation. */
+    public static final String CREATE_STATEFUL_WITH_BEHAVIOUR_FOR_BTO = "CreateStatefulWithBehaviourForBoundTransferOp";
+
+    /** Create stateful annotation with behaviour for UnboundOperation. */
+    public static final String CREATE_STATEFUL_WITH_BEHAVIOUR_FOR_UO = "CreateStatefulWithBehaviourForUnboundOp";
+
+    /** Create documentation annotation for BoundTransferOperation. */
+    public static final String CREATE_DOCUMENTATION_FOR_BTO = "CreateDocumentationForBoundTransferOp";
+
+    /** Create documentation annotation for UnboundOperation. */
+    public static final String CREATE_DOCUMENTATION_FOR_UO = "CreateDocumentationForUnboundOp";
+
+    /** Create output parameter documentation for BoundTransferOperation. */
+    public static final String CREATE_OUTPUT_PARAM_DOCUMENTATION_FOR_BTO = "CreateOutputParamDocumentationForBoundTransferOp";
+
+    /** Create output parameter documentation for UnboundOperation. */
+    public static final String CREATE_OUTPUT_PARAM_DOCUMENTATION_FOR_UO = "CreateOutputParamDocumentationForUnboundOp";
+
+    /** Create input range annotation for BoundTransferOperation. */
+    public static final String CREATE_INPUT_RANGE_FOR_BTO = "CreateInputRangeForBoundTransferOp";
+
+    /** Create input range annotation for UnboundOperation. */
+    public static final String CREATE_INPUT_RANGE_FOR_UO = "CreateInputRangeForUnboundOp";
 
     /** Create stateful annotation with behaviour. */
     public static final String CREATE_STATEFUL_ANNOTATION_WITH_BEHAVIOUR = "CreateStatefulAnnotationWithBehaviour";

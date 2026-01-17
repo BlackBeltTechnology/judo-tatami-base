@@ -500,49 +500,101 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateTransferOperationBehaviourAnnotation
-     *     transform s : JUDOPSM!TransferOperation
+     * Guard: BoundTransferOperation has behaviour
+     */
+    public boolean hasBoundTransferBehaviour(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            return ((BoundTransferOperation) source).getBehaviour() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation has behaviour
+     */
+    public boolean hasUnboundBehaviour(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            return ((UnboundOperation) source).getBehaviour() != null;
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateBehaviourAnnotationForBoundTransferOperation
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.behaviour.isDefined()
      *     }
+     * Split from CreateTransferOperationBehaviourAnnotation for type-based filtering optimization.
+     * Includes binding annotation for the bound operation.
      */
-    @TransformRule(name = CREATE_TRANSFER_OPERATION_BEHAVIOUR_ANNOTATION, description = "Add behaviour annotation")
+    @TransformRule(name = CREATE_BEHAVIOUR_ANNOTATION_FOR_BTO, description = "Add behaviour annotation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasBehaviour")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBoundTransferBehaviour")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createTransferOperationBehaviourAnnotation() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createBehaviourAnnotationForBoundTransferOp() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("behaviour"));
-            
+
             TransferOperationBehaviour behaviour = s.getBehaviour();
             String typeValue = mapBehaviourType(behaviour, s);
             String ownerValue = mapBehaviourOwner(behaviour, ctx);
-            
+
             addAnnotationDetail(t, "type", typeValue);
             addAnnotationDetail(t, "owner", ownerValue);
-            
+
             // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
             addAnnotation(eOp, t);
 
-            // For BoundTransferOperation, also add behaviour annotation to the binding (entity operation, thread-safe)
-            if (s instanceof BoundTransferOperation) {
-                BoundTransferOperation bto = (BoundTransferOperation) s;
-                if (bto.getBinding() != null) {
-                    EOperation bindingOp = ctx.equivalent(bto.getBinding(), EOperation.class);
-                    if (bindingOp != null) {
-                        EAnnotation bindingAnnotation = createAnnotation(
-                                "(psm/" + getId(s) + ")/BehaviourAnnotation/BindingAnnotation",
-                                getAnnotationUri("behaviour"));
-                        addAnnotationDetail(bindingAnnotation, "type", typeValue);
-                        addAnnotationDetail(bindingAnnotation, "owner", ownerValue);
-                        addAnnotation(bindingOp, bindingAnnotation);
-                    }
+            // Also add behaviour annotation to the binding (entity operation, thread-safe)
+            if (s.getBinding() != null) {
+                EOperation bindingOp = ctx.equivalent(s.getBinding(), EOperation.class);
+                if (bindingOp != null) {
+                    EAnnotation bindingAnnotation = createAnnotation(
+                            "(psm/" + getId(s) + ")/BehaviourAnnotation/BindingAnnotation",
+                            getAnnotationUri("behaviour"));
+                    addAnnotationDetail(bindingAnnotation, "type", typeValue);
+                    addAnnotationDetail(bindingAnnotation, "owner", ownerValue);
+                    addAnnotation(bindingOp, bindingAnnotation);
                 }
             }
-            
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateBehaviourAnnotationForUnboundOperation
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.behaviour.isDefined()
+     *     }
+     * Split from CreateTransferOperationBehaviourAnnotation for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_BEHAVIOUR_ANNOTATION_FOR_UO, description = "Add behaviour annotation to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUnboundBehaviour")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createBehaviourAnnotationForUnboundOp() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("behaviour"));
+
+            TransferOperationBehaviour behaviour = s.getBehaviour();
+            String typeValue = mapBehaviourType(behaviour, s);
+            String ownerValue = mapBehaviourOwner(behaviour, ctx);
+
+            addAnnotationDetail(t, "type", typeValue);
+            addAnnotationDetail(t, "owner", ownerValue);
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
             return t;
         };
     }
@@ -771,23 +823,34 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateStatefulAnnotationOnOperation
-     *     transform s : JUDOPSM!TransferOperation
+     * Guard: BoundTransferOperation has implementation
+     */
+    public boolean hasBoundTransferImplementation(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            return ((BoundTransferOperation) source).getImplementation() != null;
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateStatefulAnnotationOnBoundTransferOperation
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.implementation.isDefined()
      *     }
+     * Split from CreateStatefulAnnotationOnOperation for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_ON_OPERATION, description = "Add stateful annotation with implementation")
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_ON_BTO, description = "Add stateful annotation with implementation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasImplementation")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBoundTransferImplementation")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createStatefulAnnotationOnOperation() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createStatefulAnnotationOnBoundTransferOp() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("stateful"));
             addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isStateful()));
-            
+
             // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
             addAnnotation(eOp, t);
@@ -797,23 +860,74 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateStatefulAnnotationOnOperationWithoutImplementationAndBehaviour
-     *     transform s : JUDOPSM!TransferOperation
+     * rule CreateStatefulAnnotationOnUnboundOperation
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.implementation.isDefined()
+     *     }
+     * Split from CreateStatefulAnnotationOnOperation for type-based filtering optimization.
+     * Note: This is separate from the existing UnboundOperation-specific rules.
+     */
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_ON_UO, description = "Add stateful annotation with implementation to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUnboundOperationImplementation")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createStatefulAnnotationOnUnboundOp() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("stateful"));
+            addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isStateful()));
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * Guard: BoundTransferOperation has no implementation and no behaviour
+     */
+    public boolean hasBTONoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            BoundTransferOperation op = (BoundTransferOperation) source;
+            return op.getImplementation() == null && op.getBehaviour() == null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation has no implementation and no behaviour
+     */
+    public boolean hasUONoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            UnboundOperation op = (UnboundOperation) source;
+            return op.getImplementation() == null && op.getBehaviour() == null;
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateStatefulAnnotationDefaultForBoundTransferOp
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: not s.implementation.isDefined() and not s.behaviour.isDefined()
      *     }
+     * Split from CreateStatefulAnnotationDefault for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_DEFAULT, description = "Add default stateful annotation")
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_DEFAULT_FOR_BTO, description = "Add default stateful annotation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasNoImplementationAndNoBehaviour")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBTONoImplementationAndNoBehaviour")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createStatefulAnnotationDefault() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createStatefulAnnotationDefaultForBTO() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("stateful"));
             addAnnotationDetail(t, "value", "true");
-            
+
             // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
             addAnnotation(eOp, t);
@@ -823,18 +937,75 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateCustomImplementationAnnotationOnOperation
-     *     transform s : JUDOPSM!TransferOperation
+     * rule CreateStatefulAnnotationDefaultForUnboundOp
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: not s.implementation.isDefined() and not s.behaviour.isDefined()
+     *     }
+     * Split from CreateStatefulAnnotationDefault for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_DEFAULT_FOR_UO, description = "Add default stateful annotation to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUONoImplementationAndNoBehaviour")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createStatefulAnnotationDefaultForUO() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("stateful"));
+            addAnnotationDetail(t, "value", "true");
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateCustomImplementationForBoundTransferOp
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.implementation.isDefined()
      *     }
+     * Split from CreateCustomImplementationAnnotation for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_CUSTOM_IMPLEMENTATION_ANNOTATION, description = "Add customImplementation annotation")
+    @TransformRule(name = CREATE_CUSTOM_IMPLEMENTATION_FOR_BTO, description = "Add customImplementation annotation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasImplementation")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBoundTransferImplementation")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createCustomImplementationAnnotation() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createCustomImplementationForBTO() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("customImplementation"));
+            addAnnotationDetail(t, "value", String.valueOf(s.getImplementation().isCustomImplementation()));
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateCustomImplementationForUnboundOp
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.implementation.isDefined()
+     *     }
+     * Split from CreateCustomImplementationAnnotation for type-based filtering optimization.
+     * Note: UnboundOperation already has a separate createCustomImplementationAnnotationOnUnboundOperation,
+     * but ETL also applies CreateCustomImplementationAnnotationOnOperation to all TransferOperations.
+     */
+    @TransformRule(name = CREATE_CUSTOM_IMPLEMENTATION_FOR_UO, description = "Add customImplementation annotation to UnboundOperation (TransferOperation path)")
+    @Greedy
+    @Guard(method = "hasUnboundOperationImplementation")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createCustomImplementationForUO() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("customImplementation"));
@@ -963,18 +1134,39 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateOutputParameterName
-     *     transform s : JUDOPSM!TransferOperation
+     * Guard: BoundTransferOperation has output parameter
+     */
+    public boolean hasBoundTransferOutput(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            return ((BoundTransferOperation) source).getOutput() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation has output parameter
+     */
+    public boolean hasUnboundOutput(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            return ((UnboundOperation) source).getOutput() != null;
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateOutputParameterNameForBoundTransferOperation
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.output.isDefined()
      *     }
+     * Split from CreateOutputParameterName for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_OUTPUT_PARAMETER_NAME, description = "Add outputParameterName annotation")
+    @TransformRule(name = CREATE_OUTPUT_PARAMETER_NAME_FOR_BTO, description = "Add outputParameterName annotation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasTransferOutput")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBoundTransferOutput")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createOutputParameterName() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createOutputParameterNameForBoundTransferOp() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("outputParameterName"));
@@ -989,17 +1181,45 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateOperationPermissions
-     *     transform s : JUDOPSM!TransferOperation
-     *     to t : ASM!EAnnotation
-     * 
-     * Adds permissions annotation with update/delete flags.
+     * rule CreateOutputParameterNameForUnboundOperation
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.output.isDefined()
+     *     }
+     * Split from CreateOutputParameterName for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_OPERATION_PERMISSIONS, description = "Add permissions annotation to transfer operation")
+    @TransformRule(name = CREATE_OUTPUT_PARAMETER_NAME_FOR_UO, description = "Add outputParameterName annotation to UnboundOperation")
     @Greedy
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasUnboundOutput")
+    @Transform(type = UnboundOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createOperationPermissions() {
+    public TransformFunction<UnboundOperation, EAnnotation> createOutputParameterNameForUnboundOp() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("outputParameterName"));
+            addAnnotationDetail(t, "value", s.getOutput().getName());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateOperationPermissionsForBoundTransferOperation
+     *     transform s : JUDOPSM!BoundTransferOperation
+     *     to t : ASM!EAnnotation
+     *
+     * Adds permissions annotation with update/delete flags.
+     * Split from CreateOperationPermissions for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_OPERATION_PERMISSIONS_FOR_BTO, description = "Add permissions annotation to BoundTransferOperation")
+    @Greedy
+    @Transform(type = BoundTransferOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BoundTransferOperation, EAnnotation> createOperationPermissionsForBoundTransferOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("permissions"));
@@ -1015,17 +1235,45 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateImmutableFlagForTransferOperation
-     *     transform s : JUDOPSM!TransferOperation
+     * rule CreateOperationPermissionsForUnboundOperation
+     *     transform s : JUDOPSM!UnboundOperation
      *     to t : ASM!EAnnotation
-     * 
-     * Adds immutable annotation to transfer operations.
+     *
+     * Adds permissions annotation with update/delete flags.
+     * Split from CreateOperationPermissions for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_IMMUTABLE_FLAG_FOR_TRANSFER_OPERATION, description = "Add immutable annotation to transfer operation")
+    @TransformRule(name = CREATE_OPERATION_PERMISSIONS_FOR_UO, description = "Add permissions annotation to UnboundOperation")
     @Greedy
-    @Transform(type = TransferOperation.class)
+    @Transform(type = UnboundOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createImmutableFlagForTransferOperation() {
+    public TransformFunction<UnboundOperation, EAnnotation> createOperationPermissionsForUnboundOperation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("permissions"));
+            addAnnotationDetail(t, "update", String.valueOf(s.isUpdateOnResult()));
+            addAnnotationDetail(t, "delete", String.valueOf(s.isDeleteOnResult()));
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateImmutableFlagForBoundTransferOperation
+     *     transform s : JUDOPSM!BoundTransferOperation
+     *     to t : ASM!EAnnotation
+     *
+     * Adds immutable annotation to BoundTransferOperation.
+     * Split from CreateImmutableFlagForTransferOperation for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_IMMUTABLE_FLAG_FOR_BTO, description = "Add immutable annotation to BoundTransferOperation")
+    @Greedy
+    @Transform(type = BoundTransferOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BoundTransferOperation, EAnnotation> createImmutableFlagForBoundTransferOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("immutable"));
@@ -1040,23 +1288,22 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateBoundAnnotationForTransferOperation
-     *     transform s : JUDOPSM!TransferOperation
+     * rule CreateImmutableFlagForUnboundOperation
+     *     transform s : JUDOPSM!UnboundOperation
      *     to t : ASM!EAnnotation
-     * 
-     * Adds bound annotation indicating whether operation is bound or unbound.
+     *
+     * Adds immutable annotation to UnboundOperation.
+     * Split from CreateImmutableFlagForTransferOperation for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_BOUND_ANNOTATION_FOR_TRANSFER_OPERATION, description = "Add bound annotation to transfer operation")
+    @TransformRule(name = CREATE_IMMUTABLE_FLAG_FOR_UO, description = "Add immutable annotation to UnboundOperation")
     @Greedy
-    @Transform(type = TransferOperation.class)
+    @Transform(type = UnboundOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createBoundAnnotationForTransferOperation() {
+    public TransformFunction<UnboundOperation, EAnnotation> createImmutableFlagForUnboundOperation() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
-            t.setSource(getAnnotationUri("bound"));
-            // BoundTransferOperation is bound, UnboundOperation is not
-            boolean isBound = s instanceof BoundTransferOperation;
-            addAnnotationDetail(t, "value", String.valueOf(isBound));
+            t.setSource(getAnnotationUri("immutable"));
+            addAnnotationDetail(t, "value", String.valueOf(s.isImmutable()));
 
             // Add to equivalent operation (thread-safe)
             EOperation eOp = ctx.equivalent(s, EOperation.class);
@@ -1067,42 +1314,147 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateStatefulAnnotationOnOperationWithBehaviour
-     *     transform s : JUDOPSM!TransferOperation
+     * rule CreateBoundAnnotationForBoundTransferOperation
+     *     transform s : JUDOPSM!BoundTransferOperation
+     *     to t : ASM!EAnnotation
+     *
+     * Adds bound annotation with value "true" for BoundTransferOperation.
+     * Split from CreateBoundAnnotationForTransferOperation for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_BOUND_ANNOTATION_FOR_BOUND_TRANSFER_OPERATION, description = "Add bound=true annotation to BoundTransferOperation")
+    @Greedy
+    @Transform(type = BoundTransferOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<BoundTransferOperation, EAnnotation> createBoundAnnotationForBoundTransferOperation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("bound"));
+            addAnnotationDetail(t, "value", "true");
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateBoundAnnotationForUnboundOperation
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation
+     *
+     * Adds bound annotation with value "false" for UnboundOperation.
+     * Split from CreateBoundAnnotationForTransferOperation for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_BOUND_ANNOTATION_FOR_UNBOUND_OPERATION, description = "Add bound=false annotation to UnboundOperation")
+    @Greedy
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createBoundAnnotationForUnboundOperation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("bound"));
+            addAnnotationDetail(t, "value", "false");
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * Guard: BoundTransferOperation has no implementation but has behaviour
+     */
+    public boolean hasBTONoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            BoundTransferOperation op = (BoundTransferOperation) source;
+            return op.getImplementation() == null && op.getBehaviour() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation has no implementation but has behaviour
+     */
+    public boolean hasUONoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            UnboundOperation op = (UnboundOperation) source;
+            return op.getImplementation() == null && op.getBehaviour() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Helper method to determine stateful value based on behaviour type.
+     */
+    private boolean isStatefulBehaviour(TransferOperationBehaviourType behaviourType) {
+        switch (behaviourType) {
+            case VALIDATE_CREATE:
+            case VALIDATE_UPDATE:
+            case LIST:
+            case EXPORT:
+            case GET_RANGE:
+            case GET_TEMPLATE:
+            case GET_PRINCIPAL:
+            case GET_METADATA:
+            case VALIDATE_OPERATION_INPUT:
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    /**
+     * rule CreateStatefulWithBehaviourForBoundTransferOp
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: not s.implementation.isDefined() and s.behaviour.isDefined()
      *     }
-     * 
-     * Adds stateful annotation based on behaviour type.
+     * Split from CreateStatefulAnnotationWithBehaviour for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_STATEFUL_ANNOTATION_WITH_BEHAVIOUR, description = "Add stateful annotation based on behaviour")
+    @TransformRule(name = CREATE_STATEFUL_WITH_BEHAVIOUR_FOR_BTO, description = "Add stateful annotation based on behaviour to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasNoImplementationButHasBehaviour")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBTONoImplementationButHasBehaviour")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createStatefulAnnotationWithBehaviour() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createStatefulWithBehaviourForBTO() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("stateful"));
-            
-            // Determine stateful value based on behaviour type
-            TransferOperationBehaviourType behaviourType = s.getBehaviour().getBehaviourType();
-            boolean stateful = true;
-            switch (behaviourType) {
-                case VALIDATE_CREATE:
-                case VALIDATE_UPDATE:
-                case LIST:
-                case EXPORT:
-                case GET_RANGE:
-                case GET_TEMPLATE:
-                case GET_PRINCIPAL:
-                case GET_METADATA:
-                case VALIDATE_OPERATION_INPUT:
-                    stateful = false;
-                    break;
-                default:
-                    stateful = true;
-            }
+
+            boolean stateful = isStatefulBehaviour(s.getBehaviour().getBehaviourType());
+            addAnnotationDetail(t, "value", String.valueOf(stateful));
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateStatefulWithBehaviourForUnboundOp
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: not s.implementation.isDefined() and s.behaviour.isDefined()
+     *     }
+     * Split from CreateStatefulAnnotationWithBehaviour for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_STATEFUL_WITH_BEHAVIOUR_FOR_UO, description = "Add stateful annotation based on behaviour to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUONoImplementationButHasBehaviour")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createStatefulWithBehaviourForUO() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("stateful"));
+
+            boolean stateful = isStatefulBehaviour(s.getBehaviour().getBehaviourType());
             addAnnotationDetail(t, "value", String.valueOf(stateful));
 
             // Add to equivalent operation (thread-safe)
@@ -1246,18 +1598,68 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateDocumentationAnnotationForTransferOperation
-     *     transform s : JUDOPSM!TransferOperation
+     * Guard: BoundTransferOperation has documentation
+     */
+    public boolean hasBTODocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            String doc = ((BoundTransferOperation) source).getDocumentation();
+            return doc != null && !doc.isEmpty();
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation has documentation
+     */
+    public boolean hasUODocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            String doc = ((UnboundOperation) source).getDocumentation();
+            return doc != null && !doc.isEmpty();
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateDocumentationForBoundTransferOp
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.documentation.isDefined()
      *     }
+     * Split from CreateDocumentationAnnotationForTransferOperation for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_TRANSFER_OPERATION, description = "Add documentation annotation to TransferOperation")
+    @TransformRule(name = CREATE_DOCUMENTATION_FOR_BTO, description = "Add documentation annotation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasTransferOperationDocumentation")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBTODocumentation")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createDocumentationAnnotationForTransferOperation() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createDocumentationForBTO() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationForUnboundOp
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.documentation.isDefined()
+     *     }
+     * Split from CreateDocumentationAnnotationForTransferOperation for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_FOR_UO, description = "Add documentation annotation to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUODocumentation")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createDocumentationForUO() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("documentation"));
@@ -1298,21 +1700,74 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateDocumentationAnnotationForOutputParameter (TransferOperation)
-     *     transform s : JUDOPSM!TransferOperation
+     * Guard: BoundTransferOperation output parameter has documentation
+     */
+    public boolean hasBTOOutputParameterDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            BoundTransferOperation op = (BoundTransferOperation) source;
+            if (op.getOutput() != null) {
+                String doc = op.getOutput().getDocumentation();
+                return doc != null && !doc.isEmpty();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation output parameter has documentation
+     */
+    public boolean hasUOOutputParameterDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            UnboundOperation op = (UnboundOperation) source;
+            if (op.getOutput() != null) {
+                String doc = op.getOutput().getDocumentation();
+                return doc != null && !doc.isEmpty();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateOutputParamDocumentationForBTO
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.output.isDefined() and s.output.documentation.isDefined()
      *     }
-     *
-     * Note: Output parameters are not transformed to EParameter, so we add
-     * an outputParameterDocumentation annotation to the operation itself.
+     * Split from CreateDocumentationAnnotationForOutputParameter for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_OUTPUT_PARAMETER, description = "Add output parameter documentation annotation")
+    @TransformRule(name = CREATE_OUTPUT_PARAM_DOCUMENTATION_FOR_BTO, description = "Add output parameter documentation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasOutputParameterDocumentation")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBTOOutputParameterDocumentation")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createDocumentationAnnotationForOutputParameter() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createOutputParamDocumentationForBTO() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("outputParameterDocumentation"));
+            addAnnotationDetail(t, "value", s.getOutput().getDocumentation());
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateOutputParamDocumentationForUO
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.output.isDefined() and s.output.documentation.isDefined()
+     *     }
+     * Split from CreateDocumentationAnnotationForOutputParameter for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_OUTPUT_PARAM_DOCUMENTATION_FOR_UO, description = "Add output parameter documentation to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUOOutputParameterDocumentation")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createOutputParamDocumentationForUO() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("outputParameterDocumentation"));
@@ -1383,22 +1838,69 @@ public class OperationRules {
     }
 
     /**
-     * rule CreateTransferOperationInputRangeAnnotation
-     *     transform s : JUDOPSM!TransferOperation
+     * Guard: BoundTransferOperation has inputRange defined
+     */
+    public boolean hasBTOInputRange(EObject source, TransformationContext ctx) {
+        if (source instanceof BoundTransferOperation) {
+            return ((BoundTransferOperation) source).getInputRange() != null;
+        }
+        return false;
+    }
+
+    /**
+     * Guard: UnboundOperation has inputRange defined
+     */
+    public boolean hasUOInputRange(EObject source, TransformationContext ctx) {
+        if (source instanceof UnboundOperation) {
+            return ((UnboundOperation) source).getInputRange() != null;
+        }
+        return false;
+    }
+
+    /**
+     * rule CreateInputRangeForBTO
+     *     transform s : JUDOPSM!BoundTransferOperation
      *     to t : ASM!EAnnotation {
      *         guard: s.inputRange.isDefined()
-     *         t.source = asmUtils.getAnnotationUri("inputRange");
-     *         range.value = asmUtils.getReferenceFQName(s.inputRange.asmEquivalent());
-     *         t.details.add(range);
-     *         s.asmEquivalent().eAnnotations.add(t);
      *     }
+     * Split from CreateTransferOperationInputRangeAnnotation for type-based filtering optimization.
      */
-    @TransformRule(name = CREATE_TRANSFER_OPERATION_INPUT_RANGE_ANNOTATION, description = "Add inputRange annotation to operations with inputRange defined")
+    @TransformRule(name = CREATE_INPUT_RANGE_FOR_BTO, description = "Add inputRange annotation to BoundTransferOperation")
     @Greedy
-    @Guard(method = "hasInputRange")
-    @Transform(type = TransferOperation.class)
+    @Guard(method = "hasBTOInputRange")
+    @Transform(type = BoundTransferOperation.class)
     @To(type = EAnnotation.class)
-    public TransformFunction<TransferOperation, EAnnotation> createTransferOperationInputRangeAnnotation() {
+    public TransformFunction<BoundTransferOperation, EAnnotation> createInputRangeForBTO() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("inputRange"));
+
+            // Use PSM source element for FQ name to ensure complete package hierarchy
+            // during parallel execution
+            addAnnotationDetail(t, "value", getPsmReferenceFQName(s.getInputRange()));
+
+            // Add to equivalent operation (thread-safe)
+            EOperation eOp = ctx.equivalent(s, EOperation.class);
+            addAnnotation(eOp, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateInputRangeForUO
+     *     transform s : JUDOPSM!UnboundOperation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.inputRange.isDefined()
+     *     }
+     * Split from CreateTransferOperationInputRangeAnnotation for type-based filtering optimization.
+     */
+    @TransformRule(name = CREATE_INPUT_RANGE_FOR_UO, description = "Add inputRange annotation to UnboundOperation")
+    @Greedy
+    @Guard(method = "hasUOInputRange")
+    @Transform(type = UnboundOperation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<UnboundOperation, EAnnotation> createInputRangeForUO() {
         return (s, ctx) -> {
             EAnnotation t = ctx.createTarget(EAnnotation.class);
             t.setSource(getAnnotationUri("inputRange"));
