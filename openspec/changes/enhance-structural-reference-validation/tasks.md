@@ -143,8 +143,8 @@
 - [x] Add Javadoc to `CalculatorOptions`
 - [x] Add Javadoc to `FeaturePattern`
 - [x] Add Javadoc to `JsonOptions`
-- [ ] Document JSON format in user docs
-- [ ] Add example usage in agent-docs/patterns/TESTING.md
+- [x] Document JSON format in user docs (package-info.java)
+- [x] Add example usage in agent-docs/patterns/TESTING.md
 
 ## Phase 6: Validation
 
