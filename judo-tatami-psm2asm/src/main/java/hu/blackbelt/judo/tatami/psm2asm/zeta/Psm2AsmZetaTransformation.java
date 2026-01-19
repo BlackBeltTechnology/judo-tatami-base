@@ -28,6 +28,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.service.TransferObjectRelation;
 import hu.blackbelt.judo.meta.psm.service.TransferObjectType;
+import hu.blackbelt.judo.meta.psm.service.TransferOperation;
 import hu.blackbelt.judo.meta.psm.service.TransferOperationBehaviourType;
 import hu.blackbelt.judo.meta.psm.service.UnboundOperation;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.rules.*;
@@ -117,7 +118,7 @@ public class Psm2AsmZetaTransformation {
         TransformationExecutor executor = TransformationExecutor.builder()
                 .registry(registry)
                 .context(context)
-                .parallel(false)
+                .parallel(false)  // Sequential execution - Zeta is faster without parallel overhead
                 .build();
         log.info("Phase 4 - Create executor: {}ms", System.currentTimeMillis() - phaseStart);
 
@@ -232,6 +233,11 @@ public class Psm2AsmZetaTransformation {
         Set<TransferObjectType> getRangeInputTypes = computeGetRangeInputTypes();
         context.setAttribute("getRangeInputTypes", getRangeInputTypes);
         log.debug("Pre-computed {} getRangeInput types", getRangeInputTypes.size());
+
+        // Pre-compute metadataTypes set for TransferObjectRules (O(n²) → O(n) optimization)
+        Set<TransferObjectType> metadataTypes = computeMetadataTypes();
+        context.setAttribute("metadataTypes", metadataTypes);
+        log.debug("Pre-computed {} metadata types", metadataTypes.size());
 
         return context;
     }
@@ -781,16 +787,57 @@ public class Psm2AsmZetaTransformation {
     private Set<TransferObjectType> computeGetRangeInputTypes() {
         Set<TransferObjectType> result = new HashSet<>();
         hu.blackbelt.judo.meta.psm.PsmUtils psmUtils = new hu.blackbelt.judo.meta.psm.PsmUtils(psmModel.getResourceSet());
-        
+
         psmUtils.all(psmModel.getResourceSet(), UnboundOperation.class).forEach(op -> {
-            if (op.getBehaviour() != null 
+            if (op.getBehaviour() != null
                     && op.getBehaviour().getBehaviourType() == TransferOperationBehaviourType.GET_RANGE
-                    && op.getInput() != null 
+                    && op.getInput() != null
                     && op.getInput().getType() != null) {
                 result.add(op.getInput().getType());
             }
         });
-        
+
+        return result;
+    }
+
+    /**
+     * Pre-compute the set of TransferObjectTypes that are metadata types.
+     * <p>
+     * A transfer object is a metadata type if it's the output type (or a relation target of output type)
+     * of a GET_METADATA operation. This pre-computation eliminates O(n²) complexity in the
+     * isMetadataType guard method by computing the set once at transformation start.
+     * </p>
+     * <p>
+     * ETL logic: JUDOPSM!TransferOperation.all().exists(o | o.behaviour.isDefined()
+     *     and o.behaviour.behaviourType == GET_METADATA
+     *     and o.output.isDefined()
+     *     and (o.output.type == self or o.output.type.relations.exists(r | r.target == self)))
+     * </p>
+     */
+    private Set<TransferObjectType> computeMetadataTypes() {
+        Set<TransferObjectType> result = new HashSet<>();
+        hu.blackbelt.judo.meta.psm.PsmUtils psmUtils = new hu.blackbelt.judo.meta.psm.PsmUtils(psmModel.getResourceSet());
+
+        psmUtils.all(psmModel.getResourceSet(), TransferOperation.class).forEach(op -> {
+            if (op.getBehaviour() != null
+                    && op.getBehaviour().getBehaviourType() == TransferOperationBehaviourType.GET_METADATA
+                    && op.getOutput() != null
+                    && op.getOutput().getType() != null) {
+                // Add the output type itself
+                TransferObjectType outputType = op.getOutput().getType();
+                result.add(outputType);
+
+                // Add all relation targets of the output type
+                if (outputType.getRelations() != null) {
+                    for (TransferObjectRelation relation : outputType.getRelations()) {
+                        if (relation.getTarget() != null) {
+                            result.add(relation.getTarget());
+                        }
+                    }
+                }
+            }
+        });
+
         return result;
     }
 

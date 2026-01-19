@@ -20,7 +20,13 @@ package hu.blackbelt.judo.tatami.test.util;
  * #L%
  */
 
+import hu.blackbelt.judo.tatami.test.util.comparison.CalculatorOptions;
+import hu.blackbelt.judo.tatami.test.util.comparison.ComparisonResult;
+import hu.blackbelt.judo.tatami.test.util.comparison.ModelChecksumCalculator;
+import hu.blackbelt.judo.tatami.test.util.comparison.ModelNode;
+import hu.blackbelt.judo.tatami.test.util.comparison.StructuralModelComparator;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
 import java.io.IOException;
@@ -69,6 +75,73 @@ public abstract class AbstractExternalModelTest {
 
     private static final String PROPERTIES_FILE = "external-model-tests.properties";
     private static final String MODULE_ROOT_PROPERTY = "judo.test.module.root";
+
+    // Structural comparison system properties
+    /** System property to enable structural comparison (default: false) */
+    public static final String PROP_STRUCTURAL_COMPARISON = "judo.test.comparison.structural";
+    /** System property to enable JSON export of model structures (default: false) */
+    public static final String PROP_STRUCTURAL_EXPORT_JSON = "judo.test.structural.exportJson";
+    /** System property for JSON export output directory (default: target/comparison) */
+    public static final String PROP_STRUCTURAL_OUTPUT_DIR = "judo.test.structural.outputDir";
+
+    // Transformation mode system properties
+    /** System property to select transformation mode: ZETA, ETL, or DUAL (default: DUAL) */
+    public static final String PROP_TRANSFORMATION_MODE = "judo.test.transformation.mode";
+    /** System property to enable JVM profiling (default: false) */
+    public static final String PROP_PROFILER_ENABLED = "judo.test.profiler.enabled";
+
+    private static final String DEFAULT_OUTPUT_DIR = "target/comparison";
+
+    /**
+     * Transformation mode for external model tests.
+     * <p>
+     * This enum mirrors {@code hu.blackbelt.judo.tatami.core.TransformationMode}
+     * but is defined locally to avoid adding a dependency on judo-tatami-core.
+     * </p>
+     */
+    public enum TestTransformationMode {
+        /**
+         * Run only ZETA (Java) transformation.
+         * <p>Recommended for profiling to avoid polluting JVM metrics with ETL overhead.</p>
+         */
+        ZETA,
+
+        /**
+         * Run only ETL (Epsilon) transformation.
+         * <p>Use for legacy testing or debugging ETL-specific issues.</p>
+         */
+        ETL,
+
+        /**
+         * Run both ETL and ZETA transformations and compare results.
+         * <p>Default mode for validation and parity testing.</p>
+         */
+        DUAL;
+
+        /**
+         * Checks if this mode runs the ZETA transformation.
+         * @return true if ZETA or DUAL mode
+         */
+        public boolean isZeta() {
+            return this == ZETA || this == DUAL;
+        }
+
+        /**
+         * Checks if this mode runs the ETL transformation.
+         * @return true if ETL or DUAL mode
+         */
+        public boolean isEtl() {
+            return this == ETL || this == DUAL;
+        }
+
+        /**
+         * Checks if this mode compares results from both engines.
+         * @return true if DUAL mode
+         */
+        public boolean shouldCompare() {
+            return this == DUAL;
+        }
+    }
 
     /**
      * Loads model configurations from a properties file.
@@ -303,9 +376,11 @@ public abstract class AbstractExternalModelTest {
         log.info("{} External Model Test: {}", testName, config.modelName());
         log.info("================================================================");
         log.info("Model directory: {}", config.modelDirectory());
+        log.info("Transformation mode: {}", getConfiguredTransformationMode());
         if (!config.parameters().isEmpty()) {
             log.info("Parameters: {}", config.parameters());
         }
+        warnIfProfilingWithDualMode();
     }
 
     /**
@@ -321,5 +396,196 @@ public abstract class AbstractExternalModelTest {
             return false;
         }
         return true;
+    }
+
+    // ========================================================================
+    // Transformation Mode Support
+    // ========================================================================
+
+    /**
+     * Gets the configured transformation mode from the system property.
+     * <p>
+     * Reads the {@code judo.test.transformation.mode} system property.
+     * Defaults to {@link TestTransformationMode#DUAL} for backward compatibility.
+     * </p>
+     *
+     * @return the configured transformation mode (case-insensitive)
+     */
+    public static TestTransformationMode getConfiguredTransformationMode() {
+        String value = System.getProperty(PROP_TRANSFORMATION_MODE);
+        if (value == null || value.trim().isEmpty()) {
+            return TestTransformationMode.DUAL;
+        }
+        try {
+            return TestTransformationMode.valueOf(value.toUpperCase().trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid transformation mode '{}', defaulting to DUAL", value);
+            return TestTransformationMode.DUAL;
+        }
+    }
+
+    /**
+     * Checks if ETL transformation should be executed based on configured mode.
+     *
+     * @return true if mode is ETL or DUAL
+     */
+    public static boolean shouldRunEtl() {
+        return getConfiguredTransformationMode().isEtl();
+    }
+
+    /**
+     * Checks if ZETA transformation should be executed based on configured mode.
+     *
+     * @return true if mode is ZETA or DUAL
+     */
+    public static boolean shouldRunZeta() {
+        return getConfiguredTransformationMode().isZeta();
+    }
+
+    /**
+     * Checks if results from both engines should be compared.
+     *
+     * @return true if mode is DUAL
+     */
+    public static boolean shouldCompareResults() {
+        return getConfiguredTransformationMode().shouldCompare();
+    }
+
+    /**
+     * Checks if JVM profiling is enabled via system property.
+     *
+     * @return true if profiling is enabled (default: false)
+     */
+    public static boolean isProfilingEnabled() {
+        return Boolean.parseBoolean(System.getProperty(PROP_PROFILER_ENABLED, "false"));
+    }
+
+    /**
+     * Logs a warning if profiling is enabled but mode is DUAL.
+     * <p>
+     * Running both ETL and ZETA during profiling pollutes JVM metrics with
+     * ETL/Epsilon interpreter overhead, making ZETA bottleneck analysis difficult.
+     * </p>
+     */
+    protected void warnIfProfilingWithDualMode() {
+        if (isProfilingEnabled() && getConfiguredTransformationMode() == TestTransformationMode.DUAL) {
+            log.warn("Profiling in DUAL mode - consider using ZETA mode (-D{}=ZETA) for accurate metrics",
+                    PROP_TRANSFORMATION_MODE);
+        }
+    }
+
+    // ========================================================================
+    // Structural Comparison Support
+    // ========================================================================
+
+    /**
+     * Checks if structural comparison is enabled via system property.
+     *
+     * @return true if structural comparison is enabled (default: false)
+     */
+    public static boolean isStructuralComparisonEnabled() {
+        return Boolean.parseBoolean(System.getProperty(PROP_STRUCTURAL_COMPARISON, "false"));
+    }
+
+    /**
+     * Checks if JSON export is enabled via system property.
+     *
+     * @return true if JSON export is enabled (default: false)
+     */
+    public static boolean isJsonExportEnabled() {
+        return Boolean.parseBoolean(System.getProperty(PROP_STRUCTURAL_EXPORT_JSON, "false"));
+    }
+
+    /**
+     * Gets the output directory for JSON exports.
+     *
+     * @return the output directory path
+     */
+    public static Path getJsonOutputDirectory() {
+        String outputDir = System.getProperty(PROP_STRUCTURAL_OUTPUT_DIR, DEFAULT_OUTPUT_DIR);
+        return Paths.get(outputDir);
+    }
+
+    /**
+     * Compares two EMF resources using structural comparison with checksums.
+     *
+     * <p>This method uses {@link ModelChecksumCalculator} to build structural representations
+     * of both resources, then uses {@link StructuralModelComparator} to compare them.
+     *
+     * <p>On failure, LLM-friendly output is logged for analysis.
+     *
+     * @param expected the expected (reference) resource
+     * @param actual the actual (transformed) resource
+     * @return the comparison result
+     */
+    protected ComparisonResult compareModelsStructural(Resource expected, Resource actual) {
+        log.info("Performing structural comparison...");
+
+        // Configure options to ignore attributes that may differ between ETL and ZETA
+        // but are semantically equivalent (e.g., null vs empty string for documentation)
+        CalculatorOptions options = new CalculatorOptions()
+                .ignore("*.*#documentation");  // Ignore documentation attribute (null vs "" difference)
+
+        ModelChecksumCalculator calc = new ModelChecksumCalculator();
+        ModelNode expectedNode = calc.calculate(expected, options);
+        ModelNode actualNode = calc.calculate(actual, options);
+
+        StructuralModelComparator comparator = new StructuralModelComparator();
+        ComparisonResult result = comparator.compare(expectedNode, actualNode);
+
+        if (result.isMatch()) {
+            log.info("Structural comparison: MATCH (checksums equal)");
+        } else {
+            log.error("Structural comparison: {} difference(s) found", result.getDifferenceCount());
+            log.error("LLM-friendly output:\n{}", comparator.formatForLLM(result));
+        }
+
+        return result;
+    }
+
+    /**
+     * Exports a model's structural representation to a JSON file.
+     *
+     * <p>The file is written to the configured output directory with the given filename.
+     * If the directory doesn't exist, it will be created.
+     *
+     * @param resource the resource to export
+     * @param filename the output filename (without path)
+     * @return the path to the written file, or null if export is disabled or fails
+     */
+    protected Path exportModelStructure(Resource resource, String filename) {
+        if (!isJsonExportEnabled()) {
+            log.debug("JSON export is disabled");
+            return null;
+        }
+
+        try {
+            Path outputDir = getJsonOutputDirectory();
+            Files.createDirectories(outputDir);
+
+            ModelChecksumCalculator calc = new ModelChecksumCalculator();
+            ModelNode node = calc.calculate(resource);
+            String json = calc.toJson(node);
+
+            Path outputPath = outputDir.resolve(filename);
+            Files.writeString(outputPath, json);
+            log.info("Exported model structure to: {}", outputPath);
+            return outputPath;
+        } catch (IOException e) {
+            log.warn("Failed to export model structure: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Exports both expected and actual model structures to JSON files.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @param baseName the base name for output files (will append -expected.json and -actual.json)
+     */
+    protected void exportModelStructures(Resource expected, Resource actual, String baseName) {
+        exportModelStructure(expected, baseName + "-expected.json");
+        exportModelStructure(actual, baseName + "-actual.json");
     }
 }

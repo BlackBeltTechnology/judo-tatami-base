@@ -23,9 +23,15 @@ package hu.blackbelt.judo.tatami.psm2asm;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.test.util.AbstractExternalModelTest;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.comparison.ComparisonResult;
+import hu.blackbelt.judo.tatami.test.util.comparison.ModelChecksumCalculator;
+import hu.blackbelt.judo.tatami.test.util.comparison.ModelNode;
+import hu.blackbelt.judo.tatami.test.util.comparison.StructuralModelComparator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -47,6 +53,9 @@ import static org.junit.jupiter.api.Assertions.*;
  *   <li>{@code judo.test.comparison.mode} - Comparison mode: STRICT, STRUCTURAL, LENIENT (default: STRUCTURAL)</li>
  *   <li>{@code judo.test.comparison.maxDifferences} - Max differences to report (default: 50)</li>
  *   <li>{@code judo.test.comparison.reportFile} - Output file for diff report (optional)</li>
+ *   <li>{@code judo.test.comparison.structural} - Use checksum-based structural comparison (default: false)</li>
+ *   <li>{@code judo.test.structural.exportJson} - Export model structures to JSON (default: false)</li>
+ *   <li>{@code judo.test.structural.outputDir} - JSON export directory (default: target/comparison)</li>
  * </ul>
  * 
  * <p>Example usage:</p>
@@ -228,6 +237,11 @@ public abstract class AbstractDualTransformationTest {
 
     /**
      * Compares two ASM models for equivalence.
+     * <p>
+     * If structural comparison is enabled via {@code -Djudo.test.comparison.structural=true},
+     * uses {@link StructuralModelComparator} for checksum-based comparison with LLM-friendly output.
+     * Otherwise, uses the traditional {@link ModelComparator}.
+     * </p>
      * Subclasses can override this to customize comparison logic.
      *
      * @param etlResult the result from ETL transformation
@@ -238,15 +252,57 @@ public abstract class AbstractDualTransformationTest {
         assertNotNull(zetaResult, "Zeta result should not be null");
 
         // Compare the root packages
-        if (!etlResult.getResourceSet().getResources().isEmpty() && 
+        if (!etlResult.getResourceSet().getResources().isEmpty() &&
             !zetaResult.getResourceSet().getResources().isEmpty()) {
-            
-            ModelComparator.assertEquivalent(
-                    etlResult.getResourceSet().getResources().get(0),
-                    zetaResult.getResourceSet().getResources().get(0),
-                    getComparisonMode()
-            );
+
+            Resource expectedResource = etlResult.getResourceSet().getResources().get(0);
+            Resource actualResource = zetaResult.getResourceSet().getResources().get(0);
+
+            if (AbstractExternalModelTest.isStructuralComparisonEnabled()) {
+                log.info("Using structural comparison (checksum-based)");
+                ComparisonResult result = compareModelsStructural(expectedResource, actualResource);
+                assertTrue(result.isMatch(),
+                    "Models are not structurally equivalent: " + result.getDifferenceCount() + " differences found");
+            } else {
+                ModelComparator.assertEquivalent(
+                        expectedResource,
+                        actualResource,
+                        getComparisonMode()
+                );
+            }
         }
+    }
+
+    /**
+     * Compares two resources using structural checksum-based comparison.
+     * <p>
+     * This method uses {@link ModelChecksumCalculator} to build structural representations
+     * and {@link StructuralModelComparator} to compare them. On failure, LLM-friendly
+     * output is logged for analysis.
+     * </p>
+     *
+     * @param expected the expected (ETL) resource
+     * @param actual the actual (Zeta) resource
+     * @return the comparison result
+     */
+    protected ComparisonResult compareModelsStructural(Resource expected, Resource actual) {
+        log.info("Performing structural comparison...");
+
+        ModelChecksumCalculator calc = new ModelChecksumCalculator();
+        ModelNode expectedNode = calc.calculate(expected);
+        ModelNode actualNode = calc.calculate(actual);
+
+        StructuralModelComparator comparator = new StructuralModelComparator();
+        ComparisonResult result = comparator.compare(expectedNode, actualNode);
+
+        if (result.isMatch()) {
+            log.info("Structural comparison: MATCH (checksums equal)");
+        } else {
+            log.error("Structural comparison: {} difference(s) found", result.getDifferenceCount());
+            log.error("LLM-friendly output:\n{}", comparator.formatForLLM(result));
+        }
+
+        return result;
     }
 
     /**

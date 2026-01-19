@@ -10,6 +10,15 @@
 
 This is essential context for understanding and working with this codebase.
 
+## ZETA Transformation Patterns
+
+**For ZETA transformation work, read `agent-docs/TRANSFORMATION_PATTERNS.md`** - it contains:
+- Problem registry and resolution status
+- Successful patterns and failed approaches
+- Testing and profiling guides
+- Post-processing documentation
+- ETL vs ZETA behavioral differences
+
 ## LSP Usage (Preferred for Java)
 
 **IMPORTANT: For Java class operations ALWAYS use LSP instead of Grep/Glob.**

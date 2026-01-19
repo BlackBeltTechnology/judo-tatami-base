@@ -81,6 +81,9 @@ public class Asm2RdbmsZetaTransformation {
     private final String modelVersion;
     private final int tableNameMaxSize;
     private final int columnNameMaxSize;
+    private final int shortNameSize;
+    private final int nameSize;
+    private final boolean createSimpleName;
     private final String tablePrefix;
     private final String columnPrefix;
     private final String foreignKeyPrefix;
@@ -117,6 +120,9 @@ public class Asm2RdbmsZetaTransformation {
         boolean isOracle = "oracle".equals(dialect);
         this.tableNameMaxSize = tableNameMaxSize != null && tableNameMaxSize > 0 ? tableNameMaxSize : (isOracle ? 30 : 62);
         this.columnNameMaxSize = columnNameMaxSize != null && columnNameMaxSize > 0 ? columnNameMaxSize : (isOracle ? 30 : 58);
+        this.shortNameSize = shortNameSize != null && shortNameSize > 0 ? shortNameSize : (isOracle ? 6 : 16);
+        this.nameSize = nameSize != null && nameSize > 0 ? nameSize : (isOracle ? 28 : 60);
+        this.createSimpleName = createSimpleName != null ? createSimpleName : false;
         this.tablePrefix = tablePrefix != null ? tablePrefix : "T_";
         this.columnPrefix = columnPrefix != null ? columnPrefix : "C_";
         this.foreignKeyPrefix = foreignKeyPrefix != null ? foreignKeyPrefix : "FK_";
@@ -246,6 +252,9 @@ public class Asm2RdbmsZetaTransformation {
         context.setAttribute("modelVersion", modelVersion);
         context.setAttribute("tableNameMaxSize", tableNameMaxSize);
         context.setAttribute("columnNameMaxSize", columnNameMaxSize);
+        context.setAttribute("shortNameSize", shortNameSize);
+        context.setAttribute("nameSize", nameSize);
+        context.setAttribute("createSimpleName", createSimpleName);
         context.setAttribute("tablePrefix", tablePrefix);
         context.setAttribute("columnPrefix", columnPrefix);
         context.setAttribute("foreignKeyPrefix", foreignKeyPrefix);

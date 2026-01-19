@@ -26,10 +26,12 @@ import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2asm.Psm2AsmWork;
 import hu.blackbelt.judo.tatami.test.profiler.Profile;
+import hu.blackbelt.judo.tatami.test.profiler.Profiler;
 import hu.blackbelt.judo.tatami.test.profiler.ProfilingExtension;
 import hu.blackbelt.judo.tatami.test.util.AbstractExternalModelTest;
 import hu.blackbelt.judo.tatami.test.util.ExternalModelConfig;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.comparison.ComparisonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EPackage;
@@ -63,8 +65,9 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 @Slf4j
 @Tag("performance")
-@ExtendWith(ProfilingExtension.class)
-@Profile(event = "cpu", thresholdMs = 1000)
+// Note: ProfilingExtension disabled to allow programmatic ZETA-only profiling
+// @ExtendWith(ProfilingExtension.class)
+// @Profile(event = "cpu", thresholdMs = 1000)
 public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
 
     @ParameterizedTest(name = "{0}")
@@ -84,17 +87,20 @@ public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
         log.info("Model file: {}", modelFile);
         log.info("Model file size: {} MB", modelFile.toFile().length() / (1024 * 1024));
 
-        // Optional warmup
+        // Optional warmup (only for engines that will run)
         if (config.isWarmupEnabled()) {
             log.info("");
             log.info("--- Warmup ---");
-            log.info("Warming up ETL...");
-            PsmModel warmupEtl = loadPsmModel(modelFile, "warmup-etl");
-            executeTransformation(warmupEtl, TransformationMode.ETL);
-
-            log.info("Warming up ZETA...");
-            PsmModel warmupZeta = loadPsmModel(modelFile, "warmup-zeta");
-            executeTransformation(warmupZeta, TransformationMode.ZETA);
+            if (shouldRunEtl()) {
+                log.info("Warming up ETL...");
+                PsmModel warmupEtl = loadPsmModel(modelFile, "warmup-etl");
+                executeTransformation(warmupEtl, TransformationMode.ETL);
+            }
+            if (shouldRunZeta()) {
+                log.info("Warming up ZETA...");
+                PsmModel warmupZeta = loadPsmModel(modelFile, "warmup-zeta");
+                executeTransformation(warmupZeta, TransformationMode.ZETA);
+            }
             log.info("Warmup complete");
         }
 
@@ -105,68 +111,134 @@ public class Psm2AsmExternalModelTest extends AbstractExternalModelTest {
         log.info("Model statistics:");
         log.info("  Total Elements: {}", totalElements);
 
-        // ETL measurement
-        log.info("");
-        log.info("--- ETL Transformation (measured) ---");
-        long etlTotalTime = 0;
+        // ETL measurement (if enabled)
+        long etlTime = 0;
         int etlClassifiers = 0;
         AsmModel etlResult = null;
-        for (int i = 0; i < config.getIterations(); i++) {
-            PsmModel etlModel = loadPsmModel(modelFile, "etl-" + i);
-            long etlStart = System.currentTimeMillis();
-            etlResult = executeTransformation(etlModel, TransformationMode.ETL);
-            etlTotalTime += System.currentTimeMillis() - etlStart;
-            etlClassifiers = countClassifiers(etlResult);
+        if (shouldRunEtl()) {
+            log.info("");
+            log.info("--- ETL Transformation (measured) ---");
+            long etlTotalTime = 0;
+            for (int i = 0; i < config.getIterations(); i++) {
+                PsmModel etlModel = loadPsmModel(modelFile, "etl-" + i);
+                long etlStart = System.currentTimeMillis();
+                etlResult = executeTransformation(etlModel, TransformationMode.ETL);
+                etlTotalTime += System.currentTimeMillis() - etlStart;
+                etlClassifiers = countClassifiers(etlResult);
+            }
+            etlTime = etlTotalTime / config.getIterations();
+            log.info("ETL completed in {}ms (avg of {}), produced {} classifiers",
+                    etlTime, config.getIterations(), etlClassifiers);
+        } else {
+            log.info("");
+            log.info("--- ETL Transformation (skipped) ---");
         }
-        long etlTime = etlTotalTime / config.getIterations();
-        log.info("ETL completed in {}ms (avg of {}), produced {} classifiers",
-                etlTime, config.getIterations(), etlClassifiers);
 
-        // ZETA measurement
-        log.info("");
-        log.info("--- ZETA Transformation (measured) ---");
-        long zetaTotalTime = 0;
+        // ZETA measurement with JVM profiling (if enabled)
+        long zetaTime = 0;
         int zetaClassifiers = 0;
         AsmModel zetaResult = null;
-        for (int i = 0; i < config.getIterations(); i++) {
-            PsmModel zetaModel = loadPsmModel(modelFile, "zeta-" + i);
-            long zetaStart = System.currentTimeMillis();
-            zetaResult = executeTransformation(zetaModel, TransformationMode.ZETA);
-            zetaTotalTime += System.currentTimeMillis() - zetaStart;
-            zetaClassifiers = countClassifiers(zetaResult);
-        }
-        long zetaTime = zetaTotalTime / config.getIterations();
-        log.info("Zeta completed in {}ms (avg of {}), produced {} classifiers",
-                zetaTime, config.getIterations(), zetaClassifiers);
+        if (shouldRunZeta()) {
+            log.info("");
+            log.info("--- ZETA Transformation (measured + profiled) ---");
+            long zetaTotalTime = 0;
 
-        // Results
-        printResults(config.modelName() + " PSM2ASM", totalElements,
-                etlTime, zetaTime, etlClassifiers, zetaClassifiers, "Classifiers");
+            // Start JVM profiler for ZETA only
+            boolean profilingStarted = Profiler.start("cpu");
+            if (profilingStarted) {
+                log.info("JVM profiling started for ZETA transformation");
+            }
 
-        // Model comparison
-        log.info("");
-        log.info("--- Model Comparison ---");
-        log.info("Comparison mode: {}", ModelComparator.getConfiguredMode());
+            for (int i = 0; i < config.getIterations(); i++) {
+                PsmModel zetaModel = loadPsmModel(modelFile, "zeta-" + i);
+                long zetaStart = System.currentTimeMillis();
+                zetaResult = executeTransformation(zetaModel, TransformationMode.ZETA);
+                zetaTotalTime += System.currentTimeMillis() - zetaStart;
+                zetaClassifiers = countClassifiers(zetaResult);
+            }
 
-        ModelComparator.ComparisonResult result = ModelComparator.compare(
-                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
-                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
-                ModelComparator.getConfiguredMode()
-        );
+            // Stop profiler and save ZETA-only profile
+            if (profilingStarted) {
+                var profilePath = Profiler.stopAndSave(config.modelName() + "_zeta_only.txt");
+                if (profilePath != null) {
+                    log.info("ZETA-only profile saved: {}", profilePath);
+                }
+            }
 
-        if (result.isEquivalent()) {
-            log.info("SUCCESS: ETL and Zeta models are EQUIVALENT");
+            zetaTime = zetaTotalTime / config.getIterations();
+            log.info("Zeta completed in {}ms (avg of {}), produced {} classifiers",
+                    zetaTime, config.getIterations(), zetaClassifiers);
         } else {
-            // Debug: Print annotation details for first entity class
-            log.error("Debugging annotation differences...");
-            printAnnotationComparison(
-                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
-                zetaResult.getResourceSet().getResources().get(0).getContents().get(0)
-            );
+            log.info("");
+            log.info("--- ZETA Transformation (skipped) ---");
+        }
 
-            log.error("Models have {} difference(s):\n{}",
-                    result.getDifferenceList().size(), result.getSummary());
-            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        // Results (only meaningful in DUAL mode)
+        if (shouldCompareResults()) {
+            printResults(config.modelName() + " PSM2ASM", totalElements,
+                    etlTime, zetaTime, etlClassifiers, zetaClassifiers, "Classifiers");
+        } else {
+            log.info("");
+            log.info("================================================================");
+            log.info("RESULTS: {} ({} elements)", config.modelName() + " PSM2ASM", totalElements);
+            log.info("================================================================");
+            if (shouldRunEtl()) {
+                log.info("ETL Time: {}ms, Classifiers: {}", etlTime, etlClassifiers);
+            }
+            if (shouldRunZeta()) {
+                log.info("ZETA Time: {}ms, Classifiers: {}", zetaTime, zetaClassifiers);
+            }
+            log.info("================================================================");
+        }
+
+        // Model comparison (only in DUAL mode)
+        if (shouldCompareResults()) {
+            log.info("");
+            log.info("--- Model Comparison ---");
+
+            var etlResource = etlResult.getResourceSet().getResources().get(0);
+            var zetaResource = zetaResult.getResourceSet().getResources().get(0);
+
+            // Export model structures if enabled
+            exportModelStructures(etlResource, zetaResource, config.modelName() + "-psm2asm");
+
+            if (isStructuralComparisonEnabled()) {
+                log.info("Using structural comparison (checksum-based)");
+                ComparisonResult structuralResult = compareModelsStructural(etlResource, zetaResource);
+
+                if (structuralResult.isMatch()) {
+                    log.info("SUCCESS: ETL and Zeta models are STRUCTURALLY EQUIVALENT");
+                } else {
+                    log.error("Structural comparison found {} difference(s)", structuralResult.getDifferenceCount());
+                    fail("ETL and Zeta models are not structurally equivalent: " +
+                            structuralResult.getDifferenceCount() + " differences found");
+                }
+            } else {
+                log.info("Comparison mode: {}", ModelComparator.getConfiguredMode());
+                ModelComparator.ComparisonResult result = ModelComparator.compare(
+                        etlResource.getContents().get(0),
+                        zetaResource.getContents().get(0),
+                        ModelComparator.getConfiguredMode()
+                );
+
+                if (result.isEquivalent()) {
+                    log.info("SUCCESS: ETL and Zeta models are EQUIVALENT");
+                } else {
+                    // Debug: Print annotation details for first entity class
+                    log.error("Debugging annotation differences...");
+                    printAnnotationComparison(
+                        etlResource.getContents().get(0),
+                        zetaResource.getContents().get(0)
+                    );
+
+                    log.error("Models have {} difference(s):\n{}",
+                            result.getDifferenceList().size(), result.getSummary());
+                    fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+                }
+            }
+        } else {
+            log.info("");
+            log.info("--- Model Comparison (skipped - single engine mode) ---");
         }
     }
 

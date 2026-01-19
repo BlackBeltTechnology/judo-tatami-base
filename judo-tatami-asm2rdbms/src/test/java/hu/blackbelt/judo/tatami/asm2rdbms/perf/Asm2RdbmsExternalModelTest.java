@@ -28,6 +28,7 @@ import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.test.util.AbstractExternalModelTest;
 import hu.blackbelt.judo.tatami.test.util.ExternalModelConfig;
 import hu.blackbelt.judo.tatami.test.util.ModelComparator;
+import hu.blackbelt.judo.tatami.test.util.comparison.ComparisonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.epsilon.common.util.UriUtil;
@@ -87,17 +88,20 @@ public class Asm2RdbmsExternalModelTest extends AbstractExternalModelTest {
         log.info("Model file size: {} MB", modelFile.toFile().length() / (1024 * 1024));
         log.info("Dialect: {}", dialect);
 
-        // Optional warmup
+        // Optional warmup (only for engines that will run)
         if (config.isWarmupEnabled()) {
             log.info("");
             log.info("--- Warmup ---");
-            log.info("Warming up ETL...");
-            AsmModel warmupEtl = loadAsmModel(modelFile, "warmup-etl");
-            executeTransformation(warmupEtl, TransformationMode.ETL, dialect);
-
-            log.info("Warming up ZETA...");
-            AsmModel warmupZeta = loadAsmModel(modelFile, "warmup-zeta");
-            executeTransformation(warmupZeta, TransformationMode.ZETA, dialect);
+            if (shouldRunEtl()) {
+                log.info("Warming up ETL...");
+                AsmModel warmupEtl = loadAsmModel(modelFile, "warmup-etl");
+                executeTransformation(warmupEtl, TransformationMode.ETL, dialect);
+            }
+            if (shouldRunZeta()) {
+                log.info("Warming up ZETA...");
+                AsmModel warmupZeta = loadAsmModel(modelFile, "warmup-zeta");
+                executeTransformation(warmupZeta, TransformationMode.ZETA, dialect);
+            }
             log.info("Warmup complete");
         }
 
@@ -108,61 +112,111 @@ public class Asm2RdbmsExternalModelTest extends AbstractExternalModelTest {
         log.info("Model statistics:");
         log.info("  Total Classifiers: {}", classifierCount);
 
-        // ETL measurement
-        log.info("");
-        log.info("--- ETL Transformation (measured) ---");
-        long etlTotalTime = 0;
+        // ETL measurement (if enabled)
+        long etlTime = 0;
         int etlTables = 0;
         RdbmsModel etlResult = null;
-        for (int i = 0; i < config.getIterations(); i++) {
-            AsmModel etlModel = loadAsmModel(modelFile, "etl-" + i);
-            long etlStart = System.currentTimeMillis();
-            etlResult = executeTransformation(etlModel, TransformationMode.ETL, dialect);
-            etlTotalTime += System.currentTimeMillis() - etlStart;
-            etlTables = countTables(etlResult);
+        if (shouldRunEtl()) {
+            log.info("");
+            log.info("--- ETL Transformation (measured) ---");
+            long etlTotalTime = 0;
+            for (int i = 0; i < config.getIterations(); i++) {
+                AsmModel etlModel = loadAsmModel(modelFile, "etl-" + i);
+                long etlStart = System.currentTimeMillis();
+                etlResult = executeTransformation(etlModel, TransformationMode.ETL, dialect);
+                etlTotalTime += System.currentTimeMillis() - etlStart;
+                etlTables = countTables(etlResult);
+            }
+            etlTime = etlTotalTime / config.getIterations();
+            log.info("ETL completed in {}ms (avg of {}), produced {} tables",
+                    etlTime, config.getIterations(), etlTables);
+        } else {
+            log.info("");
+            log.info("--- ETL Transformation (skipped) ---");
         }
-        long etlTime = etlTotalTime / config.getIterations();
-        log.info("ETL completed in {}ms (avg of {}), produced {} tables",
-                etlTime, config.getIterations(), etlTables);
 
-        // ZETA measurement
-        log.info("");
-        log.info("--- ZETA Transformation (measured) ---");
-        long zetaTotalTime = 0;
+        // ZETA measurement (if enabled)
+        long zetaTime = 0;
         int zetaTables = 0;
         RdbmsModel zetaResult = null;
-        for (int i = 0; i < config.getIterations(); i++) {
-            AsmModel zetaModel = loadAsmModel(modelFile, "zeta-" + i);
-            long zetaStart = System.currentTimeMillis();
-            zetaResult = executeTransformation(zetaModel, TransformationMode.ZETA, dialect);
-            zetaTotalTime += System.currentTimeMillis() - zetaStart;
-            zetaTables = countTables(zetaResult);
-        }
-        long zetaTime = zetaTotalTime / config.getIterations();
-        log.info("Zeta completed in {}ms (avg of {}), produced {} tables",
-                zetaTime, config.getIterations(), zetaTables);
-
-        // Results
-        printResults(config.modelName() + " ASM2RDBMS", classifierCount,
-                etlTime, zetaTime, etlTables, zetaTables, "Tables");
-
-        // Model comparison
-        log.info("");
-        log.info("--- Model Comparison ---");
-        log.info("Comparison mode: {}", ModelComparator.getConfiguredMode());
-
-        ModelComparator.ComparisonResult result = ModelComparator.compare(
-                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
-                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
-                ModelComparator.getConfiguredMode()
-        );
-
-        if (result.isEquivalent()) {
-            log.info("SUCCESS: ETL and Zeta models are EQUIVALENT");
+        if (shouldRunZeta()) {
+            log.info("");
+            log.info("--- ZETA Transformation (measured) ---");
+            long zetaTotalTime = 0;
+            for (int i = 0; i < config.getIterations(); i++) {
+                AsmModel zetaModel = loadAsmModel(modelFile, "zeta-" + i);
+                long zetaStart = System.currentTimeMillis();
+                zetaResult = executeTransformation(zetaModel, TransformationMode.ZETA, dialect);
+                zetaTotalTime += System.currentTimeMillis() - zetaStart;
+                zetaTables = countTables(zetaResult);
+            }
+            zetaTime = zetaTotalTime / config.getIterations();
+            log.info("Zeta completed in {}ms (avg of {}), produced {} tables",
+                    zetaTime, config.getIterations(), zetaTables);
         } else {
-            log.error("Models have {} difference(s):\n{}",
-                    result.getDifferenceList().size(), result.getSummary());
-            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+            log.info("");
+            log.info("--- ZETA Transformation (skipped) ---");
+        }
+
+        // Results (only meaningful in DUAL mode)
+        if (shouldCompareResults()) {
+            printResults(config.modelName() + " ASM2RDBMS", classifierCount,
+                    etlTime, zetaTime, etlTables, zetaTables, "Tables");
+        } else {
+            log.info("");
+            log.info("================================================================");
+            log.info("RESULTS: {} ({} elements)", config.modelName() + " ASM2RDBMS", classifierCount);
+            log.info("================================================================");
+            if (shouldRunEtl()) {
+                log.info("ETL Time: {}ms, Tables: {}", etlTime, etlTables);
+            }
+            if (shouldRunZeta()) {
+                log.info("ZETA Time: {}ms, Tables: {}", zetaTime, zetaTables);
+            }
+            log.info("================================================================");
+        }
+
+        // Model comparison (only in DUAL mode)
+        if (shouldCompareResults()) {
+            log.info("");
+            log.info("--- Model Comparison ---");
+
+            var etlResource = etlResult.getResourceSet().getResources().get(0);
+            var zetaResource = zetaResult.getResourceSet().getResources().get(0);
+
+            // Export model structures if enabled
+            exportModelStructures(etlResource, zetaResource, config.modelName() + "-asm2rdbms");
+
+            if (isStructuralComparisonEnabled()) {
+                log.info("Using structural comparison (checksum-based)");
+                ComparisonResult structuralResult = compareModelsStructural(etlResource, zetaResource);
+
+                if (structuralResult.isMatch()) {
+                    log.info("SUCCESS: ETL and Zeta models are STRUCTURALLY EQUIVALENT");
+                } else {
+                    log.error("Structural comparison found {} difference(s)", structuralResult.getDifferenceCount());
+                    fail("ETL and Zeta models are not structurally equivalent: " +
+                            structuralResult.getDifferenceCount() + " differences found");
+                }
+            } else {
+                log.info("Comparison mode: {}", ModelComparator.getConfiguredMode());
+                ModelComparator.ComparisonResult result = ModelComparator.compare(
+                        etlResource.getContents().get(0),
+                        zetaResource.getContents().get(0),
+                        ModelComparator.getConfiguredMode()
+                );
+
+                if (result.isEquivalent()) {
+                    log.info("SUCCESS: ETL and Zeta models are EQUIVALENT");
+                } else {
+                    log.error("Models have {} difference(s):\n{}",
+                            result.getDifferenceList().size(), result.getSummary());
+                    fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+                }
+            }
+        } else {
+            log.info("");
+            log.info("--- Model Comparison (skipped - single engine mode) ---");
         }
     }
 

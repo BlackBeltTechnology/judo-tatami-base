@@ -191,14 +191,15 @@ public class AttributeRules {
 
             // Create field - actual type will be RdbmsValueField from extending rule
             RdbmsField t = ctx.createTarget(RdbmsField.class);
-            t.setUuid("(asm/" + getId(s) + ")/RdbmsField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/RdbmsField");
             t.setName(utils.getAttributeFQName(s));
             t.setMandatory(false);
 
             // Set SQL name
             int columnNameMaxSize = ctx.getAttribute("columnNameMaxSize");
             String columnPrefix = ctx.getAttribute("columnPrefix");
-            t.setSqlName(fieldSqlName(s, columnNameMaxSize, columnPrefix));
+            int nameSize = ctx.getAttribute("nameSize");
+            t.setSqlName(fieldSqlName(s, columnNameMaxSize, columnPrefix, nameSize, utils));
 
             // Set type based on attribute type
             EClassifier eType = s.getEType();
@@ -246,10 +247,9 @@ public class AttributeRules {
             log.debug("    Add attribute: {}", utils.getAttributeFQName(s));
 
             // Execute parent rule to get base field setup
+            // Note: UUID is already set by the parent rule - don't override it
+            // ETL's @extends pattern keeps the abstract rule's UUID suffix
             RdbmsValueField t = ctx.executeParentRule(EATTRIBUTE_TO_RDBMS_FIELD, s);
-
-            // Override UUID for the concrete rule
-            t.setUuid("(asm/" + getId(s) + ")/TableValueField");
 
             // Add to table using named equivalent lookup
             // Matches ETL: s.eContainingClass.equivalent("EClassToRdbmsTable").fields.add(t)
@@ -286,7 +286,7 @@ public class AttributeRules {
             log.debug("    Add index: {}", utils.getAttributeFQName(s));
 
             RdbmsIndex t = ctx.createTarget(RdbmsIndex.class);
-            t.setUuid("(asm/" + getId(s) + ")/Index");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/Index");
             t.setName(utils.getAttributeFQName(s));
             t.setSqlName("IDX_" + md5(t.getUuid()));
 

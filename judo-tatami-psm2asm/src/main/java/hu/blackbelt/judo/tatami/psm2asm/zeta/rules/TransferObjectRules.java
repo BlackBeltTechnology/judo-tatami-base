@@ -22,9 +22,6 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta.rules;
 
 import hu.blackbelt.judo.meta.psm.accesspoint.AbstractActorType;
 import hu.blackbelt.judo.meta.psm.data.EntityType;
-import hu.blackbelt.judo.meta.psm.namespace.Model;
-import hu.blackbelt.judo.meta.psm.namespace.Namespace;
-import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.service.*;
 import hu.blackbelt.judo.meta.psm.type.CustomType;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
@@ -285,60 +282,25 @@ public class TransferObjectRules {
     }
 
     /**
-     * Guard: transfer object type is a metadata type
-     * ETL: JUDOPSM!TransferOperation.all().exists(o | o.behaviour.isDefined()
+     * Guard: transfer object type is a metadata type.
+     * Uses pre-computed set from Psm2AsmZetaTransformation for O(1) lookup instead of
+     * O(n) model traversal per call.
+     * <p>
+     * ETL logic: JUDOPSM!TransferOperation.all().exists(o | o.behaviour.isDefined()
      *      and o.behaviour.behaviourType == GET_METADATA
      *      and o.output.isDefined()
      *      and (o.output.type == self or o.output.type.relations.exists(r | r.target == self)))
+     * </p>
      */
+    @SuppressWarnings("unchecked")
     public boolean isMetadataType(EObject source, TransformationContext ctx) {
-        if (!(source instanceof TransferObjectType)) {
-            return false;
-        }
-        TransferObjectType self = (TransferObjectType) source;
-
-        // Get root element by walking up containment hierarchy
-        EObject root = source;
-        while (root.eContainer() != null) {
-            root = root.eContainer();
-        }
-
-        // Check all TransferOperations in the model
-        return streamOf(root.eAllContents())
-                .filter(TransferOperation.class::isInstance)
-                .map(TransferOperation.class::cast)
-                .anyMatch(op -> isGetMetadataOperationFor(op, self));
-    }
-
-    /**
-     * Helper: Check if operation is a GET_METADATA operation with output type matching the given type
-     */
-    private boolean isGetMetadataOperationFor(TransferOperation op, TransferObjectType targetType) {
-        if (op.getBehaviour() == null
-                || op.getBehaviour().getBehaviourType() != TransferOperationBehaviourType.GET_METADATA) {
-            return false;
-        }
-        if (op.getOutput() == null || op.getOutput().getType() == null) {
-            return false;
-        }
-        TransferObjectType outputType = op.getOutput().getType();
-        if (outputType == targetType) {
-            return true;
-        }
-        // Check if any relation of the output type targets the self type
-        if (outputType.getRelations() != null) {
-            return outputType.getRelations().stream()
-                    .anyMatch(r -> r.getTarget() == targetType);
+        if (source instanceof TransferObjectType) {
+            Object attr = ctx.getAttribute("metadataTypes");
+            if (attr instanceof java.util.Set) {
+                return ((java.util.Set<TransferObjectType>) attr).contains(source);
+            }
         }
         return false;
-    }
-
-    /**
-     * Helper: Convert iterator to stream
-     */
-    private static <T> java.util.stream.Stream<T> streamOf(java.util.Iterator<T> iterator) {
-        return java.util.stream.StreamSupport.stream(
-                java.util.Spliterators.spliteratorUnknownSize(iterator, 0), false);
     }
 
     // =========================================================================

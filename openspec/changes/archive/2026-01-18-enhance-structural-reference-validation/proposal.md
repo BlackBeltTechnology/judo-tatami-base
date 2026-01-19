@@ -1,6 +1,6 @@
 # Structural Model Comparison Utilities
 
-**Status:** in_progress
+**Status:** complete
 
 ## Summary
 
@@ -9,6 +9,10 @@ Create two separate utility classes for structural model comparison:
 1. **ModelChecksumCalculator** - Builds a structural representation (ModelNode tree) of an EMF model with checksums. Can export to JSON and load from JSON. Supports ignoring specific features.
 
 2. **StructuralModelComparator** - Takes two ModelNode trees (from ModelChecksumCalculator) and compares them, returning differences with resolvable EObjects. Provides LLM-friendly structured output format.
+
+## Why
+
+The current model comparison approach in Psm2AsmExternalModelTest is limited to identifier-based matching, which doesn't catch structural differences like attribute mismatches, missing references, or incorrect containment hierarchies. This makes it difficult to validate that the ZETA transformation produces identical output to the ETL reference implementation.
 
 ## Motivation
 

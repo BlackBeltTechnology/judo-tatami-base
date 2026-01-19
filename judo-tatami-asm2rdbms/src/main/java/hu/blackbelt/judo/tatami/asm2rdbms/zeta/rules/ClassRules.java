@@ -151,9 +151,12 @@ public class ClassRules {
             // Set basic properties
             int tableNameMaxSize = ctx.getAttribute("tableNameMaxSize");
             String tablePrefix = ctx.getAttribute("tablePrefix");
-            t.setSqlName(tableSqlName(s, tableNameMaxSize, tablePrefix, utils));
+            boolean createSimpleName = ctx.getAttribute("createSimpleName");
+            int shortNameSize = ctx.getAttribute("shortNameSize");
+            int nameSize = ctx.getAttribute("nameSize");
+            t.setSqlName(tableSqlName(s, tableNameMaxSize, tablePrefix, createSimpleName, shortNameSize, nameSize, utils));
             t.setName(utils.getClassifierFQName(s));
-            t.setUuid("(asm/" + getId(s) + ")/Table");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/Table");
 
             // Add to model using named equivalent (ETL: s.root().equivalent("rootPackegeToModel"))
             EPackage rootPackage = getRootPackage(s);
@@ -204,7 +207,7 @@ public class ClassRules {
 
             RdbmsIdentifierField t = ctx.createTarget(RdbmsIdentifierField.class);
             t.setName(utils.getClassifierFQName(s) + "#_id");
-            t.setUuid("(asm/" + getId(s) + ")/TableIdField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableIdField");
             t.setSqlName("ID");
             fillTypeFromContext(t, "java.util.UUID", ctx);
 
@@ -240,7 +243,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_type");
-            t.setUuid("(asm/" + getId(s) + ")/TableTypeField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableTypeField");
             t.setSqlName("TYPE");
             t.setMandatory(true);
             fillTypeFromContext(t, "java.lang.String", ctx);
@@ -270,7 +273,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_version");
-            t.setUuid("(asm/" + getId(s) + ")/TableVersionField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableVersionField");
             t.setSqlName("VERSION");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.lang.Integer", ctx);
@@ -300,7 +303,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_create_username");
-            t.setUuid("(asm/" + getId(s) + ")/TableCreateUsernameField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableCreateUsernameField");
             t.setSqlName("CREATE_USERNAME");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.lang.String", ctx);
@@ -330,7 +333,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_create_user_id");
-            t.setUuid("(asm/" + getId(s) + ")/TableCreateUserIdField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableCreateUserIdField");
             t.setSqlName("CREATE_USER_ID");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.util.UUID", ctx);
@@ -360,7 +363,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_create_timestamp");
-            t.setUuid("(asm/" + getId(s) + ")/TableCreateTimestampField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableCreateTimestampField");
             t.setSqlName("CREATE_TIMESTAMP");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.time.LocalDateTime", ctx);
@@ -390,7 +393,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_update_username");
-            t.setUuid("(asm/" + getId(s) + ")/TableUpdateUsernameField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableUpdateUsernameField");
             t.setSqlName("UPDATE_USERNAME");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.lang.String", ctx);
@@ -420,7 +423,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_update_user_id");
-            t.setUuid("(asm/" + getId(s) + ")/TableUpdateUserIdField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableUpdateUserIdField");
             t.setSqlName("UPDATE_USER_ID");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.util.UUID", ctx);
@@ -450,7 +453,7 @@ public class ClassRules {
 
             RdbmsValueField t = ctx.createTarget(RdbmsValueField.class);
             t.setName(utils.getClassifierFQName(s) + "#_update_timestamp");
-            t.setUuid("(asm/" + getId(s) + ")/TableUpdateTimestampField");
+            t.setUuid("(asm/" + ctx.getElementId(s) + ")/TableUpdateTimestampField");
             t.setSqlName("UPDATE_TIMESTAMP");
             t.setMandatory(false);
             fillTypeFromContext(t, "java.time.LocalDateTime", ctx);

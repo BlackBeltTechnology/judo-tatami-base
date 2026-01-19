@@ -707,6 +707,107 @@ Fix Implementation
 
 ---
 
+## Performance Profiling
+
+### ZETA-Only JVM Profiling
+
+The test infrastructure supports programmatic profiling of specific code sections using async-profiler.
+
+**Usage in tests:**
+```java
+import hu.blackbelt.judo.tatami.test.profiler.Profiler;
+
+// Profile only ZETA transformation
+Profiler.start("cpu");
+zetaResult = executeTransformation(zetaModel, TransformationMode.ZETA);
+Path profilePath = Profiler.stopAndSave("zeta_only_profile.txt");
+```
+
+**Run benchmark with profiling:**
+```bash
+mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmExternalModelTest -Pperformance \
+  -Djudo.test.comparison.mode=STRICT -Djudo.test.comparison.xmiIds=true
+```
+
+Profile output saved to: `target/profiler-output/rackinspect_zeta_only.txt`
+
+---
+
+### Performance Bottleneck Analysis (Jan 2026)
+
+**ZETA Transformation Metrics (RackInspect model - 22,370 elements):**
+
+| Metric | Value |
+|--------|-------|
+| ETL Time | 37,475ms |
+| ZETA Time | 4,598ms |
+| **Speedup** | **8.15x faster** |
+| Guard evaluations | 80,695 |
+| Guard rejection rate | 96% |
+| Cache operations | 88.4% of time |
+
+---
+
+### Primary Bottleneck: Guard Evaluation via EMF Traversal
+
+**JVM Profiler Top Hotspots (ZETA-only):**
+
+| Samples | Method | Category |
+|---------|--------|----------|
+| 10 | `EContentsEList$FeatureIteratorImpl.hasNext` | EMF traversal |
+| 7 | `itable stub` | Interface dispatch |
+| 5 | `AbstractTreeIterator.next` | EMF traversal |
+| 4 | `EStructuralFeatureImpl.getFeatureID` | EMF metadata |
+| 4 | `BasicEObjectImpl.eDerivedStructuralFeatureID` | EMF metadata |
+| 3 | `EContentsEList.newResolvingListIterator` | EMF traversal |
+| 3 | `EClassImpl.getEAllStructuralFeatures` | EMF metadata |
+
+**Root Cause:**
+- Guard evaluation (80,695 calls) triggers EMF tree traversal
+- Methods like `isMetadataType()` use `anyMatch()` on model iterators
+- 96% rejection rate means rules are checked against incompatible element types
+- EMF's `EContentsEList$FeatureIteratorImpl` dominates CPU time
+
+**Call Stack Example:**
+```
+[0] EContentsEList$FeatureIteratorImpl.hasNext       ← BOTTLENECK
+[1] AbstractTreeIterator.next
+[2] Spliterators$IteratorSpliterator.tryAdvance
+[3] ReferencePipeline.forEachWithCancel
+...
+[11] TransferObjectRules.isMetadataType               ← Guard method
+[12-17] Java reflection/invoke
+[18] TransformRuleDescriptor.lambda$getGuard$0
+[20] TransformRuleDescriptor.evaluateGuard
+[23] ElementResolutionCache.getOrCreate
+[24] TransformationExecutor.executeEagerRulesFor
+[26] TransformationExecutor.transform
+```
+
+---
+
+### Optimization Opportunities
+
+**Priority 1: Type-Based Rule Filtering (in judo-zeta)**
+- Build type-to-rules index during registration
+- Only evaluate rules for compatible element types
+- Expected reduction: 80,695 → ~10,000 evaluations (~8x fewer)
+- Expected speedup: ~2-4x additional
+
+**Priority 2: Guard Result Caching**
+- Cache guard evaluation results per (source, rule) pair
+- Avoid re-evaluating guards for same element
+
+**Priority 3: Lazy Tree Iteration**
+- Avoid creating new EMF iterators for each guard check
+- Consider pre-computing type information
+
+**Location of fix:** `judo-zeta` project (external dependency)
+- `TransformationRegistry` - build type index
+- `TransformationExecutor` - filter rules by type
+
+---
+
 ## Summary of ETL vs ZETA Differences
 
 | # | Transformation | Difference | Post-Process Step | Status |
@@ -729,5 +830,6 @@ Fix Implementation
 
 | Date | Author | Changes |
 |------|--------|---------|
+| 2026-01-16 | Claude | Added Performance Profiling section with ZETA-only JVM profiling, bottleneck analysis, and optimization opportunities |
 | 2026-01-16 | Claude | Added comprehensive ETL vs ZETA differences for all transformations |
 | 2026-01-15 | Claude | Initial document adapted for judo-tatami-base with general ZETA patterns |
