@@ -1,7 +1,7 @@
 # PSM to ASM Transformation Specification
 
 ## Purpose
-Transforms a Platform-Specific Model (PsmModel) into an Application-Specific Model (AsmModel) using Epsilon ETL scripts, producing a fully populated ASM representation of the domain along with an optional transformation trace.
+Transforms a Platform-Specific Model (PsmModel) into an Architecture Specific Model (AsmModel) using Epsilon ETL scripts, producing a fully populated ASM representation of the domain along with an optional transformation trace.
 
 ## Architecture
 The module is structured around three main classes and an OSGi integration layer:

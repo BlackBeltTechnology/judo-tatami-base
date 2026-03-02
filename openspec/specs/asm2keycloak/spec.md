@@ -1,7 +1,7 @@
 # ASM to Keycloak Transformation Specification
 
 ## Purpose
-Transforms an Application-Specific Model (AsmModel) into a Keycloak Model (KeycloakModel) using Epsilon ETL scripts, generating Keycloak realm and client configurations from ASM actor and security definitions.
+Transforms an Architecture Specific Model (AsmModel) into a Keycloak Model (KeycloakModel) using Epsilon ETL scripts, generating Keycloak realm and client configurations from ASM actor and security definitions.
 
 ## Architecture
 The module follows the standard Tatami transformation pattern:

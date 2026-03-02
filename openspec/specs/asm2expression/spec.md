@@ -1,7 +1,7 @@
 # ASM to Expression Transformation Specification
 
 ## Purpose
-Extracts JQL (JUDO Query Language) expressions from an Application-Specific Model (AsmModel) and populates an ExpressionModel using the `AsmJqlExtractor`, with optional MeasureModel integration for unit-aware expressions.
+Extracts JQL (JUDO Query Language) expressions from an Architecture Specific Model (AsmModel) and populates an ExpressionModel using the `AsmJqlExtractor`, with optional MeasureModel integration for unit-aware expressions.
 
 ## Architecture
 The module is structured around:
