@@ -1,7 +1,7 @@
 # ASM Validation Specification
 
 ## Purpose
-Validates an Application-Specific Model (AsmModel) against structural and semantic constraints defined in Epsilon EVL scripts, ensuring the ASM model conforms to the JUDO ASM metamodel rules before downstream transformations to RDBMS or expression models.
+Validates an Architecture Specific Model (AsmModel) against structural and semantic constraints defined in Epsilon EVL scripts, ensuring the ASM model conforms to the JUDO ASM metamodel rules before downstream transformations to RDBMS or expression models.
 
 ## Architecture
 The module contains a single class:
