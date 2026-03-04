@@ -1,0 +1,43 @@
+# JUDO Tatami Base
+
+> Model transformation pipeline for the JUDO platform, converting Platform-Specific Models (PSM) through automated steps into application models, database schemas, migration scripts, expression models, and identity provider configurations.
+
+Key facts:
+- Java 21, Maven 3.9.4+ multi-module project with 10 submodules
+- Transformation engine: Eclipse Epsilon (ETL/EOL/EGL/EVL scripts)
+- Model framework: Eclipse EMF (Ecore metamodels, EObjects)
+- Module system: OSGi bundles (Apache Felix Maven Bundle Plugin)
+- Supports three database dialects: HSQLDB, PostgreSQL, Oracle
+- Full source-to-target traceability via TransformationTrace objects
+- License: Eclipse Public License 2.0 (EPL-2.0)
+
+## Docs
+
+- [README.md](README.md): Project overview, transformation pipeline diagram, module descriptions, and build instructions
+- [AGENTS.md](AGENTS.md): Detailed developer guide with build commands, directory structure, technology stack, and coding conventions
+- [CONTRIBUTING.md](CONTRIBUTING.md): Development setup, issue reporting, and pull request guidelines
+- [.github/CIFLOW.md](.github/CIFLOW.md): Branching strategy and CI/CD workflow documentation
+
+## Modules — Transformations
+
+- [judo-tatami-psm2asm/pom.xml](judo-tatami-psm2asm/pom.xml): PSM to ASM (Architecture Specific Model) transformation using Epsilon ETL
+- [judo-tatami-psm2measure/pom.xml](judo-tatami-psm2measure/pom.xml): PSM to Measure transformation — extracts measurement unit definitions
+- [judo-tatami-asm2rdbms/pom.xml](judo-tatami-asm2rdbms/pom.xml): ASM to RDBMS transformation with HSQLDB, PostgreSQL, and Oracle dialect support
+- [judo-tatami-asm2expression/pom.xml](judo-tatami-asm2expression/pom.xml): ASM to Expression transformation — builds expression trees from JQL queries (Java-based, not Epsilon)
+- [judo-tatami-asm2keycloak/pom.xml](judo-tatami-asm2keycloak/pom.xml): ASM to Keycloak transformation — generates identity and authorization model
+- [judo-tatami-rdbms2liquibase/pom.xml](judo-tatami-rdbms2liquibase/pom.xml): RDBMS to Liquibase transformation — generates full and incremental database migration changesets
+
+## Modules — Validation
+
+- [judo-tatami-psm-validation/pom.xml](judo-tatami-psm-validation/pom.xml): PSM (Platform Specific Model) model constraint validation using Epsilon EVL
+- [judo-tatami-asm-validation/pom.xml](judo-tatami-asm-validation/pom.xml): ASM (Architecture Specific Model) model constraint validation using Epsilon EVL
+- [judo-tatami-expression-asm-validation/pom.xml](judo-tatami-expression-asm-validation/pom.xml): Validates expression models against ASM structure
+- [judo-tatami-expression-psm-validation/pom.xml](judo-tatami-expression-psm-validation/pom.xml): Validates expression models against PSM structure
+
+## Optional
+
+- [.github/workflows/build.yml](.github/workflows/build.yml): Main CI pipeline (build, deploy, tag, release)
+- [.github/workflows/release.yml](.github/workflows/release.yml): Manual release workflow
+- [LICENSE.txt](LICENSE.txt): Eclipse Public License 2.0 license text
+- [pom.xml](pom.xml): Parent POM with all module declarations, dependency management, and plugin configuration
+- [logback-test.xml](logback-test.xml): Shared Logback configuration for test logging
