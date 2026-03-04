@@ -34,6 +34,42 @@ Key facts:
 - [judo-tatami-expression-asm-validation/pom.xml](judo-tatami-expression-asm-validation/pom.xml): Validates expression models against ASM structure
 - [judo-tatami-expression-psm-validation/pom.xml](judo-tatami-expression-psm-validation/pom.xml): Validates expression models against PSM structure
 
+## Depends on
+
+- [judo-meta-asm](../../models/judo-meta-asm): models/judo-meta-asm
+- [judo-meta-expression](../../models/judo-meta-expression): models/judo-meta-expression
+- [judo-meta-expression-asm](../../models/judo-meta-expression-asm): models/judo-meta-expression-asm
+- [judo-meta-expression-psm](../../models/judo-meta-expression-psm): models/judo-meta-expression-psm
+- [judo-meta-jql](../../models/judo-meta-jql): models/judo-meta-jql
+- [judo-meta-keycloak](../../models/judo-meta-keycloak): models/judo-meta-keycloak
+- [judo-meta-liquibase](../../models/judo-meta-liquibase): models/judo-meta-liquibase
+- [judo-meta-measure](../../models/judo-meta-measure): models/judo-meta-measure
+- [judo-meta-psm](../../models/judo-meta-psm): models/judo-meta-psm
+- [judo-meta-rdbms](../../models/judo-meta-rdbms): models/judo-meta-rdbms
+- [osgi-repackaged-bundles](../../packages/osgi-repackaged-bundles): packages/osgi-repackaged-bundles
+- [judo-dao-api](../judo-dao-api): runtime/judo-dao-api
+- [judo-dispatcher-api](../judo-dispatcher-api): runtime/judo-dispatcher-api
+- [judo-operation-utils](../judo-operation-utils): runtime/judo-operation-utils
+- [judo-sdk-common](../judo-sdk-common): runtime/judo-sdk-common
+- [judo-tatami](../judo-tatami): runtime/judo-tatami
+- [judo-tatami-core](../judo-tatami-core): runtime/judo-tatami-core
+- [judo-tatami-util](../judo-tatami-util): runtime/judo-tatami-util
+- [epsilon-runtime](../../tools/epsilon-runtime): tools/epsilon-runtime
+- [java-embedded-compiler](../../tools/java-embedded-compiler): tools/java-embedded-compiler
+
+## Used by
+
+- [judo-platform](../judo-platform): runtime/judo-platform
+- [judo-rdbms-schema](../judo-rdbms-schema): runtime/judo-rdbms-schema
+- [judo-runtime-core](../judo-runtime-core): runtime/judo-runtime-core
+- [judo-runtime-core-esm-itest](../judo-runtime-core-esm-itest): runtime/judo-runtime-core-esm-itest
+- [judo-runtime-core-jsl](../judo-runtime-core-jsl): runtime/judo-runtime-core-jsl
+- [judo-services](../judo-services): runtime/judo-services
+- [judo-tatami](../judo-tatami): runtime/judo-tatami
+- [judo-tatami-jsl](../judo-tatami-jsl): runtime/judo-tatami-jsl
+- [judo-jsl-springboot-parent](../../spring/judo-jsl-springboot-parent): spring/judo-jsl-springboot-parent
+- [judo-jsl-springboot-starter](../../spring/judo-jsl-springboot-starter): spring/judo-jsl-springboot-starter
+
 ## Optional
 
 - [.github/workflows/build.yml](.github/workflows/build.yml): Main CI pipeline (build, deploy, tag, release)
