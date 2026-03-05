@@ -61,3 +61,8 @@ wercker.env
 .release
 /build.log
 **/.flattened-pom.xml
+.claude/commands/opsx
+.claude/skills/openspec-*.md
+.gemini
+.opencode
+.agent
