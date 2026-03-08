@@ -588,4 +588,50 @@ public abstract class AbstractExternalModelTest {
         exportModelStructure(expected, baseName + "-expected.json");
         exportModelStructure(actual, baseName + "-actual.json");
     }
+
+    // ========================================================================
+    // Model Discovery
+    // ========================================================================
+
+    /**
+     * Discovers model files by scanning a directory for subdirectories that follow a naming convention.
+     *
+     * <p>For each top-level subdirectory in {@code baseDir}, checks if
+     * {@code {name}/{conventionSubPath}/{name}-{modelType}.model} exists.
+     *
+     * @param baseDir the base directory to scan (resolved relative to module root)
+     * @param modelType the model type suffix (e.g., "esm", "psm")
+     * @param conventionSubPath the subdirectory path convention (e.g., "application/model/target/generated-resources/model")
+     * @return a stream of discovered model configurations
+     */
+    protected static Stream<ExternalModelConfig> discoverModels(Path baseDir, String modelType, String conventionSubPath) {
+        if (!Files.isDirectory(baseDir)) {
+            log.warn("Model discovery base directory does not exist: {}", baseDir);
+            return Stream.empty();
+        }
+
+        log.info("Discovering models in: {}", baseDir);
+
+        List<ExternalModelConfig> configs = new ArrayList<>();
+        try (var entries = Files.list(baseDir)) {
+            entries.filter(Files::isDirectory)
+                    .sorted()
+                    .forEach(dir -> {
+                        String name = dir.getFileName().toString();
+                        Path modelDir = dir.resolve(conventionSubPath);
+                        Path modelFile = modelDir.resolve(name + "-" + modelType + ".model");
+
+                        if (Files.isRegularFile(modelFile)) {
+                            configs.add(new ExternalModelConfig(name, modelDir.toAbsolutePath().normalize(), true, Map.of()));
+                            log.info("Discovered model '{}': {}", name, modelDir);
+                        }
+                    });
+        } catch (IOException e) {
+            log.warn("Failed to scan directory '{}': {}", baseDir, e.getMessage());
+            return Stream.empty();
+        }
+
+        log.info("Discovered {} models", configs.size());
+        return configs.stream()
+    }
 }
