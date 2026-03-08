@@ -488,6 +488,18 @@ public class OperationRules {
                 }
             }
             
+            // Add faults as exceptions (from CreateOperation abstract rule in ETL)
+            for (var fault : s.getFaults()) {
+                if (fault.getType() != null) {
+                    EClass faultType = ctx.equivalent(fault.getType(), EClass.class);
+                    if (faultType != null) {
+                        synchronized (t.getEExceptions()) {
+                            t.getEExceptions().add(faultType);
+                        }
+                    }
+                }
+            }
+
             // Add to owning transfer object class (thread-safe)
             TransferObjectType owner = (TransferObjectType) s.eContainer();
             if (owner != null) {

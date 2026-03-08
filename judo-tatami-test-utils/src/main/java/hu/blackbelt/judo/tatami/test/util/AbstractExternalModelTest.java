@@ -29,14 +29,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 /**
@@ -75,6 +78,50 @@ public abstract class AbstractExternalModelTest {
 
     private static final String PROPERTIES_FILE = "external-model-tests.properties";
     private static final String MODULE_ROOT_PROPERTY = "judo.test.module.root";
+    private static final String JSON_RESULTS_FILENAME = "comparison-results.json";
+
+    /**
+     * Record capturing per-model test results for summary reporting.
+     */
+    public record TestResult(
+            String modelName,
+            long etlTimeMs,
+            long zetaTimeMs,
+            double speedup,
+            int etlOutputCount,
+            int zetaOutputCount,
+            String outputLabel,
+            String comparisonResult, // "EQUIVALENT", "FAILED", "SKIPPED"
+            int differenceCount
+    ) {}
+
+    /** Thread-safe list for collecting results during test execution. */
+    private final List<TestResult> testResults = new CopyOnWriteArrayList<>();
+
+    /**
+     * Records a test result for summary reporting.
+     */
+    protected void recordResult(String modelName, long etlTimeMs, long zetaTimeMs,
+                                int etlOutputCount, int zetaOutputCount, String outputLabel,
+                                String comparisonResult, int differenceCount) {
+        double speedup = zetaTimeMs > 0 ? (double) etlTimeMs / zetaTimeMs : 0;
+        testResults.add(new TestResult(modelName, etlTimeMs, zetaTimeMs, speedup,
+                etlOutputCount, zetaOutputCount, outputLabel, comparisonResult, differenceCount));
+    }
+
+    /**
+     * Clears collected results. Call at the beginning of each test factory.
+     */
+    protected void clearResults() {
+        testResults.clear();
+    }
+
+    /**
+     * Returns the collected results (unmodifiable).
+     */
+    protected List<TestResult> getResults() {
+        return Collections.unmodifiableList(testResults);
+    }
 
     // Structural comparison system properties
     /** System property to enable structural comparison (default: false) */
@@ -632,6 +679,127 @@ public abstract class AbstractExternalModelTest {
         }
 
         log.info("Discovered {} models", configs.size());
-        return configs.stream()
+        return configs.stream();
+    }
+
+    /**
+     * Prints a summary table of all collected test results.
+     *
+     * @param moduleName the module name (e.g., "PSM2ASM")
+     */
+    protected void printSummary(String moduleName) {
+        if (testResults.isEmpty()) {
+            log.info("No results to summarize for {}", moduleName);
+            return;
+        }
+
+        int passed = (int) testResults.stream().filter(r -> "EQUIVALENT".equals(r.comparisonResult())).count();
+        int failed = (int) testResults.stream().filter(r -> "FAILED".equals(r.comparisonResult())).count();
+        int skipped = (int) testResults.stream().filter(r -> "SKIPPED".equals(r.comparisonResult())).count();
+
+        log.info("");
+        log.info("================================================================");
+        log.info("SUMMARY: {} ({} models, {} passed, {} failed, {} skipped)",
+                moduleName, testResults.size(), passed, failed, skipped);
+        log.info("================================================================");
+        log.info(String.format("%-28s │ %8s │ %8s │ %8s │ %s",
+                "Model", "ETL(ms)", "Zeta(ms)", "Speedup", "Comparison"));
+        log.info("─────────────────────────────┼──────────┼──────────┼──────────┼────────────");
+
+        long totalEtl = 0;
+        long totalZeta = 0;
+        for (TestResult r : testResults) {
+            totalEtl += r.etlTimeMs();
+            totalZeta += r.zetaTimeMs();
+            String speedupStr = r.speedup() >= 1.0
+                    ? String.format("%.2fx", r.speedup())
+                    : String.format("%.2fx SLOW", r.speedup());
+            log.info(String.format("%-28s │ %8d │ %8d │ %8s │ %s",
+                    truncate(r.modelName(), 28), r.etlTimeMs(), r.zetaTimeMs(),
+                    speedupStr, r.comparisonResult()));
+        }
+
+        double avgSpeedup = totalZeta > 0 ? (double) totalEtl / totalZeta : 0;
+        log.info("─────────────────────────────┼──────────┼──────────┼──────────┼────────────");
+        log.info(String.format("%-28s │ %8d │ %8d │ %8s │ %d/%d PASS",
+                "TOTAL", totalEtl, totalZeta,
+                String.format("%.2fx", avgSpeedup),
+                passed, testResults.size()));
+        log.info("================================================================");
+    }
+
+    /**
+     * Writes test results as JSON to the given target directory.
+     *
+     * @param moduleName the module name
+     * @param targetDir the target directory (e.g., "target/")
+     */
+    protected void writeJsonResults(String moduleName, Path targetDir) {
+        if (testResults.isEmpty()) {
+            return;
+        }
+
+        try {
+            Files.createDirectories(targetDir);
+            Path jsonFile = targetDir.resolve(JSON_RESULTS_FILENAME);
+
+            String comparisonMode = System.getProperty("judo.test.comparison.mode", "STRUCTURAL");
+            boolean comparisonEnabled = !"false".equalsIgnoreCase(
+                    System.getProperty("judo.test.comparison.enabled", "true"));
+
+            int passed = (int) testResults.stream().filter(r -> "EQUIVALENT".equals(r.comparisonResult())).count();
+            int failed = (int) testResults.stream().filter(r -> "FAILED".equals(r.comparisonResult())).count();
+            int skipped = (int) testResults.stream().filter(r -> "SKIPPED".equals(r.comparisonResult())).count();
+            long totalEtl = testResults.stream().mapToLong(TestResult::etlTimeMs).sum();
+            long totalZeta = testResults.stream().mapToLong(TestResult::zetaTimeMs).sum();
+            double avgSpeedup = totalZeta > 0 ? (double) totalEtl / totalZeta : 0;
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\n");
+            sb.append("  \"module\": \"").append(escapeJson(moduleName)).append("\",\n");
+            sb.append("  \"timestamp\": \"").append(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("\",\n");
+            sb.append("  \"comparisonMode\": \"").append(comparisonEnabled ? comparisonMode : "DISABLED").append("\",\n");
+            sb.append("  \"results\": [\n");
+
+            for (int i = 0; i < testResults.size(); i++) {
+                TestResult r = testResults.get(i);
+                sb.append("    {\n");
+                sb.append("      \"model\": \"").append(escapeJson(r.modelName())).append("\",\n");
+                sb.append("      \"etlTimeMs\": ").append(r.etlTimeMs()).append(",\n");
+                sb.append("      \"zetaTimeMs\": ").append(r.zetaTimeMs()).append(",\n");
+                sb.append("      \"speedup\": ").append(String.format("%.2f", r.speedup())).append(",\n");
+                sb.append("      \"etlOutputCount\": ").append(r.etlOutputCount()).append(",\n");
+                sb.append("      \"zetaOutputCount\": ").append(r.zetaOutputCount()).append(",\n");
+                sb.append("      \"outputLabel\": \"").append(escapeJson(r.outputLabel())).append("\",\n");
+                sb.append("      \"comparisonResult\": \"").append(r.comparisonResult()).append("\",\n");
+                sb.append("      \"differenceCount\": ").append(r.differenceCount()).append("\n");
+                sb.append("    }").append(i < testResults.size() - 1 ? "," : "").append("\n");
+            }
+
+            sb.append("  ],\n");
+            sb.append("  \"summary\": {\n");
+            sb.append("    \"totalModels\": ").append(testResults.size()).append(",\n");
+            sb.append("    \"passed\": ").append(passed).append(",\n");
+            sb.append("    \"failed\": ").append(failed).append(",\n");
+            sb.append("    \"skipped\": ").append(skipped).append(",\n");
+            sb.append("    \"totalEtlTimeMs\": ").append(totalEtl).append(",\n");
+            sb.append("    \"totalZetaTimeMs\": ").append(totalZeta).append(",\n");
+            sb.append("    \"avgSpeedup\": ").append(String.format("%.2f", avgSpeedup)).append("\n");
+            sb.append("  }\n");
+            sb.append("}\n");
+
+            Files.writeString(jsonFile, sb.toString(), StandardCharsets.UTF_8);
+            log.info("Results written to: {}", jsonFile);
+        } catch (IOException e) {
+            log.warn("Failed to write JSON results: {}", e.getMessage());
+        }
+    }
+
+    private static String truncate(String s, int maxLen) {
+        return s.length() <= maxLen ? s : s.substring(0, maxLen - 2) + "..";
+    }
+
+    private static String escapeJson(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

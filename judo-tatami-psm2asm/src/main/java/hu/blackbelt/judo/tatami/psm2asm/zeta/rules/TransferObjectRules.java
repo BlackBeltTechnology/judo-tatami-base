@@ -303,6 +303,25 @@ public class TransferObjectRules {
         return false;
     }
 
+    /**
+     * Guard: element has documentation
+     */
+    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
+        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
+            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
+            return doc != null && !doc.isEmpty();
+        }
+        return false;
+    }
+
+    /**
+     * Helper: Convert iterator to stream
+     */
+    private static <T> java.util.stream.Stream<T> streamOf(java.util.Iterator<T> iterator) {
+        return java.util.stream.StreamSupport.stream(
+                java.util.Spliterators.spliteratorUnknownSize(iterator, 0), false);
+    }
+
     // =========================================================================
     // TRANSFER OBJECT TYPE RULES
     // =========================================================================
@@ -522,6 +541,30 @@ public class TransferObjectRules {
             addAnnotationDetail(t, "value", "true");
             
             // Add to equivalent class (thread-safe)
+            EClass eClass = ctx.equivalent(s, EClass.class);
+            addAnnotation(eClass, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForTransferObjectType
+     *     transform s : JUDOPSM!TransferObjectType
+     *     to t : ASM!EAnnotation
+     *         extends CreateDocumentationAnnotation
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_TRANSFER_OBJECT_TYPE, description = "Add documentation annotation to transfer object type")
+    @Greedy
+    @Guard(method = "hasDocumentation")
+    @Transform(type = TransferObjectType.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferObjectType, EAnnotation> createDocumentationAnnotationForTransferObjectType() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
             EClass eClass = ctx.equivalent(s, EClass.class);
             addAnnotation(eClass, t);
 
@@ -916,6 +959,30 @@ public class TransferObjectRules {
         };
     }
 
+    /**
+     * rule CreateDocumentationAnnotationForTransferAttribute
+     *     transform s : JUDOPSM!TransferAttribute
+     *     to t : ASM!EAnnotation
+     *         extends CreateDocumentationAnnotation
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_TRANSFER_ATTRIBUTE, description = "Add documentation annotation to transfer attribute")
+    @Greedy
+    @Guard(method = "hasDocumentation")
+    @Transform(type = TransferAttribute.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferAttribute, EAnnotation> createDocumentationAnnotationForTransferAttribute() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
+            EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
+            addAnnotation(eAttr, t);
+
+            return t;
+        };
+    }
+
     // =========================================================================
     // TRANSFER RELATION RULES
     // =========================================================================
@@ -1172,6 +1239,30 @@ public class TransferObjectRules {
             addAnnotationDetail(t, "value", s.getDefaultValue().getName());
 
             // Add to equivalent reference (thread-safe)
+            EReference eRef = ctx.equivalent(s, EReference.class);
+            addAnnotation(eRef, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * rule CreateDocumentationAnnotationForTransferObjectRelation
+     *     transform s : JUDOPSM!TransferObjectRelation
+     *     to t : ASM!EAnnotation
+     *         extends CreateDocumentationAnnotation
+     */
+    @TransformRule(name = CREATE_DOCUMENTATION_ANNOTATION_FOR_TRANSFER_OBJECT_RELATION, description = "Add documentation annotation to transfer object relation")
+    @Greedy
+    @Guard(method = "hasDocumentation")
+    @Transform(type = TransferObjectRelation.class)
+    @To(type = EAnnotation.class)
+    public TransformFunction<TransferObjectRelation, EAnnotation> createDocumentationAnnotationForTransferObjectRelation() {
+        return (s, ctx) -> {
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("documentation"));
+            addAnnotationDetail(t, "value", s.getDocumentation());
+
             EReference eRef = ctx.equivalent(s, EReference.class);
             addAnnotation(eRef, t);
 
