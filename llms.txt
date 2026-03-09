@@ -1,0 +1,79 @@
+# JUDO Tatami Base
+
+> Model transformation pipeline for the JUDO platform, converting Platform-Specific Models (PSM) through automated steps into application models, database schemas, migration scripts, expression models, and identity provider configurations.
+
+Key facts:
+- Java 21, Maven 3.9.4+ multi-module project with 10 submodules
+- Transformation engine: Eclipse Epsilon (ETL/EOL/EGL/EVL scripts)
+- Model framework: Eclipse EMF (Ecore metamodels, EObjects)
+- Module system: OSGi bundles (Apache Felix Maven Bundle Plugin)
+- Supports three database dialects: HSQLDB, PostgreSQL, Oracle
+- Full source-to-target traceability via TransformationTrace objects
+- License: Eclipse Public License 2.0 (EPL-2.0)
+
+## Docs
+
+- [README.md](README.md): Project overview, transformation pipeline diagram, module descriptions, and build instructions
+- [AGENTS.md](AGENTS.md): Detailed developer guide with build commands, directory structure, technology stack, and coding conventions
+- [CONTRIBUTING.md](CONTRIBUTING.md): Development setup, issue reporting, and pull request guidelines
+- [.github/CIFLOW.md](.github/CIFLOW.md): Branching strategy and CI/CD workflow documentation
+
+## Modules — Transformations
+
+- [judo-tatami-psm2asm/pom.xml](judo-tatami-psm2asm/pom.xml): PSM to ASM (Architecture Specific Model) transformation using Epsilon ETL
+- [judo-tatami-psm2measure/pom.xml](judo-tatami-psm2measure/pom.xml): PSM to Measure transformation — extracts measurement unit definitions
+- [judo-tatami-asm2rdbms/pom.xml](judo-tatami-asm2rdbms/pom.xml): ASM to RDBMS transformation with HSQLDB, PostgreSQL, and Oracle dialect support
+- [judo-tatami-asm2expression/pom.xml](judo-tatami-asm2expression/pom.xml): ASM to Expression transformation — builds expression trees from JQL queries (Java-based, not Epsilon)
+- [judo-tatami-asm2keycloak/pom.xml](judo-tatami-asm2keycloak/pom.xml): ASM to Keycloak transformation — generates identity and authorization model
+- [judo-tatami-rdbms2liquibase/pom.xml](judo-tatami-rdbms2liquibase/pom.xml): RDBMS to Liquibase transformation — generates full and incremental database migration changesets
+
+## Modules — Validation
+
+- [judo-tatami-psm-validation/pom.xml](judo-tatami-psm-validation/pom.xml): PSM (Platform Specific Model) model constraint validation using Epsilon EVL
+- [judo-tatami-asm-validation/pom.xml](judo-tatami-asm-validation/pom.xml): ASM (Architecture Specific Model) model constraint validation using Epsilon EVL
+- [judo-tatami-expression-asm-validation/pom.xml](judo-tatami-expression-asm-validation/pom.xml): Validates expression models against ASM structure
+- [judo-tatami-expression-psm-validation/pom.xml](judo-tatami-expression-psm-validation/pom.xml): Validates expression models against PSM structure
+
+## Depends on
+
+- [judo-meta-asm](../../models/judo-meta-asm): ASM metamodel — Ecore-based architecture model with builders and validation
+- [judo-meta-expression](../../models/judo-meta-expression): Expression metamodel — type-safe numeric, string, temporal, and collection expressions
+- [judo-meta-expression-asm](../../models/judo-meta-expression-asm): Bridges Expression metamodel with ASM for symbolic reference resolution
+- [judo-meta-expression-psm](../../models/judo-meta-expression-psm): Bridges Expression metamodel with PSM for type resolution and measurement support
+- [judo-meta-jql](../../models/judo-meta-jql): JQL metamodel — Xtext-based declarative query language
+- [judo-meta-keycloak](../../models/judo-meta-keycloak): Keycloak IAM configuration metamodel
+- [judo-meta-liquibase](../../models/judo-meta-liquibase): Liquibase database change management metamodel
+- [judo-meta-measure](../../models/judo-meta-measure): SI units metamodel — measures, units, and conversion rates
+- [judo-meta-psm](../../models/judo-meta-psm): PSM metamodel — foundational platform-specific data model
+- [judo-meta-rdbms](../../models/judo-meta-rdbms): RDBMS schema metamodel with incremental evolution tracking
+- [osgi-repackaged-bundles](../../packages/osgi-repackaged-bundles): Third-party libraries repackaged as OSGi bundles for Karaf
+- [judo-dao-api](../judo-dao-api): Core DAO interfaces for CRUD, query, navigation, and validation
+- [judo-dispatcher-api](../judo-dispatcher-api): Dispatcher API contracts for routing API calls to runtime actions
+- [judo-operation-utils](../judo-operation-utils): Base classes and collection operations for generated operation scripts
+- [judo-sdk-common](../judo-sdk-common): Base classes for generated SDK — entity identity, DAO base, and query filters
+- [judo-tatami](../judo-tatami): Model transformation pipeline — ESM/PSM to deployable application artifacts
+- [judo-tatami-core](../judo-tatami-core): EMF transformation trace tracking and composable workflow engine
+- [judo-tatami-util](../judo-tatami-util): Utility facade for EMF model transformation traces
+- [epsilon-runtime](../../tools/epsilon-runtime): Eclipse Epsilon runtime for Maven and OSGi environments
+- [java-embedded-compiler](../../tools/java-embedded-compiler): Runtime Java compilation with JDK javac and Eclipse ECJ backends
+
+## Used by
+
+- [judo-platform](../judo-platform): Model-driven OSGi runtime platform with REST APIs and Karaf deployment
+- [judo-rdbms-schema](../judo-rdbms-schema): Incremental database schema migration via RDBMS model comparison
+- [judo-runtime-core](../judo-runtime-core): Multi-module runtime engine — data access, business logic, REST, and security
+- [judo-runtime-core-esm-itest](../judo-runtime-core-esm-itest): Integration tests for ESM-to-RDBMS transformation pipeline
+- [judo-runtime-core-jsl](../judo-runtime-core-jsl): JSL support for runtime core — model parsing through to DAOs and schema
+- [judo-services](../judo-services): OSGi runtime services enabling multiple data models in a single Karaf container
+- [judo-tatami](../judo-tatami): Model transformation pipeline — ESM/PSM to deployable application artifacts
+- [judo-tatami-jsl](../judo-tatami-jsl): JSL-to-runtime model transformation engine (PSM, ASM, UI, RDBMS, etc.)
+- [judo-jsl-springboot-parent](../../spring/judo-jsl-springboot-parent): Parent POM for JUDO JSL Spring Boot applications
+- [judo-jsl-springboot-starter](../../spring/judo-jsl-springboot-starter): Spring Boot starter aggregating the entire JUDO runtime stack
+
+## Optional
+
+- [.github/workflows/build.yml](.github/workflows/build.yml): Main CI pipeline (build, deploy, tag, release)
+- [.github/workflows/release.yml](.github/workflows/release.yml): Manual release workflow
+- [LICENSE.txt](LICENSE.txt): Eclipse Public License 2.0 license text
+- [pom.xml](pom.xml): Parent POM with all module declarations, dependency management, and plugin configuration
+- [logback-test.xml](logback-test.xml): Shared Logback configuration for test logging
