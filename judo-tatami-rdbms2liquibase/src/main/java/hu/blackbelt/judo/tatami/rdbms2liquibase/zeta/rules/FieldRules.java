@@ -25,6 +25,7 @@ import hu.blackbelt.judo.meta.rdbms.*;
 import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseHelper;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
@@ -70,11 +71,11 @@ public class FieldRules {
      * Guard: Field is mandatory.
      * Matches ETL: guard: s.mandatory
      */
-    public boolean isMandatoryField(EObject source, TransformationContext ctx) {
-        if (source instanceof RdbmsField) {
-            return ((RdbmsField) source).isMandatory();
-        }
-        return false;
+    public TransformGuard isMandatoryField() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsField s)) return false;
+            return s.isMandatory();
+        };
     }
 
     // =========================================================================

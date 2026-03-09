@@ -34,6 +34,7 @@ import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.meta.psm.derived.StaticData;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
@@ -68,74 +69,73 @@ public class DerivedRules {
     /**
      * Guard: data property has a primitive data type
      */
-    public boolean isPrimitiveDataProperty(EObject source, TransformationContext ctx) {
-        if (source instanceof DataProperty) {
-            DataProperty dp = (DataProperty) source;
+    public TransformGuard isPrimitiveDataProperty() {
+        return (source, ctx) -> {
+            if (!(source instanceof DataProperty dp)) return false;
             return dp.getDataType() != null && dp.getDataType() instanceof Primitive;
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: element has documentation
      */
-    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
-            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
+    public TransformGuard hasDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement named)) return false;
+            String doc = named.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: primitive accessor has getter expression
      */
-    public boolean hasGetterExpression(EObject source, TransformationContext ctx) {
-        if (source instanceof PrimitiveAccessor) {
-            return ((PrimitiveAccessor) source).getGetterExpression() != null;
-        }
-        return false;
+    public TransformGuard hasGetterExpression() {
+        return (source, ctx) -> {
+            if (!(source instanceof PrimitiveAccessor pa)) return false;
+            return pa.getGetterExpression() != null;
+        };
     }
 
     /**
      * Guard: reference accessor has getter expression
      */
-    public boolean hasReferenceGetterExpression(EObject source, TransformationContext ctx) {
-        if (source instanceof ReferenceAccessor) {
-            return ((ReferenceAccessor) source).getGetterExpression() != null;
-        }
-        return false;
+    public TransformGuard hasReferenceGetterExpression() {
+        return (source, ctx) -> {
+            if (!(source instanceof ReferenceAccessor ra)) return false;
+            return ra.getGetterExpression() != null;
+        };
     }
 
     /**
      * Guard: data property has string type
      */
-    public boolean isStringPrimitiveAccessor(EObject source, TransformationContext ctx) {
-        if (source instanceof DataProperty) {
-            return ((DataProperty) source).getDataType() instanceof StringType;
-        }
-        return false;
+    public TransformGuard isStringPrimitiveAccessor() {
+        return (source, ctx) -> {
+            if (!(source instanceof DataProperty dp)) return false;
+            return dp.getDataType() instanceof StringType;
+        };
     }
 
     /**
      * Guard: data property has numeric type
      */
-    public boolean isNumericPrimitiveAccessor(EObject source, TransformationContext ctx) {
-        if (source instanceof DataProperty) {
-            return ((DataProperty) source).getDataType() instanceof NumericType;
-        }
-        return false;
+    public TransformGuard isNumericPrimitiveAccessor() {
+        return (source, ctx) -> {
+            if (!(source instanceof DataProperty dp)) return false;
+            return dp.getDataType() instanceof NumericType;
+        };
     }
 
     /**
      * Guard: data property has custom type (not StaticData)
      * Matches ETL: not s.isKindOf(JUDOPSM!StaticData) and s.dataType.isKindOf(JUDOPSM!CustomType)
      */
-    public boolean isCustomTypePrimitiveAccessor(EObject source, TransformationContext ctx) {
-        if (source instanceof DataProperty && !(source instanceof StaticData)) {
-            return ((DataProperty) source).getDataType() instanceof CustomType;
-        }
-        return false;
+    public TransformGuard isCustomTypePrimitiveAccessor() {
+        return (source, ctx) -> {
+            if (!(source instanceof DataProperty dp) || source instanceof StaticData) return false;
+            return dp.getDataType() instanceof CustomType;
+        };
     }
 
     // =========================================================================

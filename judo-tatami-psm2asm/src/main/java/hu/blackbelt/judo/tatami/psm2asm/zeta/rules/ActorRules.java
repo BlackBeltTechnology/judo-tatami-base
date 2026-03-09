@@ -28,6 +28,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
@@ -61,23 +62,23 @@ public class ActorRules {
     /**
      * Guard: element has documentation
      */
-    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
-            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
+    public TransformGuard hasDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement named)) return false;
+            String doc = named.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: actor type has realm
      */
-    public boolean hasRealm(EObject source, TransformationContext ctx) {
-        if (source instanceof AbstractActorType) {
-            String realm = ((AbstractActorType) source).getRealm();
+    public TransformGuard hasRealm() {
+        return (source, ctx) -> {
+            if (!(source instanceof AbstractActorType actor)) return false;
+            String realm = actor.getRealm();
             return realm != null && !realm.isEmpty();
-        }
-        return false;
+        };
     }
 
     // =========================================================================

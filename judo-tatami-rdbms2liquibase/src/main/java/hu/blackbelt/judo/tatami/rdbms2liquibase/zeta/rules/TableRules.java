@@ -28,6 +28,7 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsForeignKey;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
@@ -87,26 +88,24 @@ public class TableRules {
      * Guard: RdbmsTable has foreign key fields.
      * Matches ETL: guard: s.fields.select(f | f.isTypeOf(RDBMS!RdbmsForeignKey)).size() > 0
      */
-    public boolean hasForeignKeys(EObject source, TransformationContext ctx) {
-        if (source instanceof RdbmsTable) {
-            RdbmsTable table = (RdbmsTable) source;
+    public TransformGuard hasForeignKeys() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsTable table)) return false;
             return table.getFields().stream()
                     .anyMatch(f -> f instanceof RdbmsForeignKey);
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: RdbmsTable has mandatory fields.
      * Matches ETL: guard: s.fields.select(f | f.mandatory).size() > 0
      */
-    public boolean hasMandatoryFields(EObject source, TransformationContext ctx) {
-        if (source instanceof RdbmsTable) {
-            RdbmsTable table = (RdbmsTable) source;
+    public TransformGuard hasMandatoryFields() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsTable table)) return false;
             return table.getFields().stream()
                     .anyMatch(RdbmsField::isMandatory);
-        }
-        return false;
+        };
     }
 
     // =========================================================================

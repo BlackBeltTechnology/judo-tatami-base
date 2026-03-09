@@ -25,6 +25,7 @@ import hu.blackbelt.judo.meta.rdbms.*;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.TypeMapping;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
@@ -101,48 +102,39 @@ public class AttributeRules {
      * Guard: EAttribute's containing class is an entity type.
      * Matches ETL: guard : s.eContainingClass.isEntityType()
      */
-    public boolean isAttributeInEntityType(EObject source, TransformationContext ctx) {
-        if (source instanceof EAttribute) {
-            EAttribute attr = (EAttribute) source;
+    public TransformGuard isAttributeInEntityType() {
+        return (source, ctx) -> {
+            if (!(source instanceof EAttribute attr)) return false;
             EClass containingClass = attr.getEContainingClass();
             return containingClass != null &&
                    containingClass.getEAnnotation("http://blackbelt.hu/judo/meta/ExtendedMetadata/entity") != null;
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: EAttribute's containing class is entity type AND attribute is not derived.
      * Matches ETL: guard : s.eContainingClass.isEntityType() and not s.derived
      */
-    public boolean isAttributeInEntityTypeNotDerived(EObject source, TransformationContext ctx) {
-        if (source instanceof EAttribute) {
-            EAttribute attr = (EAttribute) source;
-            if (attr.isDerived()) {
-                return false;
-            }
-            return isAttributeInEntityType(source, ctx);
-        }
-        return false;
+    public TransformGuard isAttributeInEntityTypeNotDerived() {
+        return (source, ctx) -> {
+            if (!(source instanceof EAttribute attr)) return false;
+            if (attr.isDerived()) return false;
+            return isAttributeInEntityType().evaluate(source, ctx);
+        };
     }
 
     /**
      * Guard: Attribute is an identifier in entity type and not derived.
      * Matches ETL: guard : s.eContainingClass.isEntityType() and asmUtils.isIdentifier(s) and not s.derived
      */
-    public boolean isIdentifierAttributeInEntityType(EObject source, TransformationContext ctx) {
-        if (source instanceof EAttribute) {
-            EAttribute attr = (EAttribute) source;
-            if (attr.isDerived()) {
-                return false;
-            }
+    public TransformGuard isIdentifierAttributeInEntityType() {
+        return (source, ctx) -> {
+            if (!(source instanceof EAttribute attr)) return false;
+            if (attr.isDerived()) return false;
             AsmUtils utils = getAsmUtils(ctx);
-            if (utils == null || !utils.isIdentifier(attr)) {
-                return false;
-            }
-            return isAttributeInEntityType(source, ctx);
-        }
-        return false;
+            if (utils == null || !utils.isIdentifier(attr)) return false;
+            return isAttributeInEntityType().evaluate(source, ctx);
+        };
     }
 
     // =========================================================================

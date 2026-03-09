@@ -31,6 +31,7 @@ import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -67,8 +68,8 @@ public class MeasureRules {
     /**
      * Guard for CreateBaseMeasure: not s.isKindOf(JUDOPSM!DerivedMeasure)
      */
-    public boolean isNotDerivedMeasure(EObject source, TransformationContext ctx) {
-        return !(source instanceof DerivedMeasure);
+    public TransformGuard isNotDerivedMeasure() {
+        return (source, ctx) -> !(source instanceof DerivedMeasure);
     }
 
     // =========================================================================

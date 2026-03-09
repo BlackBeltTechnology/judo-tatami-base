@@ -31,6 +31,7 @@ import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EObject;
 
@@ -65,8 +66,8 @@ public class UnitRules {
     /**
      * Guard for CreateUnit: not s.isKindOf(JUDOPSM!DurationUnit)
      */
-    public boolean isNotDurationUnit(EObject source, TransformationContext ctx) {
-        return !(source instanceof DurationUnit);
+    public TransformGuard isNotDurationUnit() {
+        return (source, ctx) -> !(source instanceof DurationUnit);
     }
 
     // =========================================================================

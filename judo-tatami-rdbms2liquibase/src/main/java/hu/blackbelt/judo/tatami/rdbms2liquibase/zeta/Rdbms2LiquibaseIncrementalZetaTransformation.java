@@ -32,6 +32,7 @@ import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.Builder;
 import lombok.NonNull;
@@ -1281,8 +1282,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isNameChanged(RdbmsModifyTableOperation op) {
-        return op.isNameChanged();
+    public TransformGuard isNameChanged() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyTableOperation op)) return false;
+            return op.isNameChanged();
+        };
     }
 
     @TransformRule(name = RENAME_TABLES, description = "Transform RdbmsModifyTableOperation to RenameTable")
@@ -1303,8 +1307,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isFieldNameChanged(RdbmsModifyFieldOperation op) {
-        return op.isNameChanged();
+    public TransformGuard isFieldNameChanged() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isNameChanged();
+        };
     }
 
     @TransformRule(name = RENAME_COLUMNS, description = "Transform RdbmsModifyFieldOperation to RenameColumn")
@@ -1383,8 +1390,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isTypeOrSizeChanged(RdbmsModifyFieldOperation op) {
-        return op.isTypeChanged() || op.isSizeChanged();
+    public TransformGuard isTypeOrSizeChanged() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isTypeChanged() || op.isSizeChanged();
+        };
     }
 
     @TransformRule(name = MODIFY_DATA_TYPES, description = "Transform RdbmsModifyFieldOperation to ModifyDataType")
@@ -1765,8 +1775,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     // DATA UPDATE BEFORE INCREMENTAL RULES (dataUpdateBeforeIncremental.etl)
     // -------------------------------------------------------------------------
 
-    public boolean isChangedValueFieldToForeignKey(RdbmsModifyFieldOperation op) {
-        return op.isChangedValueFieldToForeignKey();
+    public TransformGuard isChangedValueFieldToForeignKey() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isChangedValueFieldToForeignKey();
+        };
     }
 
     @TransformRule(name = CREATE_SQL_FILE_FOR_CHANGING_TO_FK_BEFORE, description = "Create SQL file for changing to FK before")
@@ -1792,8 +1805,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isChangedForeignKeyToValueField(RdbmsModifyFieldOperation op) {
-        return op.isChangedForeignKeyToValueField();
+    public TransformGuard isChangedForeignKeyToValueField() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isChangedForeignKeyToValueField();
+        };
     }
 
     @TransformRule(name = CREATE_SQL_FILE_FOR_CHANGING_TO_VALUE_FIELD_BEFORE, description = "Create SQL file for changing to value field before")
@@ -1819,8 +1835,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isReviewRequiredAndSizeChanged(RdbmsModifyFieldOperation op) {
-        return op.isReviewRequired() && op.isSizeChanged();
+    public TransformGuard isReviewRequiredAndSizeChanged() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isReviewRequired() && op.isSizeChanged();
+        };
     }
 
     @TransformRule(name = CREATE_SQL_FILE_FOR_SIZE_CHANGE, description = "Create SQL file for size change")
@@ -1846,8 +1865,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isTypeChangedField(RdbmsModifyFieldOperation op) {
-        return op.isTypeChanged();
+    public TransformGuard isTypeChangedField() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isTypeChanged();
+        };
     }
 
     @TransformRule(name = CREATE_SQL_FILE_FOR_TYPE_CHANGE_BEFORE, description = "Create SQL file for type change before")
@@ -1877,8 +1899,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
     // DATA UPDATE AFTER INCREMENTAL RULES (dataUpdateAfterIncremental.etl)
     // -------------------------------------------------------------------------
 
-    public boolean isReviewRequiredAndMandatoryChanged(RdbmsModifyFieldOperation op) {
-        return op.isReviewRequired() && op.isMandatoryChanged();
+    public TransformGuard isReviewRequiredAndMandatoryChanged() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsModifyFieldOperation op)) return false;
+            return op.isReviewRequired() && op.isMandatoryChanged();
+        };
     }
 
     @TransformRule(name = CREATE_SQL_FILE_FOR_MANDATORY_REVIEW, description = "Create SQL file for mandatory review")
@@ -1904,8 +1929,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isReviewRequiredCreate(RdbmsCreateFieldOperation op) {
-        return op.isReviewRequired();
+    public TransformGuard isReviewRequiredCreate() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsCreateFieldOperation op)) return false;
+            return op.isReviewRequired();
+        };
     }
 
     @TransformRule(name = CREATE_SQL_FILE_FOR_CREATE_FIELD_REVIEW, description = "Create SQL file for create field review")
@@ -2132,8 +2160,11 @@ public class Rdbms2LiquibaseIncrementalZetaTransformation {
         };
     }
 
-    public boolean isIdentifierNotForeignKeyIncr(RdbmsIdentifierField field) {
-        return !(field instanceof RdbmsForeignKey);
+    public TransformGuard isIdentifierNotForeignKeyIncr() {
+        return (source, ctx) -> {
+            if (!(source instanceof RdbmsIdentifierField field)) return false;
+            return !(field instanceof RdbmsForeignKey);
+        };
     }
 
     @TransformRule(name = CHECK_IDENTIFIER_FIELDS, description = "Check identifier fields exist")

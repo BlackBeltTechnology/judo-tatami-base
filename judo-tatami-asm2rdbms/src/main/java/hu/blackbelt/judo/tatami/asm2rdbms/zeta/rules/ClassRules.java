@@ -25,10 +25,10 @@ import hu.blackbelt.judo.meta.rdbms.*;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.TypeMapping;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 
 import java.util.Map;
@@ -95,12 +95,11 @@ public class ClassRules {
      * Guard: EClass is an entity type.
      * Matches ETL: guard : s.isEntityType()
      */
-    public boolean isEntityType(EObject source, TransformationContext ctx) {
-        if (source instanceof EClass) {
-            EClass eClass = (EClass) source;
+    public TransformGuard isEntityType() {
+        return (source, ctx) -> {
+            if (!(source instanceof EClass eClass)) return false;
             return eClass.getEAnnotation("http://blackbelt.hu/judo/meta/ExtendedMetadata/entity") != null;
-        }
-        return false;
+        };
     }
 
     // =========================================================================

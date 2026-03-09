@@ -25,6 +25,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EObject;
@@ -74,12 +75,12 @@ public class NamespaceRules {
     /**
      * Guard: source has a version (non-null, non-empty)
      */
-    public boolean hasVersion(EObject source, TransformationContext ctx) {
-        if (source instanceof Model) {
-            String version = ((Model) source).getVersion();
+    public TransformGuard hasVersion() {
+        return (source, ctx) -> {
+            if (!(source instanceof Model model)) return false;
+            String version = model.getVersion();
             return version != null && !version.isEmpty();
-        }
-        return false;
+        };
     }
 
     // =========================================================================

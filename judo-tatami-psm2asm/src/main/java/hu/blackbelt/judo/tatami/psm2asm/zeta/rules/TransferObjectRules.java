@@ -37,6 +37,7 @@ import hu.blackbelt.judo.meta.psm.measure.MeasuredType;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
@@ -70,97 +71,94 @@ public class TransferObjectRules {
     /**
      * Guard: transfer attribute has a primitive data type
      */
-    public boolean isPrimitiveTransferAttribute(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            TransferAttribute ta = (TransferAttribute) source;
+    public TransformGuard isPrimitiveTransferAttribute() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute ta)) return false;
             return ta.getDataType() != null && ta.getDataType() instanceof Primitive;
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: mapped transfer object has entity type
      */
-    public boolean hasEntityType(EObject source, TransformationContext ctx) {
-        if (source instanceof MappedTransferObjectType) {
-            return ((MappedTransferObjectType) source).getEntityType() != null;
-        }
-        return false;
+    public TransformGuard hasEntityType() {
+        return (source, ctx) -> {
+            if (!(source instanceof MappedTransferObjectType s)) return false;
+            return s.getEntityType() != null;
+        };
     }
 
     /**
      * Guard: transfer attribute has binding (excluding StaticData)
      * ETL: s.isPrimitive() and s.binding.isDefined() and not s.binding.isKindOf(JUDOPSM!StaticData)
      */
-    public boolean hasBinding(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            TransferAttribute attr = (TransferAttribute) source;
+    public TransformGuard hasBinding() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute attr)) return false;
             Object binding = attr.getBinding();
             // Exclude StaticData bindings - they don't get binding annotation
             return binding != null && !(binding instanceof StaticData);
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: transfer attribute has no binding (transient)
      */
-    public boolean hasNoBinding(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            return ((TransferAttribute) source).getBinding() == null;
-        }
-        return false;
+    public TransformGuard hasNoBinding() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute s)) return false;
+            return s.getBinding() == null;
+        };
     }
 
     /**
      * Guard: transfer attribute has string type
      */
-    public boolean isStringTransferAttribute(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            return ((TransferAttribute) source).getDataType() instanceof StringType;
-        }
-        return false;
+    public TransformGuard isStringTransferAttribute() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute s)) return false;
+            return s.getDataType() instanceof StringType;
+        };
     }
 
     /**
      * Guard: transfer attribute has custom type
      */
-    public boolean isCustomTypeTransferAttribute(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            return ((TransferAttribute) source).getDataType() instanceof CustomType;
-        }
-        return false;
+    public TransformGuard isCustomTypeTransferAttribute() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute s)) return false;
+            return s.getDataType() instanceof CustomType;
+        };
     }
 
     /**
      * Guard: transfer attribute has numeric type (not measured)
      */
-    public boolean isNumericTransferAttribute(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            TransferAttribute ta = (TransferAttribute) source;
+    public TransformGuard isNumericTransferAttribute() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute ta)) return false;
             return ta.getDataType() instanceof NumericType && !(ta.getDataType() instanceof MeasuredType);
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: transfer attribute has measured type
      */
-    public boolean isMeasuredTransferAttribute(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            return ((TransferAttribute) source).getDataType() instanceof MeasuredType;
-        }
-        return false;
+    public TransformGuard isMeasuredTransferAttribute() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute s)) return false;
+            return s.getDataType() instanceof MeasuredType;
+        };
     }
 
     /**
      * Guard: transfer relation is access relation
      */
-    public boolean isAccessRelation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectRelation) {
-            return ((TransferObjectRelation) source).isAccess();
-        }
-        return false;
+    public TransformGuard isAccessRelation() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectRelation s)) return false;
+            return s.isAccess();
+        };
     }
 
     /**
@@ -176,9 +174,9 @@ public class TransferObjectRules {
      *      ((s.eContainer().isKindOf(UnmappedTransferObjectType) and s.binding.isKindOf(ReferenceAccessor)) or
      *       (s.eContainer().isKindOf(MappedTransferObjectType) and s.binding.isKindOf(StaticNavigation)))
      */
-    public boolean hasNavigationBinding(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectRelation) {
-            TransferObjectRelation rel = (TransferObjectRelation) source;
+    public TransformGuard hasNavigationBinding() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectRelation rel)) return false;
             Object binding = rel.getBinding();
             EObject container = rel.eContainer();
             if (binding == null) {
@@ -186,8 +184,7 @@ public class TransferObjectRules {
             }
             return (container instanceof UnmappedTransferObjectType && binding instanceof ReferenceAccessor) ||
                    (container instanceof MappedTransferObjectType && binding instanceof StaticNavigation);
-        }
-        return false;
+        };
     }
 
     /**
@@ -196,9 +193,9 @@ public class TransferObjectRules {
      *      ((s.eContainer().isKindOf(UnmappedTransferObjectType) and s.binding.isKindOf(PrimitiveAccessor)) or
      *       (s.eContainer().isKindOf(MappedTransferObjectType) and s.binding.isKindOf(StaticData)))
      */
-    public boolean hasDataBinding(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            TransferAttribute attr = (TransferAttribute) source;
+    public TransformGuard hasDataBinding() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute attr)) return false;
             Object binding = attr.getBinding();
             EObject container = attr.eContainer();
             if (binding == null) {
@@ -206,19 +203,18 @@ public class TransferObjectRules {
             }
             return (container instanceof UnmappedTransferObjectType && binding instanceof PrimitiveAccessor) ||
                    (container instanceof MappedTransferObjectType && binding instanceof StaticData);
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: transfer object type has an actorType reference
      * ETL: s.actorType.isDefined()
      */
-    public boolean hasActorType(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectType) {
-            return ((TransferObjectType) source).getActorType() != null;
-        }
-        return false;
+    public TransformGuard hasActorType() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectType s)) return false;
+            return s.getActorType() != null;
+        };
     }
 
     /**
@@ -227,58 +223,59 @@ public class TransferObjectRules {
      * Uses pre-computed set from Psm2AsmZetaTransformation.
      */
     @SuppressWarnings("unchecked")
-    public boolean isGetRangeInputType(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectType) {
+    public TransformGuard isGetRangeInputType() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectType)) return false;
             Object attr = ctx.getAttribute("getRangeInputTypes");
             if (attr instanceof java.util.Set) {
                 return ((java.util.Set<TransferObjectType>) attr).contains(source);
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: transfer attribute has a default value
      * ETL: s.defaultValue.isDefined()
      */
-    public boolean hasDefaultValue(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            return ((TransferAttribute) source).getDefaultValue() != null;
-        }
-        return false;
+    public TransformGuard hasDefaultValue() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute s)) return false;
+            return s.getDefaultValue() != null;
+        };
     }
 
     /**
      * Guard: transfer object relation has a default value
      * ETL: s.defaultValue.isDefined()
      */
-    public boolean hasDefaultValueRelation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectRelation) {
-            return ((TransferObjectRelation) source).getDefaultValue() != null;
-        }
-        return false;
+    public TransformGuard hasDefaultValueRelation() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectRelation s)) return false;
+            return s.getDefaultValue() != null;
+        };
     }
 
     /**
      * Guard: transfer attribute has a claim type
      * ETL: s.claimType.isDefined()
      */
-    public boolean hasClaimType(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferAttribute) {
-            return ((TransferAttribute) source).getClaimType() != null;
-        }
-        return false;
+    public TransformGuard hasClaimType() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute s)) return false;
+            return s.getClaimType() != null;
+        };
     }
 
     /**
      * Guard: transfer object type is a query customizer
      * ETL: s.queryCustomizer
      */
-    public boolean isQueryCustomizer(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectType) {
-            return ((TransferObjectType) source).isQueryCustomizer();
-        }
-        return false;
+    public TransformGuard isQueryCustomizer() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectType s)) return false;
+            return s.isQueryCustomizer();
+        };
     }
 
     /**
@@ -293,25 +290,26 @@ public class TransferObjectRules {
      * </p>
      */
     @SuppressWarnings("unchecked")
-    public boolean isMetadataType(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferObjectType) {
+    public TransformGuard isMetadataType() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectType)) return false;
             Object attr = ctx.getAttribute("metadataTypes");
             if (attr instanceof java.util.Set) {
                 return ((java.util.Set<TransferObjectType>) attr).contains(source);
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: element has documentation
      */
-    public boolean hasDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement) {
-            String doc = ((hu.blackbelt.judo.meta.psm.namespace.NamedElement) source).getDocumentation();
+    public TransformGuard hasDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof hu.blackbelt.judo.meta.psm.namespace.NamedElement s)) return false;
+            String doc = s.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**

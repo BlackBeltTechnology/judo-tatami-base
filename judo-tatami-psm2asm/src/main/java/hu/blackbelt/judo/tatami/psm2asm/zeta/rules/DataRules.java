@@ -30,6 +30,7 @@ import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
@@ -66,12 +67,11 @@ public class DataRules {
     /**
      * Guard: attribute has a primitive data type
      */
-    public boolean isPrimitiveAttribute(EObject source, TransformationContext ctx) {
-        if (source instanceof Attribute) {
-            Attribute attr = (Attribute) source;
+    public TransformGuard isPrimitiveAttribute() {
+        return (source, ctx) -> {
+            if (!(source instanceof Attribute attr)) return false;
             return attr.getDataType() != null && attr.getDataType() instanceof Primitive;
-        }
-        return false;
+        };
     }
 
     // =========================================================================

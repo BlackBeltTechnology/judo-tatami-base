@@ -27,6 +27,7 @@ import hu.blackbelt.judo.meta.psm.service.*;
 import hu.blackbelt.judo.meta.psm.service.Parameter;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
@@ -59,75 +60,75 @@ public class OperationRules {
     /**
      * Guard: bound operation has input parameter
      */
-    public boolean hasInput(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            return ((BoundOperation) source).getInput() != null;
-        }
-        return false;
+    public TransformGuard hasInput() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            return s.getInput() != null;
+        };
     }
 
     /**
      * Guard: bound operation has output parameter
      */
-    public boolean hasOutput(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            return ((BoundOperation) source).getOutput() != null;
-        }
-        return false;
+    public TransformGuard hasOutput() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            return s.getOutput() != null;
+        };
     }
 
     /**
      * Guard: transfer operation has output parameter
      */
-    public boolean hasTransferOutput(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            return ((TransferOperation) source).getOutput() != null;
-        }
-        return false;
+    public TransformGuard hasTransferOutput() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            return s.getOutput() != null;
+        };
     }
 
     /**
      * Guard: parameter is an input parameter (contained in a TransferOperation as input)
      */
-    public boolean isInputParameter(EObject source, TransformationContext ctx) {
-        if (source instanceof Parameter) {
-            Parameter param = (Parameter) source;
+    public TransformGuard isInputParameter() {
+        return (source, ctx) -> {
+            if (!(source instanceof Parameter param)) return false;
             EObject container = param.eContainer();
-            if (container instanceof TransferOperation) {
-                return ((TransferOperation) container).getInput() == param;
+            if (container instanceof TransferOperation transferOp) {
+                return transferOp.getInput() == param;
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: operation is abstract
      */
-    public boolean isAbstractOperation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            return ((BoundOperation) source).isAbstract();
-        }
-        return false;
+    public TransformGuard isAbstractOperation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            return s.isAbstract();
+        };
     }
 
     /**
      * Guard: bound operation has implementation
      */
-    public boolean hasBoundOperationImplementation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            return ((BoundOperation) source).getImplementation() != null;
-        }
-        return false;
+    public TransformGuard hasBoundOperationImplementation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            return s.getImplementation() != null;
+        };
     }
 
     /**
      * Guard: transfer operation has behaviour
      */
-    public boolean hasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            return ((TransferOperation) source).getBehaviour() != null;
-        }
-        return false;
+    public TransformGuard hasBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            return s.getBehaviour() != null;
+        };
     }
 
     // =========================================================================
@@ -316,14 +317,13 @@ public class OperationRules {
     /**
      * Guard: bound operation has implementation with script body
      */
-    public boolean hasBoundOperationScriptBody(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            BoundOperation op = (BoundOperation) source;
-            return op.getImplementation() != null 
-                    && op.getImplementation().getBody() != null 
-                    && !op.getImplementation().getBody().trim().isEmpty();
-        }
-        return false;
+    public TransformGuard hasBoundOperationScriptBody() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            return s.getImplementation() != null
+                    && s.getImplementation().getBody() != null
+                    && !s.getImplementation().getBody().trim().isEmpty();
+        };
     }
 
     /**
@@ -514,21 +514,21 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation has behaviour
      */
-    public boolean hasBoundTransferBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            return ((BoundTransferOperation) source).getBehaviour() != null;
-        }
-        return false;
+    public TransformGuard hasBoundTransferBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            return s.getBehaviour() != null;
+        };
     }
 
     /**
      * Guard: UnboundOperation has behaviour
      */
-    public boolean hasUnboundBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            return ((UnboundOperation) source).getBehaviour() != null;
-        }
-        return false;
+    public TransformGuard hasUnboundBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getBehaviour() != null;
+        };
     }
 
     /**
@@ -814,11 +814,11 @@ public class OperationRules {
      * ETL DIFFERENCE: ETL uses s.implementation.isDefined() which matches both TransferOperation and UnboundOperation.
      * Zeta guard matches the same semantics - no need to exclude UnboundOperation.
      */
-    public boolean hasImplementation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            return ((TransferOperation) source).getImplementation() != null;
-        }
-        return false;
+    public TransformGuard hasImplementation() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            return s.getImplementation() != null;
+        };
     }
 
     /**
@@ -826,22 +826,21 @@ public class OperationRules {
      * ETL DIFFERENCE: ETL uses not s.implementation.isDefined() and not s.behaviour.isDefined().
      * Zeta guard matches the same semantics for all TransferOperation subtypes.
      */
-    public boolean hasNoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            TransferOperation op = (TransferOperation) source;
-            return op.getImplementation() == null && op.getBehaviour() == null;
-        }
-        return false;
+    public TransformGuard hasNoImplementationAndNoBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            return s.getImplementation() == null && s.getBehaviour() == null;
+        };
     }
 
     /**
      * Guard: BoundTransferOperation has implementation
      */
-    public boolean hasBoundTransferImplementation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            return ((BoundTransferOperation) source).getImplementation() != null;
-        }
-        return false;
+    public TransformGuard hasBoundTransferImplementation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            return s.getImplementation() != null;
+        };
     }
 
     /**
@@ -902,23 +901,21 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation has no implementation and no behaviour
      */
-    public boolean hasBTONoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            BoundTransferOperation op = (BoundTransferOperation) source;
-            return op.getImplementation() == null && op.getBehaviour() == null;
-        }
-        return false;
+    public TransformGuard hasBTONoImplementationAndNoBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            return s.getImplementation() == null && s.getBehaviour() == null;
+        };
     }
 
     /**
      * Guard: UnboundOperation has no implementation and no behaviour
      */
-    public boolean hasUONoImplementationAndNoBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            UnboundOperation op = (UnboundOperation) source;
-            return op.getImplementation() == null && op.getBehaviour() == null;
-        }
-        return false;
+    public TransformGuard hasUONoImplementationAndNoBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getImplementation() == null && s.getBehaviour() == null;
+        };
     }
 
     /**
@@ -1034,21 +1031,21 @@ public class OperationRules {
     /**
      * Guard: unbound operation has implementation
      */
-    public boolean hasUnboundOperationImplementation(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            return ((UnboundOperation) source).getImplementation() != null;
-        }
-        return false;
+    public TransformGuard hasUnboundOperationImplementation() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getImplementation() != null;
+        };
     }
 
     /**
      * Guard: unbound operation is an initializer
      */
-    public boolean isInitializer(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            return ((UnboundOperation) source).isInitializer();
-        }
-        return false;
+    public TransformGuard isInitializer() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.isInitializer();
+        };
     }
 
     /**
@@ -1079,14 +1076,13 @@ public class OperationRules {
     /**
      * Guard: unbound operation has implementation with script body
      */
-    public boolean hasUnboundOperationScriptBody(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            UnboundOperation op = (UnboundOperation) source;
-            return op.getImplementation() != null 
-                    && op.getImplementation().getBody() != null 
-                    && !op.getImplementation().getBody().trim().isEmpty();
-        }
-        return false;
+    public TransformGuard hasUnboundOperationScriptBody() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getImplementation() != null
+                    && s.getImplementation().getBody() != null
+                    && !s.getImplementation().getBody().trim().isEmpty();
+        };
     }
 
     /**
@@ -1148,21 +1144,21 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation has output parameter
      */
-    public boolean hasBoundTransferOutput(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            return ((BoundTransferOperation) source).getOutput() != null;
-        }
-        return false;
+    public TransformGuard hasBoundTransferOutput() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            return s.getOutput() != null;
+        };
     }
 
     /**
      * Guard: UnboundOperation has output parameter
      */
-    public boolean hasUnboundOutput(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            return ((UnboundOperation) source).getOutput() != null;
-        }
-        return false;
+    public TransformGuard hasUnboundOutput() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getOutput() != null;
+        };
     }
 
     /**
@@ -1380,23 +1376,21 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation has no implementation but has behaviour
      */
-    public boolean hasBTONoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            BoundTransferOperation op = (BoundTransferOperation) source;
-            return op.getImplementation() == null && op.getBehaviour() != null;
-        }
-        return false;
+    public TransformGuard hasBTONoImplementationButHasBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            return s.getImplementation() == null && s.getBehaviour() != null;
+        };
     }
 
     /**
      * Guard: UnboundOperation has no implementation but has behaviour
      */
-    public boolean hasUONoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            UnboundOperation op = (UnboundOperation) source;
-            return op.getImplementation() == null && op.getBehaviour() != null;
-        }
-        return false;
+    public TransformGuard hasUONoImplementationButHasBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getImplementation() == null && s.getBehaviour() != null;
+        };
     }
 
     /**
@@ -1480,104 +1474,103 @@ public class OperationRules {
     /**
      * Guard: transfer operation has no implementation but has behaviour
      */
-    public boolean hasNoImplementationButHasBehaviour(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            TransferOperation op = (TransferOperation) source;
-            return op.getImplementation() == null && op.getBehaviour() != null;
-        }
-        return false;
+    public TransformGuard hasNoImplementationButHasBehaviour() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            return s.getImplementation() == null && s.getBehaviour() != null;
+        };
     }
 
     /**
      * Guard: bound operation has documentation
      */
-    public boolean hasBoundOperationDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            String doc = ((BoundOperation) source).getDocumentation();
+    public TransformGuard hasBoundOperationDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            String doc = s.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: transfer operation has documentation
      */
-    public boolean hasTransferOperationDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            String doc = ((TransferOperation) source).getDocumentation();
+    public TransformGuard hasTransferOperationDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            String doc = s.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: input parameter has documentation
      */
-    public boolean hasInputParameterDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof Parameter) {
-            Parameter param = (Parameter) source;
+    public TransformGuard hasInputParameterDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof Parameter param)) return false;
             EObject container = param.eContainer();
-            if (container instanceof TransferOperation) {
-                if (((TransferOperation) container).getInput() == param) {
+            if (container instanceof TransferOperation transferOp) {
+                if (transferOp.getInput() == param) {
                     String doc = param.getDocumentation();
                     return doc != null && !doc.isEmpty();
                 }
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: output parameter has documentation (for TransferOperation)
      */
-    public boolean hasOutputParameterDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            TransferOperation op = (TransferOperation) source;
-            if (op.getOutput() != null) {
-                String doc = op.getOutput().getDocumentation();
+    public TransformGuard hasOutputParameterDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            if (s.getOutput() != null) {
+                String doc = s.getOutput().getDocumentation();
                 return doc != null && !doc.isEmpty();
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: bound operation output parameter has documentation
      */
-    public boolean hasBoundOutputParameterDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            BoundOperation op = (BoundOperation) source;
-            if (op.getOutput() != null) {
-                String doc = op.getOutput().getDocumentation();
+    public TransformGuard hasBoundOutputParameterDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            if (s.getOutput() != null) {
+                String doc = s.getOutput().getDocumentation();
                 return doc != null && !doc.isEmpty();
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: bound operation input parameter has documentation
      */
-    public boolean hasBoundInputParameterDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundOperation) {
-            BoundOperation op = (BoundOperation) source;
-            if (op.getInput() != null) {
-                String doc = op.getInput().getDocumentation();
+    public TransformGuard hasBoundInputParameterDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundOperation s)) return false;
+            if (s.getInput() != null) {
+                String doc = s.getInput().getDocumentation();
                 return doc != null && !doc.isEmpty();
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: transfer operation has inputRange defined
      * ETL: s.inputRange.isDefined()
      */
-    public boolean hasInputRange(EObject source, TransformationContext ctx) {
-        if (source instanceof TransferOperation) {
-            return ((TransferOperation) source).getInputRange() != null;
-        }
-        return false;
+    public TransformGuard hasInputRange() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferOperation s)) return false;
+            return s.getInputRange() != null;
+        };
     }
 
     // =========================================================================
@@ -1612,23 +1605,23 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation has documentation
      */
-    public boolean hasBTODocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            String doc = ((BoundTransferOperation) source).getDocumentation();
+    public TransformGuard hasBTODocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            String doc = s.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: UnboundOperation has documentation
      */
-    public boolean hasUODocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            String doc = ((UnboundOperation) source).getDocumentation();
+    public TransformGuard hasUODocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            String doc = s.getDocumentation();
             return doc != null && !doc.isEmpty();
-        }
-        return false;
+        };
     }
 
     /**
@@ -1714,29 +1707,29 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation output parameter has documentation
      */
-    public boolean hasBTOOutputParameterDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            BoundTransferOperation op = (BoundTransferOperation) source;
-            if (op.getOutput() != null) {
-                String doc = op.getOutput().getDocumentation();
+    public TransformGuard hasBTOOutputParameterDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            if (s.getOutput() != null) {
+                String doc = s.getOutput().getDocumentation();
                 return doc != null && !doc.isEmpty();
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
      * Guard: UnboundOperation output parameter has documentation
      */
-    public boolean hasUOOutputParameterDocumentation(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            UnboundOperation op = (UnboundOperation) source;
-            if (op.getOutput() != null) {
-                String doc = op.getOutput().getDocumentation();
+    public TransformGuard hasUOOutputParameterDocumentation() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            if (s.getOutput() != null) {
+                String doc = s.getOutput().getDocumentation();
                 return doc != null && !doc.isEmpty();
             }
-        }
-        return false;
+            return false;
+        };
     }
 
     /**
@@ -1852,21 +1845,21 @@ public class OperationRules {
     /**
      * Guard: BoundTransferOperation has inputRange defined
      */
-    public boolean hasBTOInputRange(EObject source, TransformationContext ctx) {
-        if (source instanceof BoundTransferOperation) {
-            return ((BoundTransferOperation) source).getInputRange() != null;
-        }
-        return false;
+    public TransformGuard hasBTOInputRange() {
+        return (source, ctx) -> {
+            if (!(source instanceof BoundTransferOperation s)) return false;
+            return s.getInputRange() != null;
+        };
     }
 
     /**
      * Guard: UnboundOperation has inputRange defined
      */
-    public boolean hasUOInputRange(EObject source, TransformationContext ctx) {
-        if (source instanceof UnboundOperation) {
-            return ((UnboundOperation) source).getInputRange() != null;
-        }
-        return false;
+    public TransformGuard hasUOInputRange() {
+        return (source, ctx) -> {
+            if (!(source instanceof UnboundOperation s)) return false;
+            return s.getInputRange() != null;
+        };
     }
 
     /**

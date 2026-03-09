@@ -24,8 +24,8 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsConfiguration;
 import hu.blackbelt.judo.meta.rdbms.RdbmsModel;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 
 import static hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsHelper.*;
@@ -77,11 +77,11 @@ public class PackageRules {
      * Guard: EPackage is root package (no super package).
      * Matches ETL: guard : s.eSuperPackage.isUndefined()
      */
-    public boolean isRootPackage(EObject source, TransformationContext ctx) {
-        if (source instanceof EPackage) {
-            return ((EPackage) source).getESuperPackage() == null;
-        }
-        return false;
+    public TransformGuard isRootPackage() {
+        return (source, ctx) -> {
+            if (!(source instanceof EPackage pkg)) return false;
+            return pkg.getESuperPackage() == null;
+        };
     }
 
     // =========================================================================

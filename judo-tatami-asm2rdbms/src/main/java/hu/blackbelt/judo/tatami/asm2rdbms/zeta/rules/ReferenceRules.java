@@ -27,10 +27,10 @@ import hu.blackbelt.judo.meta.rdbmsRules.Rule;
 import hu.blackbelt.judo.meta.rdbmsRules.Rules;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
 
@@ -97,70 +97,79 @@ public class ReferenceRules {
     /**
      * Guard: Reference is between entity types and not derived.
      */
-    public boolean isValidReference(EObject source, TransformationContext ctx) {
-        if (source instanceof EReference) {
-            EReference ref = (EReference) source;
+    public TransformGuard isValidReference() {
+        return (source, ctx) -> {
+            if (!(source instanceof EReference ref)) return false;
             if (ref.isDerived()) return false;
             return isEntityType(ref.getEContainingClass()) && isEntityType(ref.getEReferenceType());
-        }
-        return false;
+        };
     }
 
     /**
      * Guard: Reference needs a foreign key.
      */
-    public boolean needsForeignKey(EObject source, TransformationContext ctx) {
-        if (!isValidReference(source, ctx)) return false;
-        EReference ref = (EReference) source;
-        Rule rule = getRules(ctx).getRuleFromReference(ref);
-        return rule.isForeignKey();
+    public TransformGuard needsForeignKey() {
+        return (source, ctx) -> {
+            if (!isValidReference().evaluate(source, ctx)) return false;
+            EReference ref = (EReference) source;
+            Rule rule = getRules(ctx).getRuleFromReference(ref);
+            return rule.isForeignKey();
+        };
     }
 
     /**
      * Guard: Reference needs an inverse foreign key.
      */
-    public boolean needsInverseForeignKey(EObject source, TransformationContext ctx) {
-        if (!isValidReference(source, ctx)) return false;
-        EReference ref = (EReference) source;
-        Rule rule = getRules(ctx).getRuleFromReference(ref);
-        return rule.isInverseForeignKey();
+    public TransformGuard needsInverseForeignKey() {
+        return (source, ctx) -> {
+            if (!isValidReference().evaluate(source, ctx)) return false;
+            EReference ref = (EReference) source;
+            Rule rule = getRules(ctx).getRuleFromReference(ref);
+            return rule.isInverseForeignKey();
+        };
     }
 
     /**
      * Guard: Reference is valid for junction table (between entity types).
      */
-    public boolean isValidReferenceForJunction(EObject source, TransformationContext ctx) {
-        return isValidReference(source, ctx);
+    public TransformGuard isValidReferenceForJunction() {
+        return (source, ctx) -> isValidReference().evaluate(source, ctx);
     }
 
     /**
      * Guard: Reference needs junction table and is the first reference.
      */
-    public boolean needsJunctionTableFirst(EObject source, TransformationContext ctx) {
-        if (!isValidReference(source, ctx)) return false;
-        EReference ref = (EReference) source;
-        Rule rule = getRules(ctx).getRuleFromReference(ref);
-        return rule.isJoinTable() && rule.isFirst();
+    public TransformGuard needsJunctionTableFirst() {
+        return (source, ctx) -> {
+            if (!isValidReference().evaluate(source, ctx)) return false;
+            EReference ref = (EReference) source;
+            Rule rule = getRules(ctx).getRuleFromReference(ref);
+            return rule.isJoinTable() && rule.isFirst();
+        };
     }
 
     /**
      * Guard: Reference needs junction table with bidirectional FK (has opposite).
      */
-    public boolean needsJunctionTableBidirectional(EObject source, TransformationContext ctx) {
-        if (!isValidReference(source, ctx)) return false;
-        EReference ref = (EReference) source;
-        Rule rule = getRules(ctx).getRuleFromReference(ref);
-        return rule.isJoinTable() && ref.getEOpposite() != null;
+    public TransformGuard needsJunctionTableBidirectional() {
+        return (source, ctx) -> {
+            if (!isValidReference().evaluate(source, ctx)) return false;
+            EReference ref = (EReference) source;
+            Rule rule = getRules(ctx).getRuleFromReference(ref);
+            return rule.isJoinTable() && ref.getEOpposite() != null;
+        };
     }
 
     /**
      * Guard: Reference needs junction table with unidirectional FK (no opposite).
      */
-    public boolean needsJunctionTableUnidirectional(EObject source, TransformationContext ctx) {
-        if (!isValidReference(source, ctx)) return false;
-        EReference ref = (EReference) source;
-        Rule rule = getRules(ctx).getRuleFromReference(ref);
-        return rule.isJoinTable() && ref.getEOpposite() == null;
+    public TransformGuard needsJunctionTableUnidirectional() {
+        return (source, ctx) -> {
+            if (!isValidReference().evaluate(source, ctx)) return false;
+            EReference ref = (EReference) source;
+            Rule rule = getRules(ctx).getRuleFromReference(ref);
+            return rule.isJoinTable() && ref.getEOpposite() == null;
+        };
     }
 
     // =========================================================================

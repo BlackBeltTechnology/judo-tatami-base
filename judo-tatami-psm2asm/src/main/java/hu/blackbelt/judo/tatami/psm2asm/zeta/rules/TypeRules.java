@@ -33,6 +33,7 @@ import hu.blackbelt.judo.zeta.annotation.To;
 import hu.blackbelt.judo.zeta.annotation.Transform;
 import hu.blackbelt.judo.zeta.annotation.TransformRule;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
+import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
@@ -139,24 +140,22 @@ public class TypeRules {
 
     /**
      * Guard for CreateIntegerType: s.isInteger()
-     * Guard signature required by framework: (EObject, TransformationContext) -> boolean
      */
-    public boolean isIntegerGuard(EObject source, TransformationContext ctx) {
-        if (source instanceof NumericType) {
-            return Psm2AsmHelper.isInteger((NumericType) source);
-        }
-        return false;
+    public TransformGuard isIntegerGuard() {
+        return (source, ctx) -> {
+            if (!(source instanceof NumericType nt)) return false;
+            return Psm2AsmHelper.isInteger(nt);
+        };
     }
 
     /**
      * Guard for CreateDecimalType: s.isDecimal()
-     * Guard signature required by framework: (EObject, TransformationContext) -> boolean
      */
-    public boolean isDecimalGuard(EObject source, TransformationContext ctx) {
-        if (source instanceof NumericType) {
-            return Psm2AsmHelper.isDecimal((NumericType) source);
-        }
-        return false;
+    public TransformGuard isDecimalGuard() {
+        return (source, ctx) -> {
+            if (!(source instanceof NumericType nt)) return false;
+            return Psm2AsmHelper.isDecimal(nt);
+        };
     }
 
     /**
@@ -423,20 +422,19 @@ public class TypeRules {
     /**
      * Guard for CreateCustomType: excludes types handled by other rules
      */
-    public boolean isCustomTypeGuard(EObject source, TransformationContext ctx) {
-        if (source instanceof CustomType) {
-            CustomType customType = (CustomType) source;
-            return !(customType instanceof NumericType) 
-                && !(customType instanceof BooleanType) 
-                && !(customType instanceof EnumerationType) 
-                && !(customType instanceof StringType) 
-                && !(customType instanceof DateType) 
-                && !(customType instanceof TimestampType) 
+    public TransformGuard isCustomTypeGuard() {
+        return (source, ctx) -> {
+            if (!(source instanceof CustomType customType)) return false;
+            return !(customType instanceof NumericType)
+                && !(customType instanceof BooleanType)
+                && !(customType instanceof EnumerationType)
+                && !(customType instanceof StringType)
+                && !(customType instanceof DateType)
+                && !(customType instanceof TimestampType)
                 && !(customType instanceof TimeType)
                 && !(customType instanceof PasswordType)
                 && !(customType instanceof XMLType);
-        }
-        return false;
+        };
     }
 
     // =========================================================================
