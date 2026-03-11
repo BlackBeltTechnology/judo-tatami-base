@@ -30,6 +30,7 @@ import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.epsilon.common.util.UriUtil;
 import org.slf4j.Logger;
 
 import java.net.URI;
@@ -146,7 +147,18 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
     }
 
     private Asm2RdbmsTransformationTrace executeZetaTransformation(
-            AsmModel asmModel, RdbmsModel rdbmsModel, Asm2RdbmsWorkParameter workParameter) {
+            AsmModel asmModel, RdbmsModel rdbmsModel, Asm2RdbmsWorkParameter workParameter) throws Exception {
+
+        // Load the mapping model (rules, type mappings, name mappings) into the RDBMS resource set
+        // This is equivalent to what the ETL path does in Asm2Rdbms.executeAsm2RdbmsTransformation()
+        RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
+                        .validateModel(false)
+                        .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms"))
+                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", modelRoot)
+                                .toURL()
+                                .openStream()));
+        rdbmsModel.getResource().getContents().addAll(mappingModel.getResource().getContents());
 
         Asm2RdbmsZetaTransformation transformation = Asm2RdbmsZetaTransformation.builder()
                 .asmModel(asmModel)
