@@ -1009,31 +1009,69 @@ public class ModelComparator {
     }
 
     @SuppressWarnings("unchecked")
-    private static void compareReference(Object val1, Object val2, String path, 
+    private static void compareReference(Object val1, Object val2, String path,
                                          List<Difference> differences, ComparisonMode mode) {
         if (val1 instanceof EList && val2 instanceof EList) {
             EList<EObject> list1 = (EList<EObject>) val1;
             EList<EObject> list2 = (EList<EObject>) val2;
-            
-            // Use set comparison for references (order-independent)
-            Set<String> refs1 = list1.stream()
-                    .map(ModelComparator::getObjectIdentifier)
-                    .collect(Collectors.toSet());
-            Set<String> refs2 = list2.stream()
-                    .map(ModelComparator::getObjectIdentifier)
-                    .collect(Collectors.toSet());
-            
-            if (!refs1.equals(refs2)) {
-                Set<String> missing = new HashSet<>(refs1);
-                missing.removeAll(refs2);
-                Set<String> extra = new HashSet<>(refs2);
-                extra.removeAll(refs1);
-                
-                for (String ref : missing) {
-                    differences.add(new MissingElement(path, ref));
+
+            // Check if all elements have proper identifiers (not identity-hash fallbacks)
+            boolean allHaveIdentifiers = list1.stream().allMatch(o -> getIdentifier(o) != null)
+                    && list2.stream().allMatch(o -> getIdentifier(o) != null);
+
+            if (allHaveIdentifiers) {
+                // Use identifier-based set comparison for references (order-independent)
+                Set<String> refs1 = list1.stream()
+                        .map(ModelComparator::getObjectIdentifier)
+                        .collect(Collectors.toSet());
+                Set<String> refs2 = list2.stream()
+                        .map(ModelComparator::getObjectIdentifier)
+                        .collect(Collectors.toSet());
+
+                if (!refs1.equals(refs2)) {
+                    Set<String> missing = new HashSet<>(refs1);
+                    missing.removeAll(refs2);
+                    Set<String> extra = new HashSet<>(refs2);
+                    extra.removeAll(refs1);
+
+                    for (String ref : missing) {
+                        differences.add(new MissingElement(path, ref));
+                    }
+                    for (String ref : extra) {
+                        differences.add(new ExtraElement(path, ref));
+                    }
                 }
-                for (String ref : extra) {
-                    differences.add(new ExtraElement(path, ref));
+            } else {
+                // Elements don't have proper identifiers - use content-based comparison
+                // to avoid false positives from identity hashCode differences between equivalent objects
+                if (list1.size() != list2.size()) {
+                    differences.add(new ValueMismatch(path, "size=" + list1.size(), "size=" + list2.size()));
+                } else {
+                    // Match by content signature (order-independent)
+                    Map<String, Integer> sig1 = new LinkedHashMap<>();
+                    Map<String, Integer> sig2 = new LinkedHashMap<>();
+                    for (EObject obj : list1) {
+                        sig1.merge(getContentSignature(obj), 1, Integer::sum);
+                    }
+                    for (EObject obj : list2) {
+                        sig2.merge(getContentSignature(obj), 1, Integer::sum);
+                    }
+                    if (!sig1.equals(sig2)) {
+                        for (String sig : sig1.keySet()) {
+                            int c1 = sig1.getOrDefault(sig, 0);
+                            int c2 = sig2.getOrDefault(sig, 0);
+                            if (c1 > c2) {
+                                differences.add(new MissingElement(path, sig + " (x" + (c1 - c2) + ")"));
+                            }
+                        }
+                        for (String sig : sig2.keySet()) {
+                            int c1 = sig1.getOrDefault(sig, 0);
+                            int c2 = sig2.getOrDefault(sig, 0);
+                            if (c2 > c1) {
+                                differences.add(new ExtraElement(path, sig + " (x" + (c2 - c1) + ")"));
+                            }
+                        }
+                    }
                 }
             }
         } else if (val1 instanceof EObject && val2 instanceof EObject) {
