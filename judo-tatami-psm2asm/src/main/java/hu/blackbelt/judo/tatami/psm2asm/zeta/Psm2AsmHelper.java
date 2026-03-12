@@ -684,6 +684,35 @@ public final class Psm2AsmHelper {
     }
 
     // =========================================================================
+    // TYPE RESOLUTION
+    // =========================================================================
+
+    /**
+     * Resolve an EClassifier by name from the target model.
+     * Used as fallback when ctx.equivalent() returns null due to object identity mismatch
+     * (e.g., extension transfer object types whose dataType references are copies/proxies).
+     *
+     * @param typeName the name of the type to find
+     * @param ctx      the transformation context providing access to target resources
+     * @return the matching EClassifier, or null if not found
+     */
+    public static EClassifier resolveTypeByName(String typeName, TransformationContext ctx) {
+        if (typeName == null) {
+            return null;
+        }
+        for (var resource : ctx.getTargetResourceSet().getResources()) {
+            var it = resource.getAllContents();
+            while (it.hasNext()) {
+                var obj = it.next();
+                if (obj instanceof EClassifier classifier && typeName.equals(classifier.getName())) {
+                    return classifier;
+                }
+            }
+        }
+        return null;
+    }
+
+    // =========================================================================
     // CACHE MANAGEMENT
     // =========================================================================
 

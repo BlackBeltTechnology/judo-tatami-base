@@ -43,7 +43,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.emf.ecore.xmi.XMIResource;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -274,17 +273,12 @@ public class Asm2RdbmsZetaTransformation {
      */
     private void postProcess(TransformationContext context) {
         // 1. Add root elements (RdbmsModel) to the resource
-        XMIResource xmiResource = rdbmsModel.getResource() instanceof XMIResource
-                ? (XMIResource) rdbmsModel.getResource() : null;
-
         asmUtils.all(EPackage.class)
                 .filter(pkg -> pkg.getESuperPackage() == null)
                 .forEach(rootPkg -> {
                     RdbmsModel model = context.equivalent(rootPkg, RdbmsModel.class);
                     if (model != null && !rdbmsModel.getResource().getContents().contains(model)) {
                         context.addToResource(model);
-                        // Apply pending XMI IDs recursively
-                        applyPendingXmiIds(model, context, xmiResource);
                         log.debug("Added RdbmsModel '{}' to resource", model.getName());
                     }
                 });
@@ -327,22 +321,6 @@ public class Asm2RdbmsZetaTransformation {
             elements.addAll(table.getUniqueConstraints());
         }
         return elements;
-    }
-
-    /**
-     * Apply pending XMI IDs to an element and all its children recursively.
-     */
-    private void applyPendingXmiIds(EObject element, TransformationContext context, XMIResource xmiResource) {
-        if (xmiResource == null) return;
-
-        String pendingId = context.getPendingXmiId(element);
-        if (pendingId != null) {
-            xmiResource.setID(element, pendingId);
-        }
-
-        for (EObject child : element.eContents()) {
-            applyPendingXmiIds(child, context, xmiResource);
-        }
     }
 
     /**

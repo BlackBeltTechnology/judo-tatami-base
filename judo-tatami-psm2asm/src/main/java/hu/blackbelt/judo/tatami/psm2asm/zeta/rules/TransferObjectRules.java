@@ -591,8 +591,13 @@ public class TransferObjectRules {
             t.setName(s.getName());
             t.setLowerBound(s.isRequired() ? 1 : 0);
             
-            // Set type
+            // Set type - use ctx.equivalent() first, fall back to name-based lookup
+            // for extension types (_default_, _binding_) whose dataType references
+            // point to different Java object instances than what TypeRules transformed
             EClassifier type = ctx.equivalent(s.getDataType(), EClassifier.class);
+            if (type == null && s.getDataType() != null) {
+                type = resolveTypeByName(s.getDataType().getName(), ctx);
+            }
             if (type != null) {
                 t.setEType(type);
             }
