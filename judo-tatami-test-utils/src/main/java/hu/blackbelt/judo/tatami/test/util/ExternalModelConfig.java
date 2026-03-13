@@ -20,6 +20,7 @@ package hu.blackbelt.judo.tatami.test.util;
  * #L%
  */
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -57,7 +58,18 @@ public record ExternalModelConfig(
      * @return the path to the model file (e.g., "rackinspect-psm.model")
      */
     public Path getModelFile(String modelType) {
-        return modelDirectory.resolve(modelName + "-" + modelType + ".model");
+        // Try "{name}-{modelType}.model" first (e.g., rackinspect-esm.model)
+        Path typed = modelDirectory.resolve(modelName + "-" + modelType + ".model");
+        if (Files.isRegularFile(typed)) {
+            return typed;
+        }
+        // Fallback: "{name}.model" (e.g., ActionGroupTest.model)
+        Path plain = modelDirectory.resolve(modelName + ".model");
+        if (Files.isRegularFile(plain)) {
+            return plain;
+        }
+        // Return the typed path (caller will handle non-existence)
+        return typed;
     }
 
     /**
