@@ -43,18 +43,17 @@ import java.util.stream.Collectors;
  * 
  * <h2>Comparison Modes</h2>
  * <ul>
- *   <li><b>STRICT</b> - All attributes and references must match exactly, annotations compared with order-independent details</li>
- *   <li><b>STRUCTURAL</b> - Element structure must match, annotation differences tolerated</li>
- *   <li><b>LENIENT</b> - Major structural elements must match, minor differences allowed</li>
+ *   <li><b>STRICT</b> - All attributes, references and annotations must match exactly; EAnnotation lists are compared as order-insensitive sets</li>
+ *   <li><b>SKELETON</b> - Element structure must match, annotation differences are tolerated</li>
  * </ul>
  *
  * <p>Note: Derived and transient features are always skipped as they contain computed values.</p>
- * 
+ *
  * <h2>Configuration</h2>
  * The comparator can be configured via system properties:
  * <ul>
  *   <li>{@code judo.test.comparison.enabled} - Enable/disable comparison (default: true)</li>
- *   <li>{@code judo.test.comparison.mode} - Comparison mode (default: STRUCTURAL)</li>
+ *   <li>{@code judo.test.comparison.mode} - Comparison mode (default: STRICT)</li>
  *   <li>{@code judo.test.comparison.maxDifferences} - Max differences to report (default: 50)</li>
  *   <li>{@code judo.test.comparison.reportFile} - Output file for diff report (optional)</li>
  * </ul>
@@ -70,7 +69,7 @@ public class ModelComparator {
 
     // Default values
     private static final int DEFAULT_MAX_DIFFERENCES = 50;
-    private static final ComparisonMode DEFAULT_MODE = ComparisonMode.STRUCTURAL;
+    private static final ComparisonMode DEFAULT_MODE = ComparisonMode.STRICT;
     private static final double EPSILON = 1e-9;
 
     /**
@@ -78,19 +77,15 @@ public class ModelComparator {
      */
     public enum ComparisonMode {
         /**
-         * All attributes and references must match exactly.
+         * All attributes, references and EAnnotations must match exactly.
+         * EAnnotation lists are compared as order-insensitive sets keyed by source URI.
          */
         STRICT,
-        
+
         /**
-         * Element structure must match, annotation differences are tolerated.
+         * Element structure (attributes and references) must match; EAnnotation lists are skipped entirely.
          */
-        STRUCTURAL,
-        
-        /**
-         * Major structural elements must match, minor differences are allowed.
-         */
-        LENIENT
+        SKELETON
     }
 
     /**
@@ -134,8 +129,8 @@ public class ModelComparator {
 
     /**
      * Gets the configured comparison mode from system property.
-     * 
-     * @return the configured ComparisonMode (default: STRUCTURAL)
+     *
+     * @return the configured ComparisonMode (default: STRICT)
      */
     public static ComparisonMode getConfiguredMode() {
         String modeStr = System.getProperty(PROP_COMPARISON_MODE);
@@ -186,7 +181,7 @@ public class ModelComparator {
 
     /**
      * Asserts that two EObjects are structurally equivalent (order-independent).
-     * Uses the default STRUCTURAL comparison mode.
+     * Uses the default STRICT comparison mode.
      *
      * @param expected the expected model
      * @param actual the actual model
@@ -219,7 +214,7 @@ public class ModelComparator {
 
     /**
      * Asserts that two Resources are structurally equivalent (order-independent).
-     * Uses the default STRUCTURAL comparison mode.
+     * Uses the default STRICT comparison mode.
      *
      * @param expected the expected resource
      * @param actual the actual resource
@@ -312,7 +307,7 @@ public class ModelComparator {
 
     /**
      * Compares two EObjects for structural equivalence (order-independent).
-     * Uses the default STRUCTURAL comparison mode.
+     * Uses the default STRICT comparison mode.
      *
      * @param obj1 the first object
      * @param obj2 the second object
@@ -535,15 +530,6 @@ public class ModelComparator {
             return true;
         }
 
-        // In LENIENT mode, skip certain features
-        if (mode == ComparisonMode.LENIENT) {
-            String name = feature.getName();
-            // Skip documentation and metadata-like features
-            if (name.equals("documentation") || name.equals("comment") || name.equals("description")) {
-                return true;
-            }
-        }
-
         return false;
     }
 
@@ -647,9 +633,9 @@ public class ModelComparator {
                 return;
             }
 
-            // Skip EAnnotation comparison in STRUCTURAL and LENIENT modes
+            // Skip EAnnotation comparison in SKELETON mode
             // This must happen BEFORE the size check to avoid reporting annotation count differences
-            if (mode != ComparisonMode.STRICT && !list1.isEmpty() && isEAnnotation(list1.get(0))) {
+            if (mode == ComparisonMode.SKELETON && !list1.isEmpty() && isEAnnotation(list1.get(0))) {
                 return;
             }
 

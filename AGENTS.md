@@ -481,9 +481,8 @@ Each transformation module includes a `ModelComparator` utility class that provi
 - **Order-independent comparison** - Collections matched by identifier, not position
 - **Typed difference reporting** - `MissingElement`, `ExtraElement`, `ValueMismatch`, `TypeMismatch`
 - **Comparison modes**:
-  - `STRICT` - All attributes and references must match exactly
-  - `STRUCTURAL` - Element structure must match, annotation differences tolerated (default)
-  - `LENIENT` - Major structural elements must match, minor differences allowed
+  - `STRICT` - All attributes, references and EAnnotations must match exactly; annotations compared order-insensitively (default)
+  - `SKELETON` - Element structure must match, annotation differences tolerated
 
 ### Configuration via System Properties
 
@@ -491,8 +490,8 @@ Each transformation module includes a `ModelComparator` utility class that provi
 # Enable/disable comparison (default: true)
 -Djudo.test.comparison.enabled=true
 
-# Comparison mode (default: STRUCTURAL)
--Djudo.test.comparison.mode=STRICT|STRUCTURAL|LENIENT
+# Comparison mode (default: STRICT)
+-Djudo.test.comparison.mode=STRICT|SKELETON
 
 # Maximum differences to report (default: 50)
 -Djudo.test.comparison.maxDifferences=100
@@ -524,11 +523,11 @@ List<MissingElement> missing = result.getDifferencesOfType(MissingElement.class)
 ### Running Comparison Tests
 
 ```bash
-# Run with default STRUCTURAL mode
+# Run with default STRICT mode
 mvn test -Dtest=Psm2AsmDualTransformationTest
 
-# Run with STRICT mode
-mvn test -Dtest=Psm2AsmDualTransformationTest -Djudo.test.comparison.mode=STRICT
+# Run with SKELETON mode (skip annotation comparison)
+mvn test -Dtest=Psm2AsmDualTransformationTest -Djudo.test.comparison.mode=SKELETON
 
 # Disable comparison (skip comparison tests)
 mvn test -Djudo.test.comparison.enabled=false

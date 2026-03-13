@@ -173,7 +173,7 @@ public class RealisticPerformanceTest {
             EObject zetaRoot = zetaResult.getResourceSet().getResources().get(0).getContents().get(0);
 
             ModelComparator.ComparisonResult result = ModelComparator.compare(
-                    etlRoot, zetaRoot, ModelComparator.ComparisonMode.STRUCTURAL);
+                    etlRoot, zetaRoot, ModelComparator.ComparisonMode.SKELETON);
 
             if (result.isEquivalent()) {
                 log.info("SUCCESS: ETL and Zeta models are structurally equivalent");

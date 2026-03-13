@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * The comparison behavior can be configured via system properties:
  * <ul>
  *   <li>{@code judo.test.comparison.enabled} - Enable/disable comparison (default: true)</li>
- *   <li>{@code judo.test.comparison.mode} - Comparison mode: STRICT, STRUCTURAL, LENIENT (default: STRUCTURAL)</li>
+ *   <li>{@code judo.test.comparison.mode} - Comparison mode: STRICT, SKELETON (default: STRICT)</li>
  *   <li>{@code judo.test.comparison.maxDifferences} - Max differences to report (default: 50)</li>
  *   <li>{@code judo.test.comparison.reportFile} - Output file for diff report (optional)</li>
  * </ul>
@@ -261,9 +261,6 @@ public class Psm2AsmDualTransformationTest {
 
     @Test
     @DisplayName("ETL and Zeta transformations produce equivalent ASM models (strict mode)")
-    @org.junit.jupiter.api.Disabled("Strict equivalence has 33 annotation order differences due to ETL greedy rule execution order. " +
-            "These differences are cosmetic - relaxed equivalence test validates functional correctness. " +
-            "See proposal.md 'Strict Equivalence Testing Challenges' section for details.")
     void testEtlAndZetaProduceEquivalentModelsStrict() throws Exception {
         // Check if comparison is enabled
         if (!ModelComparator.isComparisonEnabled()) {

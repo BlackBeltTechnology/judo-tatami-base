@@ -50,20 +50,19 @@ The `ModelComparator` class provides comprehensive EMF model comparison with thr
 
 | Mode | Description | Use Case |
 |------|-------------|----------|
-| **STRICT** | All attributes, references, and containments must match exactly. Annotations compared order-independently. | Final validation |
-| **STRUCTURAL** | Element structure must match. Annotation differences tolerated. | Default mode |
-| **LENIENT** | Most permissive. Basic structural comparison only. | Debugging |
+| **STRICT** | All attributes, references, and EAnnotations must match exactly. Annotations compared order-independently as sets. | Default mode / Final validation |
+| **SKELETON** | Element structure must match. EAnnotation lists skipped entirely. | Debugging when annotation differences are expected |
 
 **What ModelComparator checks:**
 - **Attributes** - All `EAttribute` values compared using `Objects.equals()`
 - **Containments** - All containment `EReference` features compared recursively
 - **References** - Non-containment references compared by object identifier (order-independent)
 - **Container hierarchy** - Implicitly validated through containment comparison
+- **EAnnotations** - Compared as order-insensitive sets (STRICT mode only)
 
 **Skipped features:**
 - Derived features (computed values)
 - Transient features
-- In LENIENT mode: `documentation`, `comment`, `description`
 
 ### 2. StructuralModelComparator (Checksum-Based)
 
@@ -110,7 +109,7 @@ mvn test -Djudo.test.transformation.mode=DUAL -Pperformance
 | Property | Default | Description |
 |----------|---------|-------------|
 | `judo.test.comparison.enabled` | `true` | Enable/disable comparison |
-| `judo.test.comparison.mode` | `STRUCTURAL` | Comparison mode: STRICT, STRUCTURAL, LENIENT |
+| `judo.test.comparison.mode` | `STRICT` | Comparison mode: STRICT, SKELETON |
 | `judo.test.comparison.maxDifferences` | `50` | Max differences to report |
 | `judo.test.comparison.xmiIds` | `false` | Enable XMI ID comparison |
 | `judo.test.comparison.reportFile` | - | Output file for diff report |

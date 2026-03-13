@@ -23,16 +23,11 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta.rules;
 import hu.blackbelt.judo.meta.psm.derived.ReferenceAccessor;
 import hu.blackbelt.judo.meta.psm.derived.StaticData;
 import hu.blackbelt.judo.meta.psm.derived.StaticNavigation;
-import hu.blackbelt.judo.meta.psm.namespace.Model;
-import hu.blackbelt.judo.meta.psm.namespace.Namespace;
-import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
-import hu.blackbelt.judo.meta.psm.type.CustomType;
-import hu.blackbelt.judo.meta.psm.type.NumericType;
-import hu.blackbelt.judo.meta.psm.type.StringType;
+import hu.blackbelt.judo.meta.psm.type.*;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
-import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
@@ -116,20 +111,9 @@ public class StaticRules {
             attr.setDerived(true);
             attr.setChangeable(false);
 
-            // Set type using named equivalent based on actual type (ETL pattern: s.dataType.equivalent(...))
+            // Set type using named equivalent based on actual type (ETL pattern: s.dataType.asmEquivalent())
             if (s.getDataType() != null) {
-                EClassifier type = null;
-                if (s.getDataType() instanceof StringType) {
-                    type = ctx.equivalent(s.getDataType(), CREATE_STRING_TYPE);
-                } else if (s.getDataType() instanceof NumericType) {
-                    if (isInteger((NumericType) s.getDataType())) {
-                        type = ctx.equivalent(s.getDataType(), CREATE_INTEGER_TYPE);
-                    } else {
-                        type = ctx.equivalent(s.getDataType(), CREATE_DECIMAL_TYPE);
-                    }
-                } else if (s.getDataType() instanceof CustomType) {
-                    type = ctx.equivalent(s.getDataType(), CREATE_CUSTOM_TYPE);
-                }
+                EClassifier type = Psm2AsmHelper.resolveDataType(s.getDataType(), ctx);
                 if (type != null) {
                     attr.setEType(type);
                 }

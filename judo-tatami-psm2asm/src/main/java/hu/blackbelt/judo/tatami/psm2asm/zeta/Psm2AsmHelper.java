@@ -717,6 +717,41 @@ public final class Psm2AsmHelper {
     // =========================================================================
 
     /**
+     * Resolve a PSM Primitive data type to its ASM EClassifier equivalent,
+     * matching the ETL {@code s.dataType.asmEquivalent()} pattern in type.eol.
+     *
+     * @param dataType the PSM Primitive data type
+     * @param ctx the transformation context
+     * @return the corresponding ASM EClassifier, or null if not resolvable
+     */
+    public static org.eclipse.emf.ecore.EClassifier resolveDataType(
+            hu.blackbelt.judo.meta.psm.type.Primitive dataType,
+            TransformationContext ctx) {
+        if (dataType instanceof hu.blackbelt.judo.meta.psm.type.StringType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_STRING_TYPE);
+        } else if (dataType instanceof NumericType numericType) {
+            return isInteger(numericType)
+                ? ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_INTEGER_TYPE)
+                : ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_DECIMAL_TYPE);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.BooleanType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_BOOLEAN_TYPE);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.DateType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_DATE_TYPE);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.TimestampType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_TIMESTAMP_TYPE);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.TimeType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_TIME_TYPE);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.BinaryType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_BINARY_TYPE);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.EnumerationType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_ENUMERATION);
+        } else if (dataType instanceof hu.blackbelt.judo.meta.psm.type.CustomType) {
+            return ctx.equivalent(dataType, Psm2AsmRuleNames.CREATE_CUSTOM_TYPE);
+        }
+        return null;
+    }
+
+    /**
      * Clears all caches. Call this between transformation runs if reusing the helper.
      */
     public static void clearCaches() {

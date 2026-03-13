@@ -34,13 +34,11 @@ import hu.blackbelt.judo.meta.psm.derived.ReferenceAccessor;
 import hu.blackbelt.judo.meta.psm.derived.StaticData;
 import hu.blackbelt.judo.meta.psm.derived.StaticNavigation;
 import hu.blackbelt.judo.meta.psm.measure.MeasuredType;
-import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
 import hu.blackbelt.judo.zeta.annotation.*;
 import java.util.logging.Logger;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
-import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
@@ -82,13 +80,6 @@ public class TransferObjectRules {
                 return false;
             }
             boolean result = ta.getDataType() != null && ta.getDataType() instanceof Primitive;
-            // Log wrapper attributes
-            if (ta.getName() != null && ta.getName().startsWith("_")) {
-                LOGGER.info("Guard for " + ta.getName() + ": dataType=" +
-                    (ta.getDataType() != null ? ta.getDataType().getName() : "null") +
-                    ", isPrimitive=" + (ta.getDataType() instanceof Primitive) +
-                    ", PASS=" + result);
-            }
             return result;
         };
     }
@@ -606,63 +597,14 @@ public class TransferObjectRules {
             t.setName(s.getName());
             t.setLowerBound(s.isRequired() ? 1 : 0);
 
-            // Debug: check if dataType is null
             if (s.getDataType() == null) {
-                try {
-                    java.nio.file.Files.writeString(
-                        java.nio.file.Paths.get("/tmp/zeta-datatype-null.txt"),
-                        "dataType is NULL for attr=" + s.getName() + " in " +
-                        (s.eContainer() != null ? s.eContainer().eClass().getName() : "unknown") + "\n",
-                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                } catch (Exception e) {}
-                return t;  // Early return if dataType is null
+                return t;
             }
 
-            // Set type - use ctx.equivalent() first
-            EClassifier type = ctx.equivalent(s.getDataType(), EClassifier.class);
-
-            // Debug: track if type is null after equivalent()
-            if (type == null) {
-                try {
-                    java.nio.file.Files.writeString(
-                        java.nio.file.Paths.get("/tmp/zeta-null-types.txt"),
-                        "NULL type after equivalent: attr=" + s.getName() + ", dataTypeName=" + s.getDataType().getName() +
-                        ", dataTypeClass=" + s.getDataType().getClass().getSimpleName() + "\n",
-                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                } catch (Exception e) {}
-                // Try name-based lookup
-                type = ctx.findCachedTargetByName(s.getDataType().getName(), EClassifier.class);
-            }
-
+            // Set type - match ETL pattern: s.dataType.asmEquivalent()
+            EClassifier type = resolveDataType((hu.blackbelt.judo.meta.psm.type.Primitive) s.getDataType(), ctx);
             if (type != null) {
                 t.setEType(type);
-                // Debug: log what was set and the container
-                if (s.getName().startsWith("_")) {
-                    try {
-                        String containerInfo = "null";
-                        if (t.eContainer() != null) {
-                            containerInfo = t.eContainer().getClass().getSimpleName() + "@" + System.identityHashCode(t.eContainer());
-                            if (t.eContainer() instanceof EClass) {
-                                containerInfo = "EClass:" + ((EClass) t.eContainer()).getName();
-                            }
-                        }
-                        java.nio.file.Files.writeString(
-                            java.nio.file.Paths.get("/tmp/zeta-setetype.txt"),
-                            "Set eType: attr=" + s.getName() + ", type=" + type.getName() +
-                            ", typeClass=" + type.getClass().getSimpleName() +
-                            ", typeId=" + System.identityHashCode(type) +
-                            ", attrId=" + System.identityHashCode(t) +
-                            ", container=" + containerInfo + "\n",
-                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                    } catch (Exception e) {}
-                }
-            } else {
-                try {
-                    java.nio.file.Files.writeString(
-                        java.nio.file.Paths.get("/tmp/zeta-finally-null.txt"),
-                        "FINALLY NULL: attr=" + s.getName() + ", dataTypeName=" + s.getDataType().getName() + "\n",
-                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                } catch (Exception e) {}
             }
             
             // Set derived: binding is defined and is not an Attribute
@@ -682,27 +624,7 @@ public class TransferObjectRules {
             // Add to owning transfer object class (thread-safe)
             TransferObjectType owner = (TransferObjectType) s.eContainer();
             if (owner != null) {
-                EClass ownerClass;
-                String attrName = s.getName();
-
-                // FIX: For wrapper attributes (_default_ and _binding_), find or create the wrapper EClass
-                // The wrapper EClass has the same name as the attribute
-                // Check if the name contains "_default_" or "_binding_" (not starts with!)
-                if (attrName.contains("_default_") || attrName.contains("_binding_")) {
-                    ownerClass = findOrCreateWrapperEClass(attrName, owner, ctx);
-                    // Debug: log which EClass the attribute is being added to
-                    try {
-                        java.nio.file.Files.writeString(
-                            java.nio.file.Paths.get("/tmp/zeta-wrapper-add.txt"),
-                            "Adding attr " + attrName + " to wrapper EClass: " +
-                            (ownerClass != null ? ownerClass.getName() : "null") +
-                            ", eType=" + (t.getEType() != null ? t.getEType().getName() : "null") +
-                            "\n",
-                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                    } catch (Exception e) {}
-                } else {
-                    ownerClass = ctx.equivalent(owner, EClass.class);
-                }
+                EClass ownerClass = ctx.equivalent(owner, EClass.class);
 
                 if (ownerClass != null) {
                     addStructuralFeature(ownerClass, t);
@@ -1417,124 +1339,5 @@ public class TransferObjectRules {
 
     // Note: Reference class inheritance (SetupReferenceClassInheritance) is handled in post-processing
     // in Psm2AsmZetaTransformation.postProcess() to ensure all reference classes exist first.
-
-    /**
-     * Find or create the wrapper EClass for attributes with default/binding values.
-     * The wrapper EClass has the same name as the attribute.
-     *
-     * With RULE_BY_RULE execution, wrapper EClasses created from UnmappedTransferObjectTypes
-     * should already exist when TransferAttributes are processed.
-     *
-     * @param wrapperName the name of the wrapper EClass (same as the attribute name)
-     * @param parent the parent TransferObjectType
-     * @param ctx the transformation context
-     * @return the wrapper EClass
-     */
-    private EClass findOrCreateWrapperEClass(String wrapperName, TransferObjectType parent, TransformationContext ctx) {
-        // Get the parent's equivalent EClass to find the package
-        EClass parentEClass = ctx.equivalent(parent, EClass.class);
-        if (parentEClass == null || parentEClass.getEPackage() == null) {
-            return parentEClass;
-        }
-
-        EPackage rootPackage = getRootPackage(parentEClass.getEPackage());
-
-        // Search for the wrapper EClass in all packages (it should already exist)
-        EClass found = searchAllPackagesForEClass(rootPackage, wrapperName);
-
-        // Debug: log search result for all wrappers
-        try {
-            java.nio.file.Files.writeString(
-                java.nio.file.Paths.get("/tmp/zeta-wrapper-search-result.txt"),
-                "Search: wrapperName=" + wrapperName +
-                ", found=" + (found != null ? found.getName() : "null") +
-                ", rootPackage=" + rootPackage.getName() +
-                ", classifiersInRoot=" + rootPackage.getEClassifiers().size() +
-                ", subpackages=" + rootPackage.getESubpackages().size() + "\n",
-                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-
-            // Also log the package structure for _binding_ attributes
-            if (wrapperName.contains("_binding_")) {
-                java.nio.file.Files.writeString(
-                    java.nio.file.Paths.get("/tmp/zeta-wrapper-search-result.txt"),
-                    "  Binding attribute - listing subpackages:\n",
-                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                for (EPackage subPkg : rootPackage.getESubpackages()) {
-                    java.nio.file.Files.writeString(
-                        java.nio.file.Paths.get("/tmp/zeta-wrapper-search-result.txt"),
-                        "    Subpackage: " + subPkg.getName() + ", classifiers=" + subPkg.getEClassifiers().size() + "\n",
-                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                }
-            }
-        } catch (Exception e) {}
-
-        if (found != null) {
-            return found;
-        }
-
-        // Not found - this shouldn't happen with RULE_BY_RULE, but create it as fallback
-        EClass wrapperEClass = ctx.createTarget(EClass.class);
-        wrapperEClass.setName(wrapperName);
-
-        // Add to the entities package (or parent's package if entities doesn't exist)
-        EPackage targetPackage = findPackageByName(rootPackage, "entities");
-        if (targetPackage == null) {
-            targetPackage = parentEClass.getEPackage();
-        }
-        addClassifier(targetPackage, wrapperEClass);
-
-        // Add transferObjectType annotation to the wrapper
-        EAnnotation toAnnotation = createAnnotation(
-                "(psm/" + wrapperName + ")/TransferObjectTypeAnnotation",
-                getAnnotationUri("transferObjectType"));
-        addAnnotationDetail(toAnnotation, "value", "true");
-        addAnnotation(wrapperEClass, toAnnotation);
-
-        return wrapperEClass;
-    }
-
-    /**
-     * Recursively search all packages for an EClass with the given name.
-     */
-    private EClass searchAllPackagesForEClass(EPackage pkg, String name) {
-        for (EClassifier classifier : pkg.getEClassifiers()) {
-            if (classifier instanceof EClass && classifier.getName().equals(name)) {
-                return (EClass) classifier;
-            }
-        }
-        for (EPackage subPkg : pkg.getESubpackages()) {
-            EClass found = searchAllPackagesForEClass(subPkg, name);
-            if (found != null) {
-                return found;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Find a package by name in the package hierarchy.
-     */
-    private EPackage findPackageByName(EPackage root, String name) {
-        if (root.getName().equals(name)) {
-            return root;
-        }
-        for (EPackage subPkg : root.getESubpackages()) {
-            EPackage found = findPackageByName(subPkg, name);
-            if (found != null) {
-                return found;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Get the root package by walking up the package hierarchy.
-     */
-    private EPackage getRootPackage(EPackage pkg) {
-        while (pkg.getESuperPackage() != null) {
-            pkg = pkg.getESuperPackage();
-        }
-        return pkg;
-    }
 
 }

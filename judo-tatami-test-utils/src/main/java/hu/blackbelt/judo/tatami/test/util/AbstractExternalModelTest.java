@@ -666,7 +666,12 @@ public abstract class AbstractExternalModelTest {
                     .forEach(dir -> {
                         String name = dir.getFileName().toString();
                         Path modelDir = dir.resolve(conventionSubPath);
+                        // Try "{name}-{modelType}.model" first (e.g., rackinspect-esm.model)
                         Path modelFile = modelDir.resolve(name + "-" + modelType + ".model");
+                        if (!Files.isRegularFile(modelFile)) {
+                            // Fallback: try "{name}.model" (e.g., ActionGroupTest.model)
+                            modelFile = modelDir.resolve(name + ".model");
+                        }
 
                         if (Files.isRegularFile(modelFile)) {
                             configs.add(new ExternalModelConfig(name, modelDir.toAbsolutePath().normalize(), true, Map.of()));
@@ -743,7 +748,7 @@ public abstract class AbstractExternalModelTest {
             Files.createDirectories(targetDir);
             Path jsonFile = targetDir.resolve(JSON_RESULTS_FILENAME);
 
-            String comparisonMode = System.getProperty("judo.test.comparison.mode", "STRUCTURAL");
+            String comparisonMode = System.getProperty("judo.test.comparison.mode", "STRICT");
             boolean comparisonEnabled = !"false".equalsIgnoreCase(
                     System.getProperty("judo.test.comparison.enabled", "true"));
 
