@@ -631,6 +631,8 @@
                             <judo.test.comparison.enabled>${judo.test.comparison.enabled}</judo.test.comparison.enabled>
                             <judo.test.comparison.mode>${judo.test.comparison.mode}</judo.test.comparison.mode>
                             <judo.test.comparison.maxDifferences>${judo.test.comparison.maxDifferences}</judo.test.comparison.maxDifferences>
+                            <!-- Zeta framework debug -->
+                            <zeta.debug>${zeta.debug}</zeta.debug>
                         </systemPropertyVariables>
                         <!--suppress UnresolvedMavenProperty -->
                         <argLine>

@@ -20,6 +20,7 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta;
  * #L%
  */
 
+import hu.blackbelt.judo.zeta.transformation.core.ExecutionStrategy;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.psm.data.AssociationEnd;
@@ -119,6 +120,7 @@ public class Psm2AsmZetaTransformation {
                 .registry(registry)
                 .context(context)
                 .parallel(false)  // Sequential execution - Zeta is faster without parallel overhead
+                .executionStrategy(ExecutionStrategy.RULE_BY_RULE)  // ETL-compatible: each rule processes ALL elements before next rule
                 .build();
         log.info("Phase 4 - Create executor: {}ms", System.currentTimeMillis() - phaseStart);
 
