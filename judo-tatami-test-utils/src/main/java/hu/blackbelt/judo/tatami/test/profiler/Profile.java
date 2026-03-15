@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  * <p>
  * With configuration:
  * <pre>{@code
- * @Profile(thresholdMs = 500, format = "flamegraph", event = "wall")
+ * @Profile(thresholdMs = 500)
  * class MyPerformanceTest {
  *     // ...
  * }
@@ -43,18 +43,4 @@ public @interface Profile {
      * Default: 0 (always profile)
      */
     long thresholdMs() default 0;
-
-    /**
-     * Output format for the profile data.
-     * Supported values: collapsed, flamegraph, jfr
-     * Default: collapsed (most LLM-friendly)
-     */
-    String format() default "collapsed";
-
-    /**
-     * Profiling event type.
-     * Supported values: cpu, wall, alloc, lock
-     * Default: cpu
-     */
-    String event() default "cpu";
 }

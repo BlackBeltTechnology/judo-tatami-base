@@ -942,8 +942,6 @@
             <properties>
                 <!-- Enable JVM profiler during performance tests -->
                 <judo.test.profiler.enabled>true</judo.test.profiler.enabled>
-                <judo.test.profiler.format>collapsed</judo.test.profiler.format>
-                <judo.test.profiler.event>cpu</judo.test.profiler.event>
                 <judo.test.profiler.thresholdMs>100</judo.test.profiler.thresholdMs>
             </properties>
             <build>
@@ -954,10 +952,10 @@
                         <configuration>
                             <excludedGroups combine.self="override" />
                             <groups>performance</groups>
+                            <!-- jvm-profiler Java agent: collects Stacktrace.json and CpuAndMemory.json -->
+                            <argLine>-javaagent:${maven.multiModuleProjectDirectory}/judo-tatami-test-utils/lib/jvm-profiler.jar=reporter=com.uber.profiling.reporters.FileOutputReporter,outputDir=target/profiler-output,sampleInterval=100,metricInterval=1000</argLine>
                             <systemPropertyVariables>
                                 <judo.test.profiler.enabled>${judo.test.profiler.enabled}</judo.test.profiler.enabled>
-                                <judo.test.profiler.format>${judo.test.profiler.format}</judo.test.profiler.format>
-                                <judo.test.profiler.event>${judo.test.profiler.event}</judo.test.profiler.event>
                                 <judo.test.profiler.thresholdMs>${judo.test.profiler.thresholdMs}</judo.test.profiler.thresholdMs>
                             </systemPropertyVariables>
                         </configuration>

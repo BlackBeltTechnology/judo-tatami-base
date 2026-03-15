@@ -22,8 +22,15 @@ import hu.blackbelt.judo.tatami.test.util.ModelComparator;
  */
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.psm.data.EntityType;
+import hu.blackbelt.judo.meta.psm.derived.DataProperty;
+import hu.blackbelt.judo.meta.psm.derived.NavigationProperty;
+import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
-import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.meta.psm.service.TransferAttribute;
+import hu.blackbelt.judo.meta.psm.service.TransferObjectRelation;
+import hu.blackbelt.judo.meta.psm.service.UnmappedTransferObjectType;
+import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +38,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.buildAsmModel;
+import static hu.blackbelt.judo.meta.psm.data.util.builder.DataBuilders.*;
+import static hu.blackbelt.judo.meta.psm.derived.util.builder.DerivedBuilders.*;
+import static hu.blackbelt.judo.meta.psm.namespace.util.builder.NamespaceBuilders.*;
+import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.buildPsmModel;
+import static hu.blackbelt.judo.meta.psm.service.util.builder.ServiceBuilders.*;
+import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.*;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
 import static org.junit.jupiter.api.Assertions.*;
@@ -296,6 +309,139 @@ public class Psm2AsmDualTransformationTest {
                 ModelComparator.ComparisonMode.STRICT
         );
         log.info("SUCCESS: ETL and Zeta transformations produced equivalent models (strict)");
+    }
+
+    @Test
+    @DisplayName("TransferAttribute with parameterized PrimitiveAccessor getter produces parameterized annotation in both ETL and Zeta")
+    void testParameterizedTransferAttributeAnnotation() throws Exception {
+        // Build a minimal PSM: UnmappedTransferObjectType with a TransferAttribute
+        // whose binding is a DataProperty (implements PrimitiveAccessor) with a parameterType
+        StringType strType = newStringTypeBuilder().withName("String").withMaxLength(256).build();
+
+        UnmappedTransferObjectType paramType = newUnmappedTransferObjectTypeBuilder().withName("InputParameter").build();
+
+        DataProperty dataProperty = newDataPropertyBuilder()
+                .withName("derivedAttr")
+                .withDataType(strType)
+                .withGetterExpression(
+                        newDataExpressionTypeBuilder()
+                                .withExpression("self.name")
+                                .withParameterType(paramType)
+                                .build())
+                .build();
+
+        EntityType entity = newEntityTypeBuilder().withName("Entity")
+                .withDataProperties(dataProperty)
+                .build();
+
+        TransferAttribute transferAttr = newTransferAttributeBuilder()
+                .withName("derivedAttr")
+                .withDataType(strType)
+                .withBinding(dataProperty)
+                .build();
+
+        UnmappedTransferObjectType transferObject = newUnmappedTransferObjectTypeBuilder()
+                .withName("MyTransferObject")
+                .withAttributes(transferAttr)
+                .build();
+
+        Model model = newModelBuilder().withName("TestModel")
+                .withElements(entity, strType, paramType, transferObject)
+                .build();
+
+        PsmModel psmModel = buildPsmModel().build();
+        psmModel.addContent(model);
+
+        // Run ETL
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(etlResult));
+
+        // Run Zeta (same PSM — ETL does not modify the PSM model)
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaResult)
+                .modelName(psmModel.getName())
+                .build()
+                .execute();
+
+        // STRICT comparison — should FAIL until Zeta rule is implemented (TDD red phase)
+        ModelComparator.assertEquivalent(
+                etlResult.getResourceSet().getResources().get(0),
+                zetaResult.getResourceSet().getResources().get(0),
+                ModelComparator.ComparisonMode.STRICT
+        );
+    }
+
+    @Test
+    @DisplayName("TransferObjectRelation with parameterized ReferenceAccessor getter produces parameterized annotation in both ETL and Zeta")
+    void testParameterizedTransferObjectRelationAnnotation() throws Exception {
+        // Build a minimal PSM: UnmappedTransferObjectType with a TransferObjectRelation
+        // whose binding is a NavigationProperty (implements ReferenceAccessor) with a parameterType
+        UnmappedTransferObjectType paramType = newUnmappedTransferObjectTypeBuilder().withName("InputParameter")
+                .build();
+
+        EntityType targetEntity = newEntityTypeBuilder().withName("TargetEntity").build();
+        EntityType sourceEntity = newEntityTypeBuilder().withName("SourceEntity").build();
+
+        NavigationProperty navProp = newNavigationPropertyBuilder()
+                .withName("derivedRel")
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .withTarget(targetEntity)
+                .withGetterExpression(
+                        newReferenceExpressionTypeBuilder()
+                                .withExpression("self.related")
+                                .withParameterType(paramType)
+                                .build())
+                .build();
+        sourceEntity.getNavigationProperties().add(navProp);
+
+        UnmappedTransferObjectType targetTO = newUnmappedTransferObjectTypeBuilder()
+                .withName("TargetTO")
+                .build();
+
+        TransferObjectRelation transferRel = newTransferObjectRelationBuilder()
+                .withName("derivedRel")
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .withTarget(targetTO)
+                .withBinding(navProp)
+                .build();
+
+        UnmappedTransferObjectType sourceTO = newUnmappedTransferObjectTypeBuilder()
+                .withName("SourceTO")
+                .withRelations(transferRel)
+                .build();
+
+        Model model = newModelBuilder().withName("TestModel2")
+                .withElements(sourceEntity, targetEntity, paramType, sourceTO, targetTO)
+                .build();
+
+        PsmModel psmModel = buildPsmModel().build();
+        psmModel.addContent(model);
+
+        // Run ETL
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(etlResult));
+
+        // Run Zeta (reuse same PSM model — no ETL side effects on PSM)
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaResult)
+                .modelName(psmModel.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // STRICT comparison — should FAIL until Zeta rule is implemented (TDD red phase)
+        ModelComparator.assertEquivalent(
+                etlResult.getResourceSet().getResources().get(0),
+                zetaResult.getResourceSet().getResources().get(0),
+                ModelComparator.ComparisonMode.STRICT
+        );
     }
 
     @Test

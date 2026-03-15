@@ -77,7 +77,10 @@ import java.util.stream.Stream;
 public abstract class AbstractExternalModelTest {
 
     private static final String PROPERTIES_FILE = "external-model-tests.properties";
+    private static final String SEARCH_DIRECTORIES_FILE = "model-search-directories.properties";
     private static final String MODULE_ROOT_PROPERTY = "judo.test.module.root";
+    private static final String SEARCH_DIRECTORIES_PROPERTY = "judo.test.model.search.directories";
+    private static final String DISCOVERY_BASEDIR_PROPERTY = "judo.test.discovery.basedir";
     private static final String JSON_RESULTS_FILENAME = "comparison-results.json";
 
     /**
@@ -207,13 +210,39 @@ public abstract class AbstractExternalModelTest {
      *
      * @param propertiesFile the name of the properties file (in classpath)
      * @param testClass the test class (used to resolve classpath and module root)
-     * @return a stream of model configurations, filtered to only existing directories
+     * @return a stream of model configurations, merged from all sources with priority
      */
     protected static Stream<ExternalModelConfig> loadModelConfigs(String propertiesFile, Class<?> testClass) {
+        Path moduleBaseDir = resolveModuleBaseDir(testClass);
+        log.info("Module base directory: {}", moduleBaseDir);
+
+        // 1. Load explicit models from properties file (highest priority)
+        List<ExternalModelConfig> propertiesConfigs = loadFromPropertiesFile(propertiesFile, testClass, moduleBaseDir);
+        log.info("Loaded {} models from properties file '{}'", propertiesConfigs.size(), propertiesFile);
+
+        // 2. Load search directories and scan for models
+        List<Path> searchDirectories = loadSearchDirectories(testClass, moduleBaseDir);
+        List<ExternalModelConfig> searchDirectoryConfigs = searchDirectories.stream()
+                .flatMap(AbstractExternalModelTest::scanDirectory)
+                .toList();
+        log.info("Discovered {} models from {} search directories", searchDirectoryConfigs.size(), searchDirectories.size());
+
+        // 3. Load from legacy basedir system property (lowest priority)
+        List<ExternalModelConfig> basedirConfigs = loadFromBasedir(moduleBaseDir);
+        log.info("Discovered {} models from basedir", basedirConfigs.size());
+
+        // Merge all sources with priority
+        return mergeModelConfigs(propertiesConfigs, searchDirectoryConfigs, basedirConfigs);
+    }
+
+    /**
+     * Loads model configurations from the explicit properties file.
+     */
+    private static List<ExternalModelConfig> loadFromPropertiesFile(String propertiesFile, Class<?> testClass, Path moduleBaseDir) {
         URL resource = testClass.getClassLoader().getResource(propertiesFile);
         if (resource == null) {
-            log.info("Properties file '{}' not found in classpath - no external models configured", propertiesFile);
-            return Stream.empty();
+            log.debug("Properties file '{}' not found in classpath", propertiesFile);
+            return List.of();
         }
 
         Properties properties = new Properties();
@@ -221,16 +250,13 @@ public abstract class AbstractExternalModelTest {
             properties.load(is);
         } catch (IOException e) {
             log.warn("Failed to load properties file '{}': {}", propertiesFile, e.getMessage());
-            return Stream.empty();
+            return List.of();
         }
 
         if (properties.isEmpty()) {
-            log.info("Properties file '{}' is empty - no external models configured", propertiesFile);
-            return Stream.empty();
+            log.debug("Properties file '{}' is empty", propertiesFile);
+            return List.of();
         }
-
-        Path moduleBaseDir = resolveModuleBaseDir(testClass);
-        log.info("Module base directory: {}", moduleBaseDir);
 
         List<ExternalModelConfig> configs = new ArrayList<>();
         for (String modelName : properties.stringPropertyNames()) {
@@ -245,9 +271,32 @@ public abstract class AbstractExternalModelTest {
             }
         }
 
-        // Return all configs - individual tests will skip if model doesn't exist
-        // This allows JUnit to show skipped tests in the report
-        return configs.stream();
+        return configs;
+    }
+
+    /**
+     * Loads model configurations from the legacy basedir system property.
+     */
+    private static List<ExternalModelConfig> loadFromBasedir(Path moduleBaseDir) {
+        String basedir = System.getProperty(DISCOVERY_BASEDIR_PROPERTY);
+        if (basedir == null || basedir.trim().isEmpty()) {
+            return List.of();
+        }
+
+        Path basePath;
+        if (basedir.startsWith("/")) {
+            basePath = Paths.get(basedir).toAbsolutePath().normalize();
+        } else {
+            basePath = moduleBaseDir.resolve(basedir).toAbsolutePath().normalize();
+        }
+
+        if (!Files.isDirectory(basePath)) {
+            log.debug("Basedir does not exist: {}", basePath);
+            return List.of();
+        }
+
+        log.info("Discovering models from basedir: {}", basePath);
+        return scanDirectory(basePath).toList();
     }
 
     /**
@@ -685,6 +734,191 @@ public abstract class AbstractExternalModelTest {
 
         log.info("Discovered {} models", configs.size());
         return configs.stream();
+    }
+
+    /**
+     * Loads search directories from both the properties file and Maven system property.
+     *
+     * <p>The Maven system property ({@code -Djudo.test.model.search.directories}) takes priority
+     * over the properties file. If the system property is set, the properties file is ignored.
+     *
+     * @param testClass the test class (used to resolve classpath)
+     * @param moduleBaseDir the module base directory for relative path resolution
+     * @return a list of existing directory paths to scan
+     */
+    private static List<Path> loadSearchDirectories(Class<?> testClass, Path moduleBaseDir) {
+        // First check Maven system property (takes priority)
+        String systemPropertyDirs = System.getProperty(SEARCH_DIRECTORIES_PROPERTY);
+        if (systemPropertyDirs != null && !systemPropertyDirs.trim().isEmpty()) {
+            log.debug("Using search directories from system property: {}", systemPropertyDirs);
+            return parseDirectoryList(systemPropertyDirs, moduleBaseDir);
+        }
+
+        // Fall back to properties file
+        URL resource = testClass.getClassLoader().getResource(SEARCH_DIRECTORIES_FILE);
+        if (resource == null) {
+            log.debug("Search directories file '{}' not found in classpath", SEARCH_DIRECTORIES_FILE);
+            return List.of();
+        }
+
+        try (InputStream is = resource.openStream()) {
+            String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            log.debug("Loaded search directories from properties file");
+            return parseDirectoryList(content, moduleBaseDir);
+        } catch (IOException e) {
+            log.warn("Failed to load search directories file '{}': {}", SEARCH_DIRECTORIES_FILE, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Parses a comma or newline-separated list of directory paths.
+     *
+     * <p>Paths are resolved from the module base directory. Only existing directories
+     * are returned; missing directories are silently skipped.
+     *
+     * @param content the comma or newline-separated path string
+     * @param moduleBaseDir the module base directory for relative path resolution
+     * @return a list of existing directory paths
+     */
+    private static List<Path> parseDirectoryList(String content, Path moduleBaseDir) {
+        List<Path> result = new ArrayList<>();
+
+        // Support both comma and newline separators
+        String[] paths = content.split("[,\\n\\r]+");
+        for (String pathStr : paths) {
+            String trimmed = pathStr.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                continue;  // Skip empty lines and comments
+            }
+
+            Path path;
+            if (trimmed.startsWith("/")) {
+                // Absolute path
+                path = Paths.get(trimmed).toAbsolutePath().normalize();
+            } else {
+                // Relative path - resolve from module base
+                path = moduleBaseDir.resolve(trimmed).toAbsolutePath().normalize();
+            }
+
+            if (Files.isDirectory(path)) {
+                result.add(path);
+                log.debug("Added search directory: {}", path);
+            } else {
+                log.debug("Skipping non-existent search directory: {}", path);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Scans a directory recursively for subdirectories containing model files.
+     *
+     * <p>For each subdirectory that contains at least one {@code *.model} file,
+     * creates an {@link ExternalModelConfig} with the subdirectory name as the model name.
+     *
+     * @param searchDir the directory to scan
+     * @return a stream of discovered model configurations
+     */
+    private static Stream<ExternalModelConfig> scanDirectory(Path searchDir) {
+        List<ExternalModelConfig> configs = new ArrayList<>();
+
+        try {
+            // First check if the search directory itself is a model directory
+            if (isModelDirectory(searchDir)) {
+                String modelName = searchDir.getFileName().toString();
+                configs.add(new ExternalModelConfig(modelName, searchDir.toAbsolutePath().normalize(), true, Map.of()));
+                log.debug("Search directory itself is a model directory: {} -> {}", modelName, searchDir);
+            }
+
+            // Then scan subdirectories recursively
+            try (Stream<Path> walk = Files.walk(searchDir)) {
+                walk.filter(Files::isDirectory)
+                        .filter(AbstractExternalModelTest::isModelDirectory)
+                        .forEach(dir -> {
+                            String modelName = dir.getFileName().toString();
+                            // Skip if already added as the search directory itself
+                            if (!dir.equals(searchDir)) {
+                                configs.add(new ExternalModelConfig(modelName, dir.toAbsolutePath().normalize(), true, Map.of()));
+                                log.debug("Discovered model from search directory: {} -> {}", modelName, dir);
+                            }
+                        });
+            }
+        } catch (IOException e) {
+            log.warn("Failed to scan directory '{}': {}", searchDir, e.getMessage());
+        }
+
+        return configs.stream();
+    }
+
+    /**
+     * Checks if a directory contains at least one model file.
+     *
+     * @param dir the directory to check
+     * @return true if the directory contains at least one {@code *.model} file
+     */
+    private static boolean isModelDirectory(Path dir) {
+        try (Stream<Path> files = Files.list(dir)) {
+            return files.anyMatch(file ->
+                    Files.isRegularFile(file) && file.getFileName().toString().endsWith(".model"));
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Merges model configurations from multiple sources with priority.
+     *
+     * <p>Higher priority sources override lower priority sources when model names conflict.
+     * Priority order (highest first):
+     * <ol>
+     *   <li>Explicit models from properties file</li>
+     *   <li>Maven system property injected directories</li>
+     *   <li>Search directories from properties file</li>
+     *   <li>Legacy basedir discovery</li>
+     * </ol>
+     *
+     * @param propertiesConfigs models from explicit properties file
+     * @param searchDirectoryConfigs models discovered from search directories
+     * @param basedirConfigs models discovered from basedir
+     * @return merged stream of configurations with priority applied
+     */
+    private static Stream<ExternalModelConfig> mergeModelConfigs(
+            List<ExternalModelConfig> propertiesConfigs,
+            List<ExternalModelConfig> searchDirectoryConfigs,
+            List<ExternalModelConfig> basedirConfigs) {
+
+        Map<String, ExternalModelConfig> merged = new LinkedHashMap<>();
+
+        // Add in reverse priority order (lowest first, so higher priority overwrites)
+        // 4. Basedir (lowest priority)
+        for (ExternalModelConfig config : basedirConfigs) {
+            merged.putIfAbsent(config.modelName(), config);
+        }
+
+        // 3. Search directories
+        for (ExternalModelConfig config : searchDirectoryConfigs) {
+            merged.put(config.modelName(), config);
+        }
+
+        // 1. Properties file (highest priority)
+        for (ExternalModelConfig config : propertiesConfigs) {
+            merged.put(config.modelName(), config);
+        }
+
+        // Deduplicate by directory: remove lower-priority entries that point to the same
+        // modelDirectory as a properties-file entry but under a different name.
+        // This happens when a search directory points directly at a leaf dir whose name
+        // differs from the model file prefix (e.g. dir="model", files="rackinspect-*.model").
+        Set<Path> propertiesDirectories = propertiesConfigs.stream()
+                .map(ExternalModelConfig::modelDirectory)
+                .collect(java.util.stream.Collectors.toSet());
+        merged.values().removeIf(config ->
+                propertiesDirectories.contains(config.modelDirectory())
+                && propertiesConfigs.stream().noneMatch(c -> c.modelName().equals(config.modelName())));
+
+        return merged.values().stream();
     }
 
     /**

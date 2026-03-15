@@ -44,11 +44,14 @@
             <artifactId>junit-jupiter-api</artifactId>
         </dependency>
 
-        <!-- async-profiler loader (handles native library extraction) -->
+        <!-- jvm-profiler (pure Java agent, works on macOS and Linux without native library setup) -->
+        <!-- Bundled JAR from commit 07ecfce5bb - bypasses Maven mirror restrictions -->
         <dependency>
-            <groupId>me.bechberger</groupId>
-            <artifactId>ap-loader-all</artifactId>
-            <version>3.0-9</version>
+            <groupId>com.github.uber-common</groupId>
+            <artifactId>jvm-profiler</artifactId>
+            <version>master-07ecfce5bb-1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/jvm-profiler.jar</systemPath>
         </dependency>
 
         <!-- Optional: LangChain4j for LLM integration -->
@@ -69,4 +72,24 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>performance</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- jvm-profiler Java agent: pure Java, works on macOS and Linux -->
+                            <argLine>
+                                -javaagent:${project.basedir}/lib/jvm-profiler.jar=reporter=com.uber.profiling.reporters.FileOutputReporter,outputDir=target/profiler-output,sampleInterval=100,metricInterval=1000
+                            </argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

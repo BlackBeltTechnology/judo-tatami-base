@@ -36,7 +36,6 @@ import hu.blackbelt.judo.meta.psm.derived.StaticNavigation;
 import hu.blackbelt.judo.meta.psm.measure.MeasuredType;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
 import hu.blackbelt.judo.zeta.annotation.*;
-import java.util.logging.Logger;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
 import org.eclipse.emf.ecore.*;
@@ -58,13 +57,10 @@ import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmRuleNames.*;
 @hu.blackbelt.judo.zeta.annotation.TransformationContext(source = TransferObjectType.class, target = EClass.class)
 public class TransferObjectRules {
 
-    private static final Logger LOGGER = Logger.getLogger(TransferObjectRules.class.getName());
-
     /**
      * Default constructor required for TransformationRegistry.
      */
     public TransferObjectRules() {
-        LOGGER.info("TransferObjectRules instantiated - RULE_BY_RULE mode should be active");
     }
 
     // =========================================================================
@@ -873,6 +869,19 @@ public class TransferObjectRules {
                         }
                     }
                 }
+                // Add separate parameterized annotation if getter has a parameterType
+                if (accessor.getGetterExpression() != null && accessor.getGetterExpression().getParameterType() != null) {
+                    EClass paramType = ctx.equivalent(accessor.getGetterExpression().getParameterType(), EClass.class);
+                    if (paramType != null) {
+                        EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
+                        EAnnotation paramAnnotation = createAnnotation(
+                                "(psm/" + getId(s) + ")/TransferAttributeParameterizedAnnotation",
+                                getAnnotationUri("parameterized"));
+                        addAnnotationDetail(paramAnnotation, "value", "true");
+                        addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
+                        addAnnotation(eAttr, paramAnnotation);
+                    }
+                }
             } else if (binding instanceof StaticData) {
                 StaticData data = (StaticData) binding;
                 if (data.getGetterExpression() != null) {
@@ -1194,6 +1203,19 @@ public class TransferObjectRules {
                     addAnnotationDetail(t, "setter", accessor.getSetterExpression().getExpression());
                     if (accessor.getSetterExpression().getDialect() != null) {
                         addAnnotationDetail(t, "setter.dialect", accessor.getSetterExpression().getDialect().toString());
+                    }
+                }
+                // Add separate parameterized annotation if getter has a parameterType
+                if (accessor.getGetterExpression() != null && accessor.getGetterExpression().getParameterType() != null) {
+                    EClass paramType = ctx.equivalent(accessor.getGetterExpression().getParameterType(), EClass.class);
+                    if (paramType != null) {
+                        EReference eRef = ctx.equivalent(s, EReference.class);
+                        EAnnotation paramAnnotation = createAnnotation(
+                                "(psm/" + getId(s) + ")/TransferObjectRelationParameterizedAnnotation",
+                                getAnnotationUri("parameterized"));
+                        addAnnotationDetail(paramAnnotation, "value", "true");
+                        addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
+                        addAnnotation(eRef, paramAnnotation);
                     }
                 }
             } else if (binding instanceof StaticNavigation) {

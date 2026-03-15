@@ -102,38 +102,50 @@ And Child does NOT include "parent" in checksum
 ### Requirement: ModelComparator Comparison
 
 The ModelComparator MUST take two ModelNode structures and return a ComparisonResult with differences.
+The default comparison mode SHALL be `STRICT`.
+In `STRICT` mode the comparator SHALL validate every attribute, every reference, and every EAnnotation.
+In `SKELETON` mode the comparator SHALL skip EAnnotation lists entirely (previous STRUCTURAL behaviour).
+EAnnotation list comparison in `STRICT` mode SHALL be order-insensitive: two EAnnotation lists are equal when every annotation in one list has a matching annotation in the other, matched by `source` URI. Annotation `details` entries (EStringToStringMapEntry) SHALL be compared as an unordered key→value map.
 
 #### Scenario: compare() with identical structures
-
-Given two ModelNode roots with equal checksums
-When compare(expected, actual) is called
-Then isMatch() returns true
-And getDifferences() is empty
+- **WHEN** two ModelNode roots with equal checksums are compared
+- **THEN** isMatch() returns true and getDifferences() is empty
 
 #### Scenario: compare() detects missing element
-
-Given expected with [A, B] and actual with [A]
-When compare(expected, actual) is called
-Then a MISSING difference is reported for B
+- **WHEN** expected has [A, B] and actual has [A]
+- **THEN** a MISSING difference is reported for B
 
 #### Scenario: compare() detects extra element
-
-Given expected with [A] and actual with [A, B]
-When compare(expected, actual) is called
-Then an EXTRA difference is reported for B
+- **WHEN** expected has [A] and actual has [A, B]
+- **THEN** an EXTRA difference is reported for B
 
 #### Scenario: compare() detects attribute mismatch
-
-Given expected with Class.abstract=true and actual with Class.abstract=false
-When compare(expected, actual) is called
-Then an ATTRIBUTE_MISMATCH difference is reported
-And description contains "abstract", "true", "false"
+- **WHEN** expected has Class.abstract=true and actual has Class.abstract=false
+- **THEN** an ATTRIBUTE_MISMATCH difference is reported containing "abstract", "true", "false"
 
 #### Scenario: compare() detects reference mismatch
+- **WHEN** expected references pkg1/Base and actual references pkg2/Base
+- **THEN** a REFERENCE_MISMATCH difference is reported
 
-Given expected referencing pkg1/Base and actual referencing pkg2/Base
-When compare(expected, actual) is called
-Then a REFERENCE_MISMATCH difference is reported
+#### Scenario: STRICT mode validates annotations
+- **WHEN** STRICT mode is active and expected has an EAnnotation with source "http://foo" but actual does not
+- **THEN** a difference is reported for the missing annotation
+
+#### Scenario: STRICT mode is order-insensitive for annotations
+- **WHEN** STRICT mode is active and expected has annotations [A, B] and actual has annotations [B, A]
+- **THEN** no difference is reported
+
+#### Scenario: STRICT mode detects annotation detail mismatch
+- **WHEN** STRICT mode is active and two annotations share the same source URI but differ in a detail entry value
+- **THEN** a difference is reported identifying the mismatched detail key
+
+#### Scenario: SKELETON mode skips annotations
+- **WHEN** SKELETON mode is active and the two models differ only in their EAnnotation lists
+- **THEN** no difference is reported
+
+#### Scenario: Default mode is STRICT
+- **WHEN** no comparison mode is configured via system property
+- **THEN** getConfiguredMode() returns ComparisonMode.STRICT
 
 ---
 
@@ -435,6 +447,98 @@ The ModelChecksumCalculator MUST log a warning when an ignore pattern matches ma
 Given CalculatorOptions with ignore("*.*#name")
 When calculate() processes a model with 500+ elements
 Then a warning is logged about the broad match
+
+---
+
+### Requirement: AbstractExternalModelTest Structural Comparison Support
+
+The AbstractExternalModelTest MUST provide methods for structural model comparison using StructuralModelComparator.
+
+#### Scenario: compareModelsStructural() compares two resources
+
+Given an ETL transformation result Resource
+And a ZETA transformation result Resource
+When compareModelsStructural(expected, actual) is called
+Then it returns a ComparisonResult
+And the result indicates whether models are structurally equivalent
+
+#### Scenario: Structural comparison respects system property
+
+Given system property judo.test.comparison.structural=true
+When isStructuralComparisonEnabled() is called
+Then it returns true
+
+#### Scenario: Structural comparison disabled by default
+
+Given no system property set for structural comparison
+When isStructuralComparisonEnabled() is called
+Then it returns false
+
+---
+
+### Requirement: AbstractDualTransformationTest Structural Comparison Integration
+
+The AbstractDualTransformationTest MUST support structural comparison when configured.
+
+#### Scenario: compareModels() uses structural comparison when enabled
+
+Given system property judo.test.comparison.structural=true
+And ETL and ZETA transformation results
+When compareModels() is called in testDualEquivalence()
+Then structural comparison is used
+And LLM-friendly output is produced on failure
+
+#### Scenario: compareModels() uses ModelComparator when structural disabled
+
+Given system property judo.test.comparison.structural not set
+And ETL and ZETA transformation results
+When compareModels() is called
+Then the existing ModelComparator is used
+
+---
+
+### Requirement: LLM-Friendly Error Output
+
+When structural comparison detects differences, the test MUST output LLM-friendly formatted differences.
+
+#### Scenario: formatForLLM() output on comparison failure
+
+Given two models with structural differences
+When compareModelsStructural() detects differences
+Then formatForLLM() output is logged
+And the output contains XML-structured difference information
+
+---
+
+### Requirement: JSON Export for Debugging
+
+The abstract test classes MUST support optional JSON export of model structures for debugging.
+
+#### Scenario: Export model structure to JSON
+
+Given system property judo.test.structural.exportJson=true
+And a model Resource
+When exportModelStructure(resource, filename) is called
+Then a JSON file is written with the model structure
+
+#### Scenario: JSON export respects output directory
+
+Given system property judo.test.structural.outputDir=target/comparison
+When exportModelStructure() writes a file
+Then the file is created in target/comparison directory
+
+---
+
+### Requirement: All External Model Tests Support Structural Comparison
+
+All external model test classes that extend AbstractExternalModelTest MUST support structural comparison when enabled.
+
+#### Scenario: Psm2AsmExternalModelTest uses structural comparison
+
+Given system property judo.test.comparison.structural=true
+When Psm2AsmExternalModelTest runs model comparison
+Then it uses StructuralModelComparator
+And produces LLM-friendly output on failure
 
 ---
 

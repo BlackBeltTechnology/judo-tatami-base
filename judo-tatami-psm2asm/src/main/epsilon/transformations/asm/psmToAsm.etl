@@ -14,13 +14,13 @@ post {
     var parameterAnnotations = ASM!EParameter.all.collect(p | p.eAnnotations.size()).sum();
     var attributeAnnotations = ASM!EAttribute.all.collect(a | a.eAnnotations.size()).sum();
     var referenceAnnotations = ASM!EReference.all.collect(r | r.eAnnotations.size()).sum();
-    log.info("=== ETL MODEL STATE BEFORE enrichWithAnnotations ===");
-    log.info("  EClass annotations: " + entityAnnotations);
-    log.info("  EOperation annotations: " + operationAnnotations);
-    log.info("  EParameter annotations: " + parameterAnnotations);
-    log.info("  EAttribute annotations: " + attributeAnnotations);
-    log.info("  EReference annotations: " + referenceAnnotations);
-    log.info("  Total: " + (entityAnnotations + operationAnnotations + parameterAnnotations + attributeAnnotations + referenceAnnotations));
+    log.debug("=== ETL MODEL STATE BEFORE enrichWithAnnotations ===");
+    log.debug("  EClass annotations: " + entityAnnotations);
+    log.debug("  EOperation annotations: " + operationAnnotations);
+    log.debug("  EParameter annotations: " + parameterAnnotations);
+    log.debug("  EAttribute annotations: " + attributeAnnotations);
+    log.debug("  EReference annotations: " + referenceAnnotations);
+    log.debug("  Total: " + (entityAnnotations + operationAnnotations + parameterAnnotations + attributeAnnotations + referenceAnnotations));
 
     asmUtils.enrichWithAnnotations();
 
@@ -30,12 +30,12 @@ post {
     var parameterAnnotationsAfter = ASM!EParameter.all.collect(p | p.eAnnotations.size()).sum();
     var attributeAnnotationsAfter = ASM!EAttribute.all.collect(a | a.eAnnotations.size()).sum();
     var referenceAnnotationsAfter = ASM!EReference.all.collect(r | r.eAnnotations.size()).sum();
-    log.info("=== ETL MODEL STATE AFTER enrichWithAnnotations ===");
-    log.info("  EClass annotations: " + entityAnnotationsAfter);
-    log.info("  EOperation annotations: " + operationAnnotationsAfter);
-    log.info("  EParameter annotations: " + parameterAnnotationsAfter);
-    log.info("  EAttribute annotations: " + attributeAnnotationsAfter);
-    log.info("  EReference annotations: " + referenceAnnotationsAfter);
+    log.debug("=== ETL MODEL STATE AFTER enrichWithAnnotations ===");
+    log.debug("  EClass annotations: " + entityAnnotationsAfter);
+    log.debug("  EOperation annotations: " + operationAnnotationsAfter);
+    log.debug("  EParameter annotations: " + parameterAnnotationsAfter);
+    log.debug("  EAttribute annotations: " + attributeAnnotationsAfter);
+    log.debug("  EReference annotations: " + referenceAnnotationsAfter);
 
     for (a in ASM!EAnnotation.all) {
         for (d in a.details) {

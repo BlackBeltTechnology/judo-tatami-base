@@ -14,35 +14,28 @@ public class ProfileConfig {
     public static final String PROPERTY_PREFIX = "judo.test.profiler.";
 
     /**
-     * Output directory for profile files.
-     * System property: judo.test.profiler.outputPath
+     * Output directory for profiler files.
+     * System property: judo.test.profiler.outputDir
      */
     @Builder.Default
-    String outputPath = System.getProperty(PROPERTY_PREFIX + "outputPath", "target/profiler-output/");
+    String outputDir = System.getProperty(PROPERTY_PREFIX + "outputDir", "target/profiler-output");
 
     /**
-     * Output format: collapsed, flamegraph, or jfr.
-     * System property: judo.test.profiler.format
+     * Stacktrace sampling interval in milliseconds (matches jvm-profiler sampleInterval).
+     * System property: judo.test.profiler.sampleInterval
      */
     @Builder.Default
-    String outputFormat = System.getProperty(PROPERTY_PREFIX + "format", "collapsed");
+    long sampleIntervalMs = Long.parseLong(System.getProperty(PROPERTY_PREFIX + "sampleInterval", "100"));
 
     /**
-     * Sampling interval in nanoseconds. Default is 1ms (1,000,000 ns).
-     * System property: judo.test.profiler.interval
+     * JVM metric collection interval in milliseconds (matches jvm-profiler metricInterval).
+     * System property: judo.test.profiler.metricInterval
      */
     @Builder.Default
-    long samplingInterval = Long.parseLong(System.getProperty(PROPERTY_PREFIX + "interval", "1000000"));
+    long metricIntervalMs = Long.parseLong(System.getProperty(PROPERTY_PREFIX + "metricInterval", "1000"));
 
     /**
-     * Profiling event type: cpu, wall, alloc, or lock.
-     * System property: judo.test.profiler.event
-     */
-    @Builder.Default
-    String event = System.getProperty(PROPERTY_PREFIX + "event", "cpu");
-
-    /**
-     * Minimum test duration in milliseconds to trigger profiling.
+     * Minimum test duration in milliseconds to trigger post-processing.
      * Tests completing faster than this threshold will not generate profiles.
      * System property: judo.test.profiler.thresholdMs
      */
@@ -55,13 +48,6 @@ public class ProfileConfig {
      */
     @Builder.Default
     boolean enabled = Boolean.parseBoolean(System.getProperty(PROPERTY_PREFIX + "enabled", "false"));
-
-    /**
-     * Enable auto-registration via Service Loader.
-     * System property: judo.test.profiler.autoRegister
-     */
-    @Builder.Default
-    boolean autoRegister = Boolean.parseBoolean(System.getProperty(PROPERTY_PREFIX + "autoRegister", "true"));
 
     /**
      * Enable integrated LLM analysis (disabled by default).
@@ -84,25 +70,4 @@ public class ProfileConfig {
         return ProfileConfig.builder().build();
     }
 
-    /**
-     * Returns the file extension for the configured output format.
-     */
-    public String getFileExtension() {
-        return switch (outputFormat.toLowerCase()) {
-            case "flamegraph" -> ".svg";
-            case "jfr" -> ".jfr";
-            default -> ".txt";
-        };
-    }
-
-    /**
-     * Returns the async-profiler output argument for the configured format.
-     */
-    public String getProfilerOutputArg() {
-        return switch (outputFormat.toLowerCase()) {
-            case "flamegraph" -> "flamegraph";
-            case "jfr" -> "jfr";
-            default -> "collapsed";
-        };
-    }
 }
