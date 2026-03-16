@@ -131,7 +131,7 @@ public class StaticRules {
 
                 // Add parameter type if defined using named equivalent (ETL: paramType.equivalent("CreateEntityClass"))
                 if (s.getGetterExpression().getParameterType() != null) {
-                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), CREATE_ENTITY_CLASS);
+                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
                     if (paramType != null) {
                         addAnnotationDetail(exprAnnotation, "getter.parameter", getClassifierFQName(paramType));
                     }
@@ -141,7 +141,7 @@ public class StaticRules {
 
                 // Add parameterized annotation if has parameter type (thread-safe)
                 if (s.getGetterExpression().getParameterType() != null) {
-                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), CREATE_ENTITY_CLASS);
+                    EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
                     if (paramType != null) {
                         EAnnotation paramAnnotation = createAnnotation(
                                 "(psm/" + getId(s) + ")/TransferAttributeParameterizedAnnotationForStaticData",

@@ -869,19 +869,6 @@ public class TransferObjectRules {
                         }
                     }
                 }
-                // Add separate parameterized annotation if getter has a parameterType
-                if (accessor.getGetterExpression() != null && accessor.getGetterExpression().getParameterType() != null) {
-                    EClass paramType = ctx.equivalent(accessor.getGetterExpression().getParameterType(), EClass.class);
-                    if (paramType != null) {
-                        EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
-                        EAnnotation paramAnnotation = createAnnotation(
-                                "(psm/" + getId(s) + ")/TransferAttributeParameterizedAnnotation",
-                                getAnnotationUri("parameterized"));
-                        addAnnotationDetail(paramAnnotation, "value", "true");
-                        addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
-                        addAnnotation(eAttr, paramAnnotation);
-                    }
-                }
             } else if (binding instanceof StaticData) {
                 StaticData data = (StaticData) binding;
                 if (data.getGetterExpression() != null) {
@@ -918,6 +905,55 @@ public class TransferObjectRules {
             addAnnotation(eAttr, t);
 
             return t;
+        };
+    }
+
+    /**
+     * rule CreateTransferAttributeParameterizedAnnotation
+     *     transform s : JUDOPSM!TransferAttribute
+     *     to t : ASM!EAnnotation {
+     *         guard: s.binding.isDefined() and s.binding.isKindOf(JUDOPSM!PrimitiveAccessor)
+     *             and s.binding.getterExpression.parameterType.isDefined()
+     *     }
+     *
+     * Standalone rule matching ETL guard exactly — no container type check.
+     */
+    @TransformRule(name = CREATE_TRANSFER_ATTRIBUTE_PARAMETERIZED_ANNOTATION, description = "Add parameterized annotation to transfer attribute with PrimitiveAccessor binding")
+    @Guard(method = "hasPrimitiveAccessorWithParameterType")
+    @Transform(type = TransferAttribute.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<TransferAttribute, EAnnotation> createTransferAttributeParameterizedAnnotation() {
+        return (s, ctx) -> {
+            PrimitiveAccessor accessor = (PrimitiveAccessor) s.getBinding();
+            EClass paramType = ctx.equivalent(accessor.getGetterExpression().getParameterType(), EClass.class);
+            if (paramType == null) {
+                return null;
+            }
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("parameterized"));
+            addAnnotationDetail(t, "value", "true");
+            addAnnotationDetail(t, "type", getClassifierFQName(paramType));
+
+            EAttribute eAttr = ctx.equivalent(s, EAttribute.class);
+            addAnnotation(eAttr, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * Guard: binding is PrimitiveAccessor and getter has parameterType defined.
+     * ETL: s.binding.isDefined() and s.binding.isKindOf(JUDOPSM!PrimitiveAccessor)
+     *      and s.binding.getterExpression.parameterType.isDefined()
+     */
+    public TransformGuard hasPrimitiveAccessorWithParameterType() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferAttribute attr)) return false;
+            Object binding = attr.getBinding();
+            if (!(binding instanceof PrimitiveAccessor accessor)) return false;
+            return accessor.getGetterExpression() != null
+                    && accessor.getGetterExpression().getParameterType() != null;
         };
     }
 
@@ -1205,19 +1241,6 @@ public class TransferObjectRules {
                         addAnnotationDetail(t, "setter.dialect", accessor.getSetterExpression().getDialect().toString());
                     }
                 }
-                // Add separate parameterized annotation if getter has a parameterType
-                if (accessor.getGetterExpression() != null && accessor.getGetterExpression().getParameterType() != null) {
-                    EClass paramType = ctx.equivalent(accessor.getGetterExpression().getParameterType(), EClass.class);
-                    if (paramType != null) {
-                        EReference eRef = ctx.equivalent(s, EReference.class);
-                        EAnnotation paramAnnotation = createAnnotation(
-                                "(psm/" + getId(s) + ")/TransferObjectRelationParameterizedAnnotation",
-                                getAnnotationUri("parameterized"));
-                        addAnnotationDetail(paramAnnotation, "value", "true");
-                        addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
-                        addAnnotation(eRef, paramAnnotation);
-                    }
-                }
             } else if (binding instanceof StaticNavigation) {
                 StaticNavigation nav = (StaticNavigation) binding;
                 if (nav.getGetterExpression() != null) {
@@ -1247,6 +1270,55 @@ public class TransferObjectRules {
             addAnnotation(eRef, t);
 
             return t;
+        };
+    }
+
+    /**
+     * rule CreateTransferObjectRelationParameterizedAnnotation
+     *     transform s : JUDOPSM!TransferObjectRelation
+     *     to t : ASM!EAnnotation {
+     *         guard: s.binding.isDefined() and s.binding.isKindOf(JUDOPSM!ReferenceAccessor)
+     *             and s.binding.getterExpression.parameterType.isDefined()
+     *     }
+     *
+     * Standalone rule matching ETL guard exactly — no container type check.
+     */
+    @TransformRule(name = CREATE_TRANSFER_OBJECT_RELATION_PARAMETERIZED_ANNOTATION, description = "Add parameterized annotation to transfer relation with ReferenceAccessor binding")
+    @Guard(method = "hasReferenceAccessorWithParameterType")
+    @Transform(type = TransferObjectRelation.class)
+    @To(type = EAnnotation.class)
+    @Greedy
+    public TransformFunction<TransferObjectRelation, EAnnotation> createTransferObjectRelationParameterizedAnnotation() {
+        return (s, ctx) -> {
+            ReferenceAccessor accessor = (ReferenceAccessor) s.getBinding();
+            EClass paramType = ctx.equivalent(accessor.getGetterExpression().getParameterType(), EClass.class);
+            if (paramType == null) {
+                return null;
+            }
+            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            t.setSource(getAnnotationUri("parameterized"));
+            addAnnotationDetail(t, "value", "true");
+            addAnnotationDetail(t, "type", getClassifierFQName(paramType));
+
+            EReference eRef = ctx.equivalent(s, EReference.class);
+            addAnnotation(eRef, t);
+
+            return t;
+        };
+    }
+
+    /**
+     * Guard: binding is ReferenceAccessor and getter has parameterType defined.
+     * ETL: s.binding.isDefined() and s.binding.isKindOf(JUDOPSM!ReferenceAccessor)
+     *      and s.binding.getterExpression.parameterType.isDefined()
+     */
+    public TransformGuard hasReferenceAccessorWithParameterType() {
+        return (source, ctx) -> {
+            if (!(source instanceof TransferObjectRelation rel)) return false;
+            Object binding = rel.getBinding();
+            if (!(binding instanceof ReferenceAccessor accessor)) return false;
+            return accessor.getGetterExpression() != null
+                    && accessor.getGetterExpression().getParameterType() != null;
         };
     }
 
