@@ -34,12 +34,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.URIHandler;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -265,6 +261,8 @@ public class Psm2AsmTransformationTrace implements TransformationTrace {
 
     /**
      * Create transformation trace from models and trace inputstream.
+     * Automatically detects format: JSON (Zeta) vs XMI (ETL) by peeking at the first non-whitespace byte.
+     *
      * @param modelName
      * @param psmModel
      * @param asmModel
@@ -279,11 +277,32 @@ public class Psm2AsmTransformationTrace implements TransformationTrace {
 
         checkArgument(psmModel.getName().equals(asmModel.getName()), "Model name does not match");
 
+        BufferedInputStream buffered = new BufferedInputStream(traceModelInputStream);
+        buffered.mark(1024);
+
+        // Peek at first non-whitespace byte to detect format
+        int b;
+        do {
+            b = buffered.read();
+        } while (b != -1 && Character.isWhitespace(b));
+        buffered.reset();
+
+        if (b == '{' || b == -1) {
+            // JSON format (Zeta trace) or empty stream — build trace without ETL map.
+            // This is consistent with runtime behavior where Zeta traces return empty map
+            // from getTransformationTrace().
+            return Psm2AsmTransformationTrace.psm2AsmTransformationTraceBuilder()
+                    .asmModel(asmModel)
+                    .psmModel(psmModel)
+                    .build();
+        }
+
+        // XMI format - ETL trace (legacy)
         Resource traceResoureLoaded = createPsm2AsmTraceResource(
                 URI.createURI(PSM_2_ASM_TRACE_URI_PREFIX + modelName),
                 null);
 
-        traceResoureLoaded.load(traceModelInputStream, ImmutableMap.of());
+        traceResoureLoaded.load(buffered, ImmutableMap.of());
 
         return Psm2AsmTransformationTrace.psm2AsmTransformationTraceBuilder()
                 .asmModel(asmModel)
@@ -294,12 +313,17 @@ public class Psm2AsmTransformationTrace implements TransformationTrace {
 
     /**
      * Save trace to the given stream.
+     * For Zeta traces, saves as JSON format. For ETL traces, saves as XMI format.
      *
      * @param outputStream
-     * @return
+     * @return the saved resource (null for Zeta traces)
      * @throws IOException
      */
     public Resource save(OutputStream outputStream) throws IOException {
+        if (isZetaTrace()) {
+            zetaTrace.saveToJson(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+            return null;
+        }
         Resource  traceResoureSaved = getPsm2AsmTraceResource(
                 trace,
                 URI.createURI(PSM_2_ASM_TRACE_URI_PREFIX + getModelName()));

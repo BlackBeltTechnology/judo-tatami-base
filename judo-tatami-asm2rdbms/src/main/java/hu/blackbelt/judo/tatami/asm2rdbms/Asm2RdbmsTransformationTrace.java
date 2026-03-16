@@ -34,12 +34,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.URIHandler;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -279,11 +275,27 @@ public class Asm2RdbmsTransformationTrace implements TransformationTrace {
 
         checkArgument(asmModel.getName().equals(rdbmsModel.getName()), "Model name does not match");
 
+        BufferedInputStream buffered = new BufferedInputStream(traceModelInputStream);
+        buffered.mark(1024);
+
+        int b;
+        do {
+            b = buffered.read();
+        } while (b != -1 && Character.isWhitespace(b));
+        buffered.reset();
+
+        if (b == '{' || b == -1) {
+            return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
+                    .rdbmsModel(rdbmsModel)
+                    .asmModel(asmModel)
+                    .build();
+        }
+
         Resource traceResoureLoaded = createAsm2RdbmsTraceResource(
                 URI.createURI(ASM_2_RDBMS_TRACE_URI_PREFIX + modelName),
                 null);
 
-        traceResoureLoaded.load(traceModelInputStream, ImmutableMap.of());
+        traceResoureLoaded.load(buffered, ImmutableMap.of());
 
         return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
                 .rdbmsModel(rdbmsModel)
@@ -300,6 +312,10 @@ public class Asm2RdbmsTransformationTrace implements TransformationTrace {
      * @throws IOException
      */
     public Resource save(OutputStream outputStream) throws IOException {
+        if (isZetaTrace()) {
+            zetaTrace.saveToJson(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+            return null;
+        }
         Resource  traceResoureSaved = getAsm2RdbmsTraceResource(
                 trace,
                 URI.createURI(ASM_2_RDBMS_TRACE_URI_PREFIX + getModelName()));

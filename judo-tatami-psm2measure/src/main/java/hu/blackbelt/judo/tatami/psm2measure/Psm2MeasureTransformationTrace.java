@@ -34,12 +34,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.URIHandler;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -279,11 +275,30 @@ public class Psm2MeasureTransformationTrace implements TransformationTrace {
 
         checkArgument(psmModel.getName().equals(measureModel.getName()), "Model name does not match");
 
+        BufferedInputStream buffered = new BufferedInputStream(traceModelInputStream);
+        buffered.mark(1024);
+
+        // Peek at first non-whitespace byte to detect format
+        int b;
+        do {
+            b = buffered.read();
+        } while (b != -1 && Character.isWhitespace(b));
+        buffered.reset();
+
+        if (b == '{' || b == -1) {
+            // JSON format (Zeta trace) or empty stream — build trace without ETL map.
+            return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
+                    .measureModel(measureModel)
+                    .psmModel(psmModel)
+                    .build();
+        }
+
+        // XMI format - ETL trace (legacy)
         Resource traceResoureLoaded = createPsm2MeasureTraceResource(
                 URI.createURI(PSM_2_MEASURE_TRACE_URI_PREFIX + modelName),
                 null);
 
-        traceResoureLoaded.load(traceModelInputStream, ImmutableMap.of());
+        traceResoureLoaded.load(buffered, ImmutableMap.of());
 
         return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
                 .measureModel(measureModel)
@@ -300,6 +315,10 @@ public class Psm2MeasureTransformationTrace implements TransformationTrace {
      * @throws IOException
      */
     public Resource save(OutputStream outputStream) throws IOException {
+        if (isZetaTrace()) {
+            zetaTrace.saveToJson(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+            return null;
+        }
         Resource  traceResoureSaved = getPsm2MeasureTraceResource(
                 trace,
                 URI.createURI(PSM_2_MEASURE_TRACE_URI_PREFIX + getModelName()));

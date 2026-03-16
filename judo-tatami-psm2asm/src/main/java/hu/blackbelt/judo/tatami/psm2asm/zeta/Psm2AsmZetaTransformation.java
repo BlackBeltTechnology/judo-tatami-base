@@ -102,17 +102,17 @@ public class Psm2AsmZetaTransformation {
         // Phase 1: Clear helper caches
         phaseStart = System.currentTimeMillis();
         Psm2AsmHelper.clearCaches();
-        log.info("Phase 1 - Clear caches: {}ms", System.currentTimeMillis() - phaseStart);
+        log.debug("Phase 1 - Clear caches: {}ms", System.currentTimeMillis() - phaseStart);
 
         // Phase 2: Create registry and register all rule classes
         phaseStart = System.currentTimeMillis();
         TransformationRegistry registry = createRegistry();
-        log.info("Phase 2 - Create registry: {}ms", System.currentTimeMillis() - phaseStart);
+        log.debug("Phase 2 - Create registry: {}ms", System.currentTimeMillis() - phaseStart);
 
         // Phase 3: Create transformation context
         phaseStart = System.currentTimeMillis();
         TransformationContext context = createContext(registry);
-        log.info("Phase 3 - Create context: {}ms", System.currentTimeMillis() - phaseStart);
+        log.debug("Phase 3 - Create context: {}ms", System.currentTimeMillis() - phaseStart);
 
         // Phase 4: Create executor
         phaseStart = System.currentTimeMillis();
@@ -122,27 +122,31 @@ public class Psm2AsmZetaTransformation {
                 .parallel(false)  // Sequential execution - Zeta is faster without parallel overhead
                 .executionStrategy(ExecutionStrategy.RULE_BY_RULE)  // ETL-compatible: each rule processes ALL elements before next rule
                 .build();
-        log.info("Phase 4 - Create executor: {}ms", System.currentTimeMillis() - phaseStart);
+        log.debug("Phase 4 - Create executor: {}ms", System.currentTimeMillis() - phaseStart);
 
-        // Enable profiling
-        TransformationMetrics.reset();
-        TransformationMetrics.enable();
+        // Enable profiling only when explicitly requested
+        boolean metricsEnabled = Boolean.getBoolean("judo.zeta.transformation.metrics");
+        if (metricsEnabled) {
+            TransformationMetrics.reset();
+            TransformationMetrics.enable();
+        }
 
         // Phase 5: Execute transformation
         phaseStart = System.currentTimeMillis();
-        log.info("Starting executor.transform()");
+        log.debug("Starting executor.transform()");
         TransformationResult result = executor.transform();
         long transformTime = System.currentTimeMillis() - phaseStart;
-        log.info("Phase 5 - executor.transform(): {}ms", transformTime);
+        log.debug("Phase 5 - executor.transform(): {}ms", transformTime);
 
-        // Print metrics report
-        log.info("=== TRANSFORMATION METRICS ===\n{}", TransformationMetrics.getReport());
-        TransformationMetrics.disable();
+        if (metricsEnabled) {
+            log.info("=== TRANSFORMATION METRICS ===\n{}", TransformationMetrics.getReport());
+            TransformationMetrics.disable();
+        }
 
         // Phase 6: Post-processing
         phaseStart = System.currentTimeMillis();
         postProcess(context);
-        log.info("Phase 6 - postProcess(): {}ms", System.currentTimeMillis() - phaseStart);
+        log.debug("Phase 6 - postProcess(): {}ms", System.currentTimeMillis() - phaseStart);
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("PSM to ASM Zeta transformation  completed in {}ms", duration);
@@ -263,7 +267,7 @@ public class Psm2AsmZetaTransformation {
                 log.debug("Added root package '{}' to ASM resource", rootPkg.getName());
             }
         });
-        log.info("  postProcess step 1 (add root packages): {}ms", System.currentTimeMillis() - stepStart);
+        log.debug("  postProcess step 1 (add root packages): {}ms", System.currentTimeMillis() - stepStart);
 
         // 2. Set EOpposite for bidirectional associations
         stepStart = System.currentTimeMillis();
@@ -277,7 +281,7 @@ public class Psm2AsmZetaTransformation {
                 }
             }
         });
-        log.info("  postProcess step 2 (set EOpposite): {}ms", System.currentTimeMillis() - stepStart);
+        log.debug("  postProcess step 2 (set EOpposite): {}ms", System.currentTimeMillis() - stepStart);
 
         // 3. Set target types for TransferObjectRelations
         stepStart = System.currentTimeMillis();
@@ -291,7 +295,7 @@ public class Psm2AsmZetaTransformation {
                 }
             }
         });
-        log.info("  postProcess step 3 (set TransferObjectRelation types): {}ms", System.currentTimeMillis() - stepStart);
+        log.debug("  postProcess step 3 (set TransferObjectRelation types): {}ms", System.currentTimeMillis() - stepStart);
 
         // 4. Set up inheritance for Reference classes
         stepStart = System.currentTimeMillis();
@@ -323,13 +327,13 @@ public class Psm2AsmZetaTransformation {
                 }
             }
         });
-        log.info("  postProcess step 4 (Reference class inheritance): {}ms", System.currentTimeMillis() - stepStart);
+        log.debug("  postProcess step 4 (Reference class inheritance): {}ms", System.currentTimeMillis() - stepStart);
 
         // 5. Enrich model with annotations (exposedBy, etc.)
         stepStart = System.currentTimeMillis();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         asmUtils.enrichWithAnnotations();
-        log.info("  postProcess step 5 (enrichWithAnnotations): {}ms", System.currentTimeMillis() - stepStart);
+        log.debug("  postProcess step 5 (enrichWithAnnotations): {}ms", System.currentTimeMillis() - stepStart);
 
     }
 
