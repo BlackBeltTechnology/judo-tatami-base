@@ -89,7 +89,7 @@
         <java-embedded-compiler-version>1.1.0.20251022_091344_89e2d765_develop</java-embedded-compiler-version>
 
         <judo-tatami-core-version>1.1.4-SNAPSHOT</judo-tatami-core-version>
-        <judo-tatami-util-version>1.0.0.20251215_013233_84256e4e_feature_JNG_6349_AddZetaValidatiob</judo-tatami-util-version>
+        <judo-tatami-util-version>1.0.0-SNAPSHOT</judo-tatami-util-version>
 
         <!-- Model versions -->
         <judo-dao-api-version>1.0.4.20250605_192947_c2e81b28_develop</judo-dao-api-version>
