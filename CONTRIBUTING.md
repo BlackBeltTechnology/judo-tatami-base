@@ -1,75 +1,62 @@
-# Contributing to JUDO
+# Contributing to JUDO Tatami Base
 
-## Installing the correct versions of Java, Maven and necessary dependencies
+## Development Environment
 
-Please make sure your development environment complies with the requirements discussed under the relevant section of the parent project's [CONTRIBUTING](https://github.com/BlackBeltTechnology/judo-community/blob/develop/CONTRIBUTING.adoc) guide.
+Ensure your development environment meets these requirements:
+
+- **Java 21** JDK (source and target)
+- **Maven 3.9.4+** (or use the included `./mvnw` wrapper)
+- JVM configured with the flags in `.mvn/jvm.config` (handled automatically by the wrapper)
+
+For full environment setup details, see the parent project's [Contributing Guide](https://github.com/BlackBeltTechnology/judo-community/blob/develop/CONTRIBUTING.adoc).
 
 ## Code Structure
 
-This project follows a standard Java project structure, governed by Maven, with potential Maven submodules.
+This project is a multi-module Maven project where each module implements one step of the JUDO model transformation pipeline. All modules are packaged as OSGi bundles.
 
-### Project Layout
+Each transformation module follows a consistent pattern with four key classes:
 
-```
-judo-tatami-base/
-├── judo-tatami-psm2asm/          # PSM to ASM transformation
-├── judo-tatami-psm2measure/      # PSM to Measure transformation
-├── judo-tatami-asm2rdbms/        # ASM to RDBMS transformation
-├── judo-tatami-rdbms2liquibase/  # RDBMS to Liquibase transformation
-├── judo-tatami-asm2expression/   # ASM to Expression transformation
-├── judo-tatami-asm2keycloak/     # ASM to Keycloak transformation
-├── judo-tatami-psm-validation/   # PSM model validation
-├── judo-tatami-asm-validation/   # ASM model validation
-├── judo-tatami-expression-asm-validation/  # Expression on ASM validation
-├── judo-tatami-expression-psm-validation/  # Expression on PSM validation
-├── osgi-itest/                   # OSGi integration tests
-└── p2/                           # Eclipse P2 repository
-```
+| Class | Naming Convention | Role |
+|-------|-------------------|------|
+| Transformation executor | `{Module}.java` | Static methods that run the transformation via Epsilon scripts |
+| Work unit | `{Module}Work.java` | Integrates transformation into workflow pipelines via `AbstractTransformationWork` |
+| Trace handler | `{Module}TransformationTrace.java` | Records source-to-target EObject mappings for traceability |
+| OSGi service | `{Module}TransformationSerivce.java` | Registers the transformation as an OSGi service with model tracking |
 
-### Transformation Module Structure
+The core transformation logic lives in Eclipse Epsilon scripts (ETL/EOL/EGL/EVL) under `src/main/epsilon/`, not in Java code. Java handles orchestration, configuration, and framework integration.
 
-Each transformation module follows this pattern:
-
-```
-judo-tatami-<source>2<target>/
-├── pom.xml
-├── src/main/java/
-│   └── hu/blackbelt/judo/tatami/<source>2<target>/
-│       ├── <Source>2<Target>.java           # Main transformer
-│       ├── <Source>2<Target>Work.java       # Work class
-│       └── zeta/                            # Zeta implementation
-│           └── <Source>2<Target>RuleNames.java
-├── src/main/epsilon/
-│   └── transformations/
-│       ├── <source>To<Target>.etl           # Main ETL file
-│       └── modules/*.etl                    # Module ETL files
-└── src/test/java/
-    └── hu/blackbelt/judo/tatami/<source>2<target>/
-        ├── <Source>2<Target>Test.java
-        └── <Source>2<Target>WorkTest.java
+```mermaid
+flowchart LR
+    subgraph "Each Module"
+        Java["Java Orchestration\n(Executor, Work, Trace, OSGi)"]
+        Epsilon["Epsilon Scripts\n(ETL/EOL/EGL/EVL)"]
+        Java -->|loads & executes| Epsilon
+    end
+    subgraph "Framework"
+        Core["judo-tatami-core\n(AbstractTransformationWork)"]
+        EpsilonRT["epsilon-runtime\n(Execution Engine)"]
+    end
+    Java --> Core
+    Epsilon --> EpsilonRT
 ```
 
-## Submission Guidelines
+## Submitting an Issue
 
-### Submitting an Issue
+Before submitting an issue, search the [issue tracker](https://github.com/BlackBeltTechnology/judo-tatami-base/issues) — your problem may already be reported or resolved.
 
-Before you submit an issue, please search the issue tracker. An issue for your problem may already exist and has been resolved, or the discussion might inform you of workarounds readily available.
+To help us reproduce and fix bugs quickly, please include:
 
-We want to fix all the issues as soon as possible, but before fixing a bug we need to reproduce and confirm it. Having a reproducible scenario gives us wealth of important information without going back and forth with you requiring additional information, such as:
+- Output of `java -version` and `mvn -version`
+- The relevant `pom.xml` or `.flattened-pom.xml`
+- A minimal reproducible use case that demonstrates the failure
 
-- the output of `java -version`, `mvn -version`
-- `pom.xml` or `.flattened-pom.xml` (when applicable)
-- and most importantly - a use-case that fails
+We require a minimal reproduction to efficiently isolate and fix problems. File new issues using the [issue form](https://github.com/BlackBeltTechnology/judo-tatami-base/issues/new/choose).
 
-A minimal reproduction allows us to quickly confirm a bug (or point out a coding problem) as well as confirm that we are fixing the right problem.
+## Submitting a Pull Request
 
-We will be insisting on a minimal reproduction in order to save maintainers' time and ultimately be able to fix more bugs. We understand that sometimes it might be hard to extract essentials bits of code from a larger codebase, but we really need to isolate the problem before we can fix it.
+This project follows [GitHub's standard forking model](https://guides.github.com/activities/forking/). Fork the repository, create a feature branch, and submit a pull request.
 
-You can file new issues by filling out our [issue form](https://github.com/BlackBeltTechnology/judo-tatami-base/issues/new/choose).
-
-### Submitting a PR
-
-This project follows [GitHub's standard forking model](https://guides.github.com/activities/forking/). Please fork the project to submit pull requests.
+> **Important:** Every commit must reference a JIRA ticket number (`JNG-XXXX`). There is no commit without a ticket number.
 
 ## Commands
 
@@ -79,47 +66,14 @@ This project follows [GitHub's standard forking model](https://guides.github.com
 mvn clean test
 ```
 
-### Run Full build
+### Run Full Build
 
 ```bash
 mvn clean install
 ```
 
-### Run with specific profile
+### Run a Single Module's Tests
 
 ```bash
-mvn clean install -Pmodules
+mvn clean test -pl judo-tatami-psm2asm
 ```
-
-## Development Guidelines
-
-### Adding Transformation Rules
-
-When adding new transformation rules:
-
-1. **ETL Implementation**: Add the rule to the appropriate `.etl` file in `src/main/epsilon/transformations/`
-2. **Zeta Implementation**: Add the corresponding Java method with `@TransformRule` annotation
-3. **Rule Constants**: Add the rule name constant to `*RuleNames.java`
-4. **Tests**: Add tests that verify both ETL and Zeta implementations produce equivalent output
-
-### Testing
-
-Tests should use the dual transformation testing framework:
-
-```java
-@ParameterizedTest
-@EnumSource(TransformationMode.class)
-void testMyTransformation(TransformationMode mode) {
-    if (mode.isZeta()) {
-        // Run Zeta transformation
-    } else {
-        // Run ETL transformation
-    }
-}
-```
-
-### Documentation
-
-- Document transformation rules in `docs/transformations/`
-- Update module documentation when adding features
-- Keep AGENTS.md updated for AI assistant context

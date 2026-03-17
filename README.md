@@ -1,150 +1,169 @@
-# judo-tatami-base
+# JUDO Tatami Base
 
 [![Build](https://github.com/BlackBeltTechnology/judo-tatami-base/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/BlackBeltTechnology/judo-tatami-base/actions/workflows/build.yml)
 
 ## Introduction
 
-This project contains the transformation steps which are used to make the full transformation pipeline to create application models from source models for the JUDO platform. This project contains pipeline steps only which can be utilized in workflows defined in other projects (for example [judo-tatami-jsl](https://github.com/BlackBeltTechnology/judo-tatami-jsl)).
+JUDO Tatami Base is the model transformation pipeline for the [JUDO platform](https://github.com/BlackBeltTechnology/judo-community). It converts high-level Platform-Specific Models (PSM) through a series of automated transformation steps into concrete implementation artifacts — application models (ASM), database schemas (RDBMS), migration scripts (Liquibase), expression models, measurement units, and identity provider configurations (Keycloak).
 
-The order of steps shows the relation between transformation steps source/destination model and how the steps can be chained.
+Each transformation step is implemented as an independent Maven module packaged as an OSGi bundle. The actual transformation logic is written in [Eclipse Epsilon](https://www.eclipse.org/epsilon/) ETL/EOL/EGL scripts, while Java code handles orchestration, configuration, traceability, and OSGi service registration.
+
+> **Note:** This project contains pipeline steps only. These steps are composed into complete workflows by other projects such as [judo-tatami-jsl](https://github.com/BlackBeltTechnology/judo-tatami-jsl).
 
 ## Transformation Pipeline
 
+The pipeline transforms models through progressively more concrete representations:
+
+```mermaid
+flowchart TD
+    PSM["PSM\n(Platform-Specific Model)"]
+
+    PSM --> PSM2ASM["psm2asm\n(ETL)"]
+    PSM --> PSM2Measure["psm2measure\n(ETL)"]
+    PSM --> PSMValidation["psm-validation"]
+
+    PSM2ASM --> ASM["ASM\n(Application-Specific Model)"]
+    PSM2Measure --> Measure["Measure Model"]
+
+    ASM --> ASM2RDBMS["asm2rdbms\n(ETL, dialect-aware)"]
+    ASM --> ASM2Expr["asm2expression\n(Java/JQL)"]
+    ASM --> ASM2KC["asm2keycloak\n(ETL)"]
+    ASM --> ASMValidation["asm-validation"]
+
+    ASM2RDBMS --> RDBMS["RDBMS Model"]
+    ASM2Expr --> Expression["Expression Model"]
+    ASM2KC --> Keycloak["Keycloak Model"]
+
+    Expression --> ExprASMVal["expression-asm-validation"]
+    Expression --> ExprPSMVal["expression-psm-validation"]
+
+    RDBMS --> RDBMS2LB["rdbms2liquibase\n(ETL/EGL)"]
+    RDBMS2LB --> LB["Liquibase\n(DB migrations)"]
+
+    style PSM fill:#4a90d9,color:white
+    style ASM fill:#7b68ee,color:white
+    style RDBMS fill:#e67e22,color:white
+    style LB fill:#27ae60,color:white
+    style Expression fill:#8e44ad,color:white
+    style Measure fill:#16a085,color:white
+    style Keycloak fill:#c0392b,color:white
 ```
-PSM (Platform Specific Model)
-  ↓ (judo-tatami-psm2asm)
-ASM (Abstract Semantic Model)
-  ├→ (judo-tatami-asm2rdbms) → RDBMS Schema
-  │   └→ (judo-tatami-rdbms2liquibase) → Liquibase Changelog
-  ├→ (judo-tatami-asm2expression) → Expression Model
-  └→ (judo-tatami-asm2keycloak) → Keycloak Config
-PSM
-  └→ (judo-tatami-psm2measure) → Measure Model
+
+## Module Overview
+
+| Module | Input → Output | Engine | Description |
+|--------|---------------|--------|-------------|
+| `judo-tatami-psm2asm` | PSM → ASM | Epsilon ETL | Converts platform-specific types, entities, and relations into application-specific structures |
+| `judo-tatami-psm2measure` | PSM → Measure | Epsilon ETL | Extracts measurement unit definitions from PSM |
+| `judo-tatami-asm2rdbms` | ASM → RDBMS | Epsilon ETL | Generates relational database schema with dialect support (HSQLDB, PostgreSQL, Oracle) |
+| `judo-tatami-asm2expression` | ASM → Expression | Java (JQL Builder) | Builds expression trees from JQL queries on ASM models |
+| `judo-tatami-asm2keycloak` | ASM → Keycloak | Epsilon ETL | Generates identity/authorization model for Keycloak integration |
+| `judo-tatami-rdbms2liquibase` | RDBMS → Liquibase | Epsilon ETL/EGL | Generates Liquibase database migration changesets (full and incremental) |
+| `judo-tatami-psm-validation` | PSM | Epsilon EVL | Validates PSM model constraints |
+| `judo-tatami-asm-validation` | ASM | Epsilon EVL | Validates ASM model constraints |
+| `judo-tatami-expression-asm-validation` | Expression + ASM | Epsilon EVL | Validates expression models against ASM |
+| `judo-tatami-expression-psm-validation` | Expression + PSM | Epsilon EVL | Validates expression models against PSM |
+
+## Architecture Patterns
+
+Each transformation module follows a consistent four-class pattern:
+
+```mermaid
+classDiagram
+    class TransformationExecutor {
+        +executeTransformation(Parameter) TransformationTrace
+        +calculateTransformationScriptURI() URI
+    }
+    class TransformationParameter {
+        +sourceModel SourceModel
+        +targetModel TargetModel
+        +scriptUri URI
+        +createTrace boolean
+        +parallel boolean
+        +useCache boolean
+    }
+    class TransformationWork {
+        +execute() void
+        -transformationContext TransformationContext
+    }
+    class TransformationTrace {
+        +getTransformationTraceFromEtlTrace() List
+        +save(OutputStream) void
+        +load(InputStream) TransformationTrace
+    }
+    class OSGiService {
+        +install(sourceModel) void
+        +uninstall(sourceModel) void
+    }
+
+    TransformationExecutor --> TransformationParameter : uses
+    TransformationExecutor --> TransformationTrace : produces
+    TransformationWork --> TransformationExecutor : delegates to
+    OSGiService --> TransformationExecutor : delegates to
+
+    note for TransformationExecutor "e.g. Psm2Asm.java"
+    note for TransformationWork "e.g. Psm2AsmWork.java\nextends AbstractTransformationWork"
+    note for TransformationTrace "e.g. Psm2AsmTransformationTrace.java"
+    note for OSGiService "e.g. Psm2AsmTransformationSerivce.java"
 ```
 
-## Modules
+**Integration patterns:**
+- **Direct Java API** — call `Psm2Asm.executePsm2AsmTransformation(parameter)` with a builder-based parameter object
+- **Workflow integration** — use `Psm2AsmWork` with a `TransformationContext` that manages model dependencies between steps
+- **OSGi runtime** — models are discovered via service trackers and transformations run automatically on registration
 
-| Module | Source | Target | Description |
-|--------|--------|--------|-------------|
-| judo-tatami-psm2asm | PSM | ASM | Transform platform model to abstract semantic model |
-| judo-tatami-psm2measure | PSM | Measure | Extract measurement units and definitions |
-| judo-tatami-asm2rdbms | ASM | RDBMS | Generate relational database schema |
-| judo-tatami-rdbms2liquibase | RDBMS | Liquibase | Generate database migration scripts |
-| judo-tatami-asm2expression | ASM | Expression | Build expression model |
-| judo-tatami-asm2keycloak | ASM | Keycloak | Generate Keycloak authentication config |
+## Epsilon Script Organization
 
-### Validation Modules
+Transformation logic is primarily declarative, written in Eclipse Epsilon languages:
 
-| Module | Model | Description |
-|--------|-------|-------------|
-| judo-tatami-psm-validation | PSM | PSM model validation |
-| judo-tatami-asm-validation | ASM | ASM model validation |
-| judo-tatami-expression-asm-validation | Expression/ASM | Expression validation on ASM |
-| judo-tatami-expression-psm-validation | Expression/PSM | Expression validation on PSM |
+| Language | Extension | Purpose |
+|----------|-----------|---------|
+| **ETL** (Epsilon Transformation Language) | `.etl` | Model-to-model transformation rules |
+| **EOL** (Epsilon Object Language) | `.eol` | Utility operations and shared logic |
+| **EGL** (Epsilon Generation Language) | `.egl` | Template-based code/SQL generation |
+| **EVL** (Epsilon Validation Language) | `.evl` | Model validation constraints |
 
-## Build
+Scripts are located at `src/main/epsilon/transformations/` within each module and copied to `target/classes/tatami/{module}/transformations/` during build.
 
-### Requirements
+## Database Dialect Support
 
-- Java 21
-- Maven 3.9.4+
+The `asm2rdbms` module supports three SQL dialects with configurable naming conventions:
 
-### Build Commands
+| Parameter | HSQLDB | PostgreSQL | Oracle |
+|-----------|--------|------------|--------|
+| `tableNameMaxSize` | 128 | 63 | 30 |
+| `columnNameMaxSize` | 128 | 63 | 30 |
+| Prefixes | `T_`, `C_`, `FK_`, `J_` | `T_`, `C_`, `FK_`, `J_` | `T_`, `C_`, `FK_`, `J_` |
+
+Dialect-specific RDBMS mapping models are generated at build time by `ExcelMappingModels2Rdbms`.
+
+## Build & Development
+
+**Prerequisites:** Java 21, Maven 3.9.4+
 
 ```bash
-# Standard build
+# Full build
 mvn clean install
 
-# Using Maven wrapper
-./mvnw clean install
-
-# Run tests only
+# Run all tests
 mvn clean test
 
-# Skip tests
-mvn clean install -DskipTests
+# Run tests for one module
+mvn clean test -pl judo-tatami-psm2asm
+
+# Run a specific test class
+mvn clean test -pl judo-tatami-psm2asm -Dtest=Psm2AsmTest
 ```
 
-## External Model Testing
-
-The project supports parametrized testing of ETL and ZETA transformations against external model files. This enables testing with real-world models without hardcoding paths.
-
-### Configuration
-
-Create `external-model-tests.properties` in your module's `src/test/resources/`:
-
-```properties
-# Format: <model-name>=<path>[;<param>=<value>]*
-
-# Simple format (relative path from module root)
-rackinspect=../../../rackinspect/application/model/target/generated-resources/model
-
-# Extended format with parameters
-myproject=/opt/models/myproject;dialect=postgresql;warmup=true;iterations=3
-```
-
-### Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `dialect` | `hsqldb` | Database dialect (for RDBMS transformations) |
-| `warmup` | `false` | Run warmup before measurement |
-| `iterations` | `1` | Number of iterations for averaging |
-
-### Expected Model Files
-
-| Test Class | Model Type | Expected File |
-|------------|------------|---------------|
-| `Psm2AsmExternalModelTest` | PSM | `<name>-psm.model` |
-| `Psm2MeasureExternalModelTest` | PSM | `<name>-psm.model` |
-| `Asm2RdbmsExternalModelTest` | ASM | `<name>-asm.model` |
-| `Asm2KeycloakExternalModelTest` | ASM | `<name>-asm.model` |
-| `Rdbms2LiquibaseExternalModelTest` | RDBMS | `<name>-rdbms_<dialect>.model` |
-
-### Running Tests
-
-```bash
-# Run external model tests for a specific module
-mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmExternalModelTest -Pperformance
-
-# Run with STRICT comparison mode
-mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmExternalModelTest -Pperformance -Djudo.test.comparison.mode=STRICT
-
-# Run all external model tests
-mvn test -Pperformance -Dtest=*ExternalModelTest
-
-# Override module base directory
-mvn test -Pperformance -Dtest=*ExternalModelTest -Djudo.test.module.root=/path/to/module
-```
-
-### Path Resolution
-
-1. Absolute paths (starting with `/`) are used as-is
-2. Relative paths are resolved from the module root directory
-3. Module root is detected via JUnit's classpath or can be overridden with `-Djudo.test.module.root`
-
-### Behavior
-
-- If the properties file is missing: Tests skip gracefully (0 test cases)
-- If the model directory doesn't exist: That model is skipped with a warning
-- If the model file is missing in an existing directory: Test **fails** with a clear error
-
-## Dual Transformation Architecture
-
-This project supports two transformation engines:
-
-1. **ETL (Epsilon Transformation Language)** - The original implementation using Epsilon scripts
-2. **Zeta (Java-based)** - A new Java implementation using the Zeta framework
-
-Both engines produce functionally equivalent output and can be selected at runtime. See [Transformation Documentation](docs/transformations/README.md) for details.
+The Maven wrapper (`./mvnw`) is included in the repository.
 
 ## Context
 
-This project is a building block of the [judo-community](https://github.com/BlackBeltTechnology/judo-community) aggregator project. In order to better understand how this module fits into our ecosystem, please check the corresponding documentation!
+This project is a building block of the [judo-community](https://github.com/BlackBeltTechnology/judo-community) aggregator project. For a broader understanding of how this module fits into the JUDO ecosystem, see the corresponding documentation.
 
-## Contributing to the project
+## Contributing
 
-Everyone is welcome to contribute to JUDO! As a starter, please read the corresponding [CONTRIBUTING](CONTRIBUTING.md) guide for details!
+Everyone is welcome to contribute to JUDO! Please read the [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## License
 
