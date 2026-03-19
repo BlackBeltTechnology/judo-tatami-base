@@ -155,7 +155,7 @@ public class DerivedRules {
     @To(type = EAttribute.class)
     public TransformFunction<DataProperty, EAttribute> createDataPropertyForDerivedAttribute() {
         return (s, ctx) -> {
-            EAttribute t = ctx.createTarget(EAttribute.class);
+            EAttribute t = ctx.createTarget(EAttribute.class, "(psm/" + getId(s) + ")/DataProperty");
             t.setName(s.getName());
             t.setDerived(true);
             t.setVolatile(true);
@@ -362,7 +362,7 @@ public class DerivedRules {
     @To(type = EReference.class)
     public TransformFunction<NavigationProperty, EReference> createNavigationPropertyForDerivedReference() {
         return (s, ctx) -> {
-            EReference t = ctx.createTarget(EReference.class);
+            EReference t = ctx.createTarget(EReference.class, "(psm/" + getId(s) + ")/NavigationProperty");
             t.setName(s.getName());
             t.setDerived(true);
             t.setVolatile(true);

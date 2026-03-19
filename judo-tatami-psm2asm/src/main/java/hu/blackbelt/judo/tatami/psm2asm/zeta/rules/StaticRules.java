@@ -79,7 +79,7 @@ public class StaticRules {
     @Greedy
     public TransformFunction<StaticData, EClass> createUnmappedTransferObjectForStaticData() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/UnmappedTransferObjectForStaticData");
 
             // Name is the static data name with first letter uppercased
             String name = s.getName();
@@ -181,7 +181,7 @@ public class StaticRules {
                 return null;
             }
             
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/UnmappedTransferObjectForStaticNavigation");
 
             // Name is the static navigation name with first letter uppercased
             String name = s.getName();

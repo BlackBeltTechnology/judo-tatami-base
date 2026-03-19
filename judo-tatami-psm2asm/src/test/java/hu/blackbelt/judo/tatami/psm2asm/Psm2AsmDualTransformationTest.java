@@ -22,11 +22,13 @@ import hu.blackbelt.judo.tatami.test.util.ModelComparator;
  */
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.psm.data.AssociationEnd;
 import hu.blackbelt.judo.meta.psm.data.EntityType;
 import hu.blackbelt.judo.meta.psm.derived.DataProperty;
 import hu.blackbelt.judo.meta.psm.derived.NavigationProperty;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.service.TransferAttribute;
 import hu.blackbelt.judo.meta.psm.service.TransferObjectRelation;
 import hu.blackbelt.judo.meta.psm.service.UnmappedTransferObjectType;
@@ -437,6 +439,80 @@ public class Psm2AsmDualTransformationTest {
         zetaTransformation.execute();
 
         // STRICT comparison — should FAIL until Zeta rule is implemented (TDD red phase)
+        ModelComparator.assertEquivalent(
+                etlResult.getResourceSet().getResources().get(0),
+                zetaResult.getResourceSet().getResources().get(0),
+                ModelComparator.ComparisonMode.STRICT
+        );
+    }
+
+    @Test
+    @DisplayName("Abstract entity and its concrete subclass produce equivalent ASM models in ETL and Zeta")
+    void testAbstractEntityDualTransformation() throws Exception {
+        // Build a PSM model with:
+        //   - AbstractF (abstract entity, no direct transfer object)
+        //   - ConcreteG (concrete entity, has a single relation to AbstractF)
+        //   - MappedF (mapped transfer object for AbstractF)
+        //   - MappedG (mapped transfer object for ConcreteG with relation referencing MappedF)
+        StringType strType = newStringTypeBuilder().withName("String").withMaxLength(256).build();
+
+        EntityType abstractF = newEntityTypeBuilder()
+                .withName("AbstractF")
+                .withAbstract_(true)
+                .build();
+
+        EntityType concreteG = newEntityTypeBuilder()
+                .withName("ConcreteG")
+                .build();
+
+        AssociationEnd relationGOnFSingle = newAssociationEndBuilder()
+                .withName("relationGOnFSingle")
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .withTarget(abstractF)
+                .build();
+        concreteG.getRelations().add(relationGOnFSingle);
+
+        MappedTransferObjectType mappedF = newMappedTransferObjectTypeBuilder()
+                .withName("MappedF")
+                .withEntityType(abstractF)
+                .build();
+
+        TransferObjectRelation toRelation = newTransferObjectRelationBuilder()
+                .withName("relationGOnFSingle")
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .withTarget(mappedF)
+                .withBinding(relationGOnFSingle)
+                .build();
+
+        MappedTransferObjectType mappedG = newMappedTransferObjectTypeBuilder()
+                .withName("MappedG")
+                .withEntityType(concreteG)
+                .withRelations(toRelation)
+                .build();
+
+        Model model = newModelBuilder().withName("AbstractModel")
+                .withElements(strType, abstractF, concreteG, mappedF, mappedG)
+                .build();
+
+        PsmModel psmModel = buildPsmModel().build();
+        psmModel.addContent(model);
+
+        // Run ETL
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(etlResult));
+
+        // Run Zeta (reuse same PSM — ETL does not modify PSM)
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaResult)
+                .modelName(psmModel.getName())
+                .build()
+                .execute();
+
+        // STRICT comparison: both must produce the same EClasses including abstract ones
         ModelComparator.assertEquivalent(
                 etlResult.getResourceSet().getResources().get(0),
                 zetaResult.getResourceSet().getResources().get(0),

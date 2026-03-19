@@ -535,6 +535,48 @@ public class Asm2RdbmsInheritanceTest extends Asm2RdbmsMappingTestBase {
         compareTransformations("testDiamondInheritance");
     }
 
+    @ParameterizedTest(name = "Test Abstract Entity produces table with {0}")
+    @EnumSource(TransformationMode.class)
+    public void testAbstractEntityProducesTable(TransformationMode transformationMode) throws Exception {
+        ///////////////////
+        // setup asm model
+        final EPackage ePackage = newEPackageBuilder()
+                .withName("TestEpackage")
+                .withNsPrefix("test")
+                .withNsURI("http:///com.example.test.ecore")
+                .build();
+        asmModel.addContent(ePackage);
+
+        // Abstract entity F — must still produce a table for FK references from G
+        final EClass abstractF = newEClassBuilder()
+                .withName("AbstractF")
+                .withAbstract_(true)
+                .build();
+        ePackage.getEClassifiers().add(abstractF);
+        addExtensionAnnotation(abstractF, ENTITY_ANNOTATION, VALUE_ANNOTATION);
+
+        // Concrete entity G with a reference to abstract F
+        final EClass concreteG = newEClassBuilder()
+                .withName("ConcreteG")
+                .build();
+        ePackage.getEClassifiers().add(concreteG);
+        addExtensionAnnotation(concreteG, ENTITY_ANNOTATION, VALUE_ANNOTATION);
+
+        executeTransformation("testAbstractEntityProducesTable", transformationMode);
+
+        final String RDBMS_TABLE_F = "TestEpackage.AbstractF";
+        final String RDBMS_TABLE_G = "TestEpackage.ConcreteG";
+
+        Set<String> tables = new HashSet<>();
+        tables.add(RDBMS_TABLE_F);
+        tables.add(RDBMS_TABLE_G);
+
+        // Both abstract and concrete entity must have tables
+        assertTables(tables);
+
+        compareTransformations("testAbstractEntityProducesTable");
+    }
+
     /**
      * Runs both ETL and Zeta transformations and compares their outputs.
      */

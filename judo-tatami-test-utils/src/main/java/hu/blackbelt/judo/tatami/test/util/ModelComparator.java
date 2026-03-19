@@ -1132,6 +1132,15 @@ public class ModelComparator {
             return "EStringToStringMapEntry:" + key;
         }
 
+        // For Expression model Binding objects (AttributeBinding, ReferenceBinding, FilterBinding):
+        // these have no 'name' attribute, but are uniquely identified by typeName + feature + role.
+        // Without this, ModelComparator falls back to positional comparison and reports 50 false
+        // ordering differences when ETL and Zeta produce the same bindings in different resource order.
+        String bindingId = getExpressionBindingIdentifier(obj);
+        if (bindingId != null) {
+            return bindingId;
+        }
+
         // Try 'name' attribute
         String name = getAttributeValue(obj, "name");
         if (name != null) {
@@ -1166,6 +1175,52 @@ public class ModelComparator {
             return value != null ? value.toString() : null;
         }
         return null;
+    }
+
+    /**
+     * Builds a composite identifier for Expression model Binding objects.
+     * <p>
+     * {@code AttributeBinding}, {@code ReferenceBinding}, and {@code FilterBinding} have no
+     * {@code name} attribute, so {@link #getIdentifier} would return {@code null} and fall back
+     * to positional comparison — causing 50 false ordering differences between ETL and Zeta
+     * Expression models that are structurally identical but produced in different resource order.
+     * <p>
+     * Identity key: {@code className:namespace/typeName#featureName#role}
+     *
+     * @return composite identifier, or {@code null} if the object is not a recognised Binding type
+     */
+    private static String getExpressionBindingIdentifier(EObject obj) {
+        String className = obj.eClass().getName();
+        if (!className.equals("AttributeBinding") && !className.equals("ReferenceBinding")
+                && !className.equals("FilterBinding")) {
+            return null;
+        }
+
+        // Resolve typeName reference (containment reference on Binding)
+        EStructuralFeature typeNameFeature = obj.eClass().getEStructuralFeature("typeName");
+        if (typeNameFeature == null) return null;
+        Object typeNameObj = obj.eGet(typeNameFeature);
+        if (!(typeNameObj instanceof EObject)) return null;
+        EObject typeName = (EObject) typeNameObj;
+
+        String tnName = getAttributeValue(typeName, "name");
+        String tnNamespace = getAttributeValue(typeName, "namespace");
+        if (tnName == null) return null;
+
+        String qualifier = (tnNamespace != null ? tnNamespace + "/" : "") + tnName;
+
+        if (className.equals("FilterBinding")) {
+            return "FilterBinding:" + qualifier;
+        }
+
+        // AttributeBinding has 'attributeName', ReferenceBinding has 'referenceName'
+        String featureName = className.equals("AttributeBinding")
+                ? getAttributeValue(obj, "attributeName")
+                : getAttributeValue(obj, "referenceName");
+        String role = getAttributeValue(obj, "role");
+
+        if (featureName == null) return null;
+        return className + ":" + qualifier + "#" + featureName + (role != null ? "#" + role : "");
     }
 
     /**

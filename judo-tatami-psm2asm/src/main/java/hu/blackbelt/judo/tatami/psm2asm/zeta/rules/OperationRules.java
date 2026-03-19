@@ -146,7 +146,7 @@ public class OperationRules {
     @To(type = EOperation.class)
     public TransformFunction<BoundOperation, EOperation> createBoundOperation() {
         return (s, ctx) -> {
-            EOperation t = ctx.createTarget(EOperation.class);
+            EOperation t = ctx.createTarget(EOperation.class, "(psm/" + getId(s) + ")/BoundOperation");
             t.setName(s.getName());
             
             // Set output type and cardinality (from CreateOperation abstract rule in ETL)
@@ -365,7 +365,7 @@ public class OperationRules {
     @To(type = EParameter.class)
     public TransformFunction<BoundOperation, EParameter> createBoundOperationInputParameter() {
         return (s, ctx) -> {
-            EParameter t = ctx.createTarget(EParameter.class);
+            EParameter t = ctx.createTarget(EParameter.class, "(psm/" + getId(s) + ")/Parameter");
             t.setName(s.getInput().getName());
             
             // Set type
@@ -405,7 +405,7 @@ public class OperationRules {
     @To(type = EOperation.class)
     public TransformFunction<BoundTransferOperation, EOperation> createBoundTransferOperation() {
         return (s, ctx) -> {
-            EOperation t = ctx.createTarget(EOperation.class);
+            EOperation t = ctx.createTarget(EOperation.class, "(psm/" + getId(s) + ")/BoundTransferOperation");
             t.setName(s.getName());
             
             // Set output type and cardinality from binding
@@ -471,7 +471,7 @@ public class OperationRules {
     @To(type = EOperation.class)
     public TransformFunction<UnboundOperation, EOperation> createUnboundOperation() {
         return (s, ctx) -> {
-            EOperation t = ctx.createTarget(EOperation.class);
+            EOperation t = ctx.createTarget(EOperation.class, "(psm/" + getId(s) + ")/UnboundOperation");
             t.setName(s.getName());
             
             // Set output type and cardinality
@@ -777,7 +777,7 @@ public class OperationRules {
     @To(type = EParameter.class)
     public TransformFunction<Parameter, EParameter> createInputParameter() {
         return (s, ctx) -> {
-            EParameter t = ctx.createTarget(EParameter.class);
+            EParameter t = ctx.createTarget(EParameter.class, "(psm/" + getId(s) + ")/InputParameter");
             t.setName(s.getName());
             
             // Set type

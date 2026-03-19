@@ -336,7 +336,7 @@ public class TransferObjectRules {
     @To(type = EClass.class)
     public TransformFunction<MappedTransferObjectType, EClass> createMappedTransferObjectTypeClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/MappedTransferObject");
             t.setName(s.getName());
             
             // Add to container package (thread-safe)
@@ -391,7 +391,7 @@ public class TransferObjectRules {
     @To(type = EClass.class)
     public TransformFunction<UnmappedTransferObjectType, EClass> createUnmappedTransferObjectTypeClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/UnmappedTransferObject");
             t.setName(s.getName());
             
             // Add to container package (thread-safe)
@@ -589,7 +589,7 @@ public class TransferObjectRules {
     @To(type = EAttribute.class)
     public TransformFunction<TransferAttribute, EAttribute> createTransferAttribute() {
         return (s, ctx) -> {
-            EAttribute t = ctx.createTarget(EAttribute.class);
+            EAttribute t = ctx.createTarget(EAttribute.class, "(psm/" + getId(s) + ")/TransferObjectAttribute");
             t.setName(s.getName());
             t.setLowerBound(s.isRequired() ? 1 : 0);
 
@@ -1056,7 +1056,7 @@ public class TransferObjectRules {
     @To(type = EReference.class)
     public TransformFunction<TransferObjectRelation, EReference> createTransferObjectRelation() {
         return (s, ctx) -> {
-            EReference t = ctx.createTarget(EReference.class);
+            EReference t = ctx.createTarget(EReference.class, "(psm/" + getId(s) + ")/TransferObjectRelation");
             t.setName(s.getName());
             
             if (s.getCardinality() != null) {
@@ -1396,7 +1396,7 @@ public class TransferObjectRules {
     @To(type = EClass.class)
     public TransformFunction<EntityType, EClass> createReferenceClassForEntityType() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/ReferenceClassForEntityType");
             t.setName(s.getName() + "__Reference");
             
             // Add reference holder annotation (thread-safe)

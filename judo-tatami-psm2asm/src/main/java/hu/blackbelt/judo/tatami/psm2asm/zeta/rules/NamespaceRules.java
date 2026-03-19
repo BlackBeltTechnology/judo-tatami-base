@@ -101,7 +101,7 @@ public class NamespaceRules {
     @To(type = EPackage.class)
     public TransformFunction<Namespace, EPackage> namespaceToPackage() {
         return (s, ctx) -> {
-            EPackage t = ctx.createTarget(EPackage.class);
+            EPackage t = ctx.createTarget(EPackage.class, "(psm/" + getId(s) + ")/Package");
             t.setName(s.getName());
             return t;
         };

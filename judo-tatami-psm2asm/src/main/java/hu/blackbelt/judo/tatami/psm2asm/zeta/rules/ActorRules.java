@@ -95,7 +95,7 @@ public class ActorRules {
     @To(type = EClass.class)
     public TransformFunction<ActorType, EClass> createActorTypeClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/TransferObject");
             t.setName(s.getName());
             
             // Add to container package (thread-safe)
@@ -120,7 +120,7 @@ public class ActorRules {
     @To(type = EClass.class)
     public TransformFunction<MappedActorType, EClass> createMappedActorTypeClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/MappedTransferObject");
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             

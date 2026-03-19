@@ -90,7 +90,7 @@ public class DataRules {
     @To(type = EClass.class)
     public TransformFunction<EntityType, EClass> createEntityClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class);
+            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/EntityClass");
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             
@@ -155,7 +155,7 @@ public class DataRules {
     @To(type = EAttribute.class)
     public TransformFunction<Attribute, EAttribute> createAttribute() {
         return (s, ctx) -> {
-            EAttribute t = ctx.createTarget(EAttribute.class);
+            EAttribute t = ctx.createTarget(EAttribute.class, "(psm/" + getId(s) + ")/Attribute");
             t.setName(s.getName());
             t.setLowerBound(s.isRequired() ? 1 : 0);
             
@@ -252,7 +252,7 @@ public class DataRules {
     @To(type = EReference.class)
     public TransformFunction<AssociationEnd, EReference> createAssociationEndRelation() {
         return (s, ctx) -> {
-            EReference t = ctx.createTarget(EReference.class);
+            EReference t = ctx.createTarget(EReference.class, "(psm/" + getId(s) + ")/AssociationEndRelation");
             t.setName(s.getName());
             t.setLowerBound(s.getCardinality().getLower());
             t.setUpperBound(s.getCardinality().getUpper());
@@ -311,7 +311,7 @@ public class DataRules {
     @To(type = EReference.class)
     public TransformFunction<Containment, EReference> createContainmentRelation() {
         return (s, ctx) -> {
-            EReference t = ctx.createTarget(EReference.class);
+            EReference t = ctx.createTarget(EReference.class, "(psm/" + getId(s) + ")/ContainmentRelation");
             t.setName(s.getName());
             t.setLowerBound(s.getCardinality().getLower());
             t.setUpperBound(s.getCardinality().getUpper());
