@@ -23,13 +23,9 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta.rules;
 import hu.blackbelt.judo.meta.psm.accesspoint.AbstractActorType;
 import hu.blackbelt.judo.meta.psm.accesspoint.ActorType;
 import hu.blackbelt.judo.meta.psm.accesspoint.MappedActorType;
-import hu.blackbelt.judo.meta.psm.namespace.Model;
-import hu.blackbelt.judo.meta.psm.namespace.Namespace;
-import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
-import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
@@ -95,9 +91,9 @@ public class ActorRules {
     @To(type = EClass.class)
     public TransformFunction<ActorType, EClass> createActorTypeClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/TransferObject");
+            EClass t = ctx.createTarget(EClass.class, s, "UnmappedTransferObject");
             t.setName(s.getName());
-            
+
             // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
             addClassifier(containerPkg, t);
@@ -120,7 +116,7 @@ public class ActorRules {
     @To(type = EClass.class)
     public TransformFunction<MappedActorType, EClass> createMappedActorTypeClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/MappedTransferObject");
+            EClass t = ctx.createTarget(EClass.class, s, "MappedTransferObject");
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             
@@ -153,7 +149,7 @@ public class ActorRules {
     @To(type = EAnnotation.class)
     public TransformFunction<AbstractActorType, EAnnotation> createActorTypeAnnotation() {
         return (s, ctx) -> {
-            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            EAnnotation t = ctx.createTarget(EAnnotation.class, s, "ActorTypeAnnotation");
             t.setSource(getAnnotationUri("actorType"));
             addAnnotationDetail(t, "value", "true");
             
@@ -189,7 +185,7 @@ public class ActorRules {
     @To(type = EAnnotation.class)
     public TransformFunction<AbstractActorType, EAnnotation> createRealmAnnotation() {
         return (s, ctx) -> {
-            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            EAnnotation t = ctx.createTarget(EAnnotation.class, s, "RealmTypeAnnotation");
             t.setSource(getAnnotationUri("realm"));
             addAnnotationDetail(t, "value", s.getRealm());
             
@@ -221,7 +217,7 @@ public class ActorRules {
     @To(type = EAnnotation.class)
     public TransformFunction<AbstractActorType, EAnnotation> createDocumentationAnnotationForActorType() {
         return (s, ctx) -> {
-            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            EAnnotation t = ctx.createTarget(EAnnotation.class, s, "DocumentationAnnotationForActorType");
             t.setSource(getAnnotationUri("documentation"));
             addAnnotationDetail(t, "value", s.getDocumentation());
             

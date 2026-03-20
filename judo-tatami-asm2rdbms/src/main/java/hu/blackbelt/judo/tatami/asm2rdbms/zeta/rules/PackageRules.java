@@ -102,7 +102,7 @@ public class PackageRules {
     @To(type = RdbmsModel.class)
     public TransformFunction<EPackage, RdbmsModel> rootPackegeToModel() {
         return (s, ctx) -> {
-            RdbmsModel t = ctx.createTarget(RdbmsModel.class);
+            RdbmsModel t = ctx.createTarget(RdbmsModel.class, s, "Model");
 
             // Get version from context attribute (set by orchestrator)
             String modelVersion = ctx.getAttribute("modelVersion");
@@ -131,7 +131,7 @@ public class PackageRules {
     @To(type = RdbmsConfiguration.class)
     public TransformFunction<EPackage, RdbmsConfiguration> rootPackegeToConfiguration() {
         return (s, ctx) -> {
-            RdbmsConfiguration t = ctx.createTarget(RdbmsConfiguration.class);
+            RdbmsConfiguration t = ctx.createTarget(RdbmsConfiguration.class, s, "Configuration");
 
             // Get dialect from context attribute (set by orchestrator)
             String dialect = ctx.getAttribute("dialect");

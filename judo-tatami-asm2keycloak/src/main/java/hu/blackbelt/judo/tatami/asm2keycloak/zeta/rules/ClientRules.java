@@ -95,7 +95,6 @@ public class ClientRules {
             // Get dependencies from context
             AsmUtils asmUtils = (AsmUtils) ctx.getAttribute("asmUtils");
             Resource keycloakResource = (Resource) ctx.getAttribute("keycloakResource");
-            KeycloakFactory keycloakFactory = KeycloakFactory.eINSTANCE;
 
             // Guard: isActorType(s) and has non-empty realm annotation
             if (!isActorWithRealm(asmUtils, s)) {
@@ -109,7 +108,7 @@ public class ClientRules {
                 return null;
             }
 
-            Client t = keycloakFactory.createClient();
+            Client t = KeycloakFactory.eINSTANCE.createClient();
             String clientName = asmUtils.getClassifierFQName(s).replace(".", "-");
             t.setName(clientName);
             t.setClientId(clientName);
@@ -120,6 +119,10 @@ public class ClientRules {
             t.setBearerOnly(false);
 
             realm.getClients().add(t);
+            // Set deterministic XMI ID after adding to resource (via realm containment)
+            if (keycloakResource instanceof org.eclipse.emf.ecore.xmi.XMLResource xmlRes) {
+                xmlRes.setID(t, "(asm/" + ctx.getElementId(s) + ")/CreateKeycloakClient");
+            }
 
             log.debug("Client created: {}", t.getName());
             return t;
@@ -138,7 +141,6 @@ public class ClientRules {
         return (s, ctx) -> {
             // Get dependencies from context
             AsmUtils asmUtils = (AsmUtils) ctx.getAttribute("asmUtils");
-            KeycloakFactory keycloakFactory = KeycloakFactory.eINSTANCE;
 
             // Guard: container is actor with realm
             EObject container = s.eContainer();
@@ -150,7 +152,7 @@ public class ClientRules {
                 return null;
             }
 
-            AttributeBinding t = keycloakFactory.createAttributeBinding();
+            AttributeBinding t = KeycloakFactory.eINSTANCE.createAttributeBinding();
 
             // Determine attribute name based on claim annotation
             Optional<String> claimType = asmUtils.getExtensionAnnotationValue(s, "claim", false);
@@ -176,6 +178,11 @@ public class ClientRules {
             Client client = ctx.equivalent(actorType, Client.class);
             if (client != null) {
                 client.getAttributeBindings().add(t);
+                // Set deterministic XMI ID after adding to resource (via client containment)
+                Resource res = t.eResource();
+                if (res instanceof org.eclipse.emf.ecore.xmi.XMLResource xmlRes) {
+                    xmlRes.setID(t, "(asm/" + ctx.getElementId(s) + ")/CreateKeycloakClientClaim");
+                }
             }
 
             return t;

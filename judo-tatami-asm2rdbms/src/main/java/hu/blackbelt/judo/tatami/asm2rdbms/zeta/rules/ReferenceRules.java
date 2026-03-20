@@ -219,9 +219,9 @@ public class ReferenceRules {
             AsmUtils utils = getAsmUtils(ctx);
             log.debug("    Add foreign key: {}", utils.getReferenceFQName(s));
 
-            RdbmsForeignKey fk = ctx.createTarget(RdbmsForeignKey.class);
+            RdbmsForeignKey fk = ctx.createTarget(RdbmsForeignKey.class, s, "TableForeignKey");
             fk.setName(s.getName());
-            fk.setUuid("(asm/" + ctx.getElementId(s) + ")/TableForeignKey");
+            fk.setUuid(ctx.buildSourceBasedId(s, "TableForeignKey"));
             fk.setMandatory(false);
 
             int columnNameMaxSize = ctx.getAttribute("columnNameMaxSize");
@@ -279,9 +279,9 @@ public class ReferenceRules {
             AsmUtils utils = getAsmUtils(ctx);
             log.debug("    Add inverse foreign key: {}", utils.getReferenceFQName(s));
 
-            RdbmsForeignKey fk = ctx.createTarget(RdbmsForeignKey.class);
+            RdbmsForeignKey fk = ctx.createTarget(RdbmsForeignKey.class, s, "TableInverseForeignKey");
             fk.setName(firstToLowerCase(s.getEContainingClass().getName()) + firstToUpperCase(s.getName()));
-            fk.setUuid("(asm/" + ctx.getElementId(s) + ")/TableInverseForeignKey");
+            fk.setUuid(ctx.buildSourceBasedId(s, "TableInverseForeignKey"));
             fk.setMandatory(false);
             fk.setReadOnly(false);
             fk.setDeleteOnCascade(false);
@@ -340,8 +340,8 @@ public class ReferenceRules {
             AsmUtils utils = getAsmUtils(ctx);
             log.debug("    Create junction table: {}", utils.getReferenceFQName(s));
 
-            RdbmsJunctionTable t = ctx.createTarget(RdbmsJunctionTable.class);
-            t.setUuid("(asm/" + ctx.getElementId(s) + ")/JunctionTable");
+            RdbmsJunctionTable t = ctx.createTarget(RdbmsJunctionTable.class, s, "JunctionTable");
+            t.setUuid(ctx.buildSourceBasedId(s, "JunctionTable"));
 
             int tableNameMaxSize = ctx.getAttribute("tableNameMaxSize");
             String junctionTablePrefix = ctx.getAttribute("junctionTablePrefix");
@@ -397,9 +397,9 @@ public class ReferenceRules {
                 return null;
             }
 
-            RdbmsIdentifierField p = ctx.createTarget(RdbmsIdentifierField.class);
+            RdbmsIdentifierField p = ctx.createTarget(RdbmsIdentifierField.class, s, "JunctionTablePrimaryKey");
             p.setName(table.getName() + "#id");
-            p.setUuid("(asm/" + ctx.getElementId(s) + ")/JunctionTablePrimaryKey");
+            p.setUuid(ctx.buildSourceBasedId(s, "JunctionTablePrimaryKey"));
             p.setSqlName("ID");
 
             Map<String, TypeMapping> mappings = getTypeMappings(ctx);
@@ -448,9 +448,9 @@ public class ReferenceRules {
                 return null;
             }
 
-            RdbmsForeignKey fk = ctx.createTarget(RdbmsForeignKey.class);
+            RdbmsForeignKey fk = ctx.createTarget(RdbmsForeignKey.class, s, "JunctionTableForeignKeyBidirectional");
             fk.setName(s.getName());
-            fk.setUuid("(asm/" + ctx.getElementId(s) + ")/JunctionTableForeignKeyBidirectional");
+            fk.setUuid(ctx.buildSourceBasedId(s, "JunctionTableForeignKeyBidirectional"));
             fk.setMandatory(isMandatory(s));
             fk.setReadOnly(true);
             fk.setDeleteOnCascade(true);
@@ -520,9 +520,9 @@ public class ReferenceRules {
             int nameSize = ctx.getAttribute("nameSize");
 
             // FK1 - to target type
-            RdbmsForeignKey fk1 = ctx.createTarget(RdbmsForeignKey.class);
+            RdbmsForeignKey fk1 = ctx.createTarget(RdbmsForeignKey.class, s, "JunctionTableForeignKeyUnidirectional1");
             fk1.setName(s.getName());
-            fk1.setUuid("(asm/" + ctx.getElementId(s) + ")/JunctionTableForeignKeyUnidirectional1");
+            fk1.setUuid(ctx.buildSourceBasedId(s, "JunctionTableForeignKeyUnidirectional1"));
             fk1.setMandatory(isMandatory(s));
             fk1.setSqlName(abbreviate(referenceIdentifierSqlName(s, columnNameMaxSize, columnPrefix, nameSize, utils), columnNameMaxSize - 1).toUpperCase() + "1");
             fk1.setForeignKeySqlName(referenceFkSqlName(s, foreignKeyPrefix, junctionTablePrefix, columnNameMaxSize, createSimpleName, shortNameSize, nameSize, utils) + "1");
@@ -543,7 +543,8 @@ public class ReferenceRules {
             // register it in the resolution cache so it appears in the trace.
             RdbmsForeignKey fk2 = RdbmsFactory.eINSTANCE.createRdbmsForeignKey();
             fk2.setName(s.getEContainingClass().getName() + "#" + s.getName());
-            fk2.setUuid("(asm/" + ctx.getElementId(s) + ")/JunctionTableForeignKeyUnidirectional2");
+            fk2.setUuid(ctx.buildSourceBasedId(s, "JunctionTableForeignKeyUnidirectional2"));
+            ctx.setElementId(fk2, ctx.buildSourceBasedId(s, "JunctionTableForeignKeyUnidirectional2"));
             fk2.setMandatory(false);
             fk2.setReadOnly(true);
             fk2.setDeleteOnCascade(true);

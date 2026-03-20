@@ -295,9 +295,11 @@ public class ModelComparator {
                 throw new AssertionError(sb.toString());
             }
         } else {
-            // Fall back to positional comparison
-            for (int i = 0; i < expected.getContents().size(); i++) {
-                assertEquivalent(expected.getContents().get(i), actual.getContents().get(i), mode);
+            // Fall back to type-grouped content matching (same strategy as compareContainment)
+            // instead of pure positional comparison which produces false mismatches
+            ComparisonResult result = compare(expected, actual, mode);
+            if (!result.isEquivalent()) {
+                throw new AssertionError("Resources are not equivalent: " + result.getSummary());
             }
         }
 
@@ -422,11 +424,34 @@ public class ModelComparator {
                 }
             }
         } else {
-            // Fall back to positional comparison
-            int minSize = Math.min(expected.getContents().size(), actual.getContents().size());
-            for (int i = 0; i < minSize && !shouldStop(differences, maxDifferences); i++) {
-                compareObjects(expected.getContents().get(i), actual.getContents().get(i),
-                        "[" + i + "]", differences, new IdentityHashMap<>(), mode, maxDifferences);
+            // Fall back to type-grouped content matching (same strategy as compareContainment)
+            // instead of pure positional comparison which produces false mismatches when
+            // ETL and Zeta produce equivalent elements in different iteration order.
+            @SuppressWarnings("unchecked")
+            EList<EObject> list1 = (EList<EObject>) (EList<?>) expected.getContents();
+            @SuppressWarnings("unchecked")
+            EList<EObject> list2 = (EList<EObject>) (EList<?>) actual.getContents();
+
+            Map<String, List<EObject>> byType1 = groupByTypeSignature(list1);
+            Map<String, List<EObject>> byType2 = groupByTypeSignature(list2);
+
+            Set<String> allTypes = new LinkedHashSet<>();
+            allTypes.addAll(byType1.keySet());
+            allTypes.addAll(byType2.keySet());
+
+            for (String type : allTypes) {
+                if (shouldStop(differences, maxDifferences)) break;
+
+                List<EObject> elems1 = byType1.getOrDefault(type, Collections.emptyList());
+                List<EObject> elems2 = byType2.getOrDefault(type, Collections.emptyList());
+
+                if (elems1.size() != elems2.size()) {
+                    differences.add(new ValueMismatch("[" + type + "]",
+                            "count=" + elems1.size(), "count=" + elems2.size()));
+                } else {
+                    matchAndCompareByContent(elems1, elems2, "[" + type + "]",
+                            differences, new IdentityHashMap<>(), mode, maxDifferences);
+                }
             }
         }
 
@@ -1061,13 +1086,26 @@ public class ModelComparator {
                 }
             }
         } else if (val1 instanceof EObject && val2 instanceof EObject) {
-            String id1 = getObjectIdentifier((EObject) val1);
-            String id2 = getObjectIdentifier((EObject) val2);
-            if (!Objects.equals(id1, id2)) {
-                differences.add(new ValueMismatch(path, id1, id2));
+            EObject ref1 = (EObject) val1;
+            EObject ref2 = (EObject) val2;
+            String id1 = getIdentifier(ref1);
+            String id2 = getIdentifier(ref2);
+            if (id1 != null && id2 != null) {
+                // Both have proper identifiers - compare by identifier
+                if (!Objects.equals(id1, id2)) {
+                    differences.add(new ValueMismatch(path, id1, id2));
+                }
+            } else {
+                // One or both lack identifiers (e.g., Script, StringAttribute objects) -
+                // compare by content signature to avoid false positives from identity hashCode
+                String sig1 = getContentSignature(ref1);
+                String sig2 = getContentSignature(ref2);
+                if (!Objects.equals(sig1, sig2)) {
+                    differences.add(new ValueMismatch(path, sig1, sig2));
+                }
             }
         } else if ((val1 == null) != (val2 == null)) {
-            differences.add(new ValueMismatch(path, 
+            differences.add(new ValueMismatch(path,
                     val1 != null ? getObjectIdentifier((EObject) val1) : "null",
                     val2 != null ? getObjectIdentifier((EObject) val2) : "null"));
         }
@@ -1132,18 +1170,21 @@ public class ModelComparator {
             return "EStringToStringMapEntry:" + key;
         }
 
-        // For Expression model Binding objects (AttributeBinding, ReferenceBinding, FilterBinding):
-        // these have no 'name' attribute, but are uniquely identified by typeName + feature + role.
-        // Without this, ModelComparator falls back to positional comparison and reports 50 false
-        // ordering differences when ETL and Zeta produce the same bindings in different resource order.
-        String bindingId = getExpressionBindingIdentifier(obj);
-        if (bindingId != null) {
-            return bindingId;
-        }
-
-        // Try 'name' attribute
+        // Try 'name' attribute, including 'namespace' when present (e.g., Expression model's
+        // TypeName/MeasureName which extend ElementName and have both name and namespace).
+        // Without namespace, duplicate identifiers cause positional-fallback false mismatches.
         String name = getAttributeValue(obj, "name");
-        if (name != null) {
+        if (name != null && !name.isEmpty()) {
+            String namespace = getAttributeValue(obj, "namespace");
+            if (namespace != null) {
+                return obj.eClass().getName() + ":" + namespace + "::" + name;
+            }
+            // For Expression model elements like Instance (all named "self"), include the
+            // elementName reference to distinguish them (e.g., Instance:self@TypeName:northwind::entities::Person)
+            String elementNameRef = getReferencedIdentifier(obj, "elementName");
+            if (elementNameRef != null) {
+                return obj.eClass().getName() + ":" + name + "@" + elementNameRef;
+            }
             return obj.eClass().getName() + ":" + name;
         }
 
@@ -1165,6 +1206,14 @@ public class ModelComparator {
             return obj.eClass().getName() + ":" + source;
         }
 
+        // Fall back to XMI ID set on the resource (e.g. stable IDs assigned at transformation time).
+        // Only trust structured IDs (e.g. "(asm/...)/Script") — skip EMF auto-generated UUID-style
+        // IDs (starting with '_' and lacking '/' or ':') which differ between runs and cause false diffs.
+        String xmiId = getXmiId(obj);
+        if (xmiId != null && isStructuredXmiId(xmiId)) {
+            return xmiId;
+        }
+
         return null;
     }
 
@@ -1178,49 +1227,19 @@ public class ModelComparator {
     }
 
     /**
-     * Builds a composite identifier for Expression model Binding objects.
-     * <p>
-     * {@code AttributeBinding}, {@code ReferenceBinding}, and {@code FilterBinding} have no
-     * {@code name} attribute, so {@link #getIdentifier} would return {@code null} and fall back
-     * to positional comparison — causing 50 false ordering differences between ETL and Zeta
-     * Expression models that are structurally identical but produced in different resource order.
-     * <p>
-     * Identity key: {@code className:namespace/typeName#featureName#role}
-     *
-     * @return composite identifier, or {@code null} if the object is not a recognised Binding type
+     * Gets the identifier of a single-valued reference target.
+     * Used to disambiguate elements that share the same name but reference different targets
+     * (e.g., Expression Instance elements all named "self" but referencing different TypeNames).
      */
-    private static String getExpressionBindingIdentifier(EObject obj) {
-        String className = obj.eClass().getName();
-        if (!className.equals("AttributeBinding") && !className.equals("ReferenceBinding")
-                && !className.equals("FilterBinding")) {
-            return null;
+    private static String getReferencedIdentifier(EObject obj, String refName) {
+        EStructuralFeature feature = obj.eClass().getEStructuralFeature(refName);
+        if (feature instanceof EReference && !((EReference) feature).isMany()) {
+            Object target = obj.eGet(feature);
+            if (target instanceof EObject) {
+                return getIdentifier((EObject) target);
+            }
         }
-
-        // Resolve typeName reference (containment reference on Binding)
-        EStructuralFeature typeNameFeature = obj.eClass().getEStructuralFeature("typeName");
-        if (typeNameFeature == null) return null;
-        Object typeNameObj = obj.eGet(typeNameFeature);
-        if (!(typeNameObj instanceof EObject)) return null;
-        EObject typeName = (EObject) typeNameObj;
-
-        String tnName = getAttributeValue(typeName, "name");
-        String tnNamespace = getAttributeValue(typeName, "namespace");
-        if (tnName == null) return null;
-
-        String qualifier = (tnNamespace != null ? tnNamespace + "/" : "") + tnName;
-
-        if (className.equals("FilterBinding")) {
-            return "FilterBinding:" + qualifier;
-        }
-
-        // AttributeBinding has 'attributeName', ReferenceBinding has 'referenceName'
-        String featureName = className.equals("AttributeBinding")
-                ? getAttributeValue(obj, "attributeName")
-                : getAttributeValue(obj, "referenceName");
-        String role = getAttributeValue(obj, "role");
-
-        if (featureName == null) return null;
-        return className + ":" + qualifier + "#" + featureName + (role != null ? "#" + role : "");
+        return null;
     }
 
     /**
@@ -1252,33 +1271,41 @@ public class ModelComparator {
             return sb.toString();
         }
 
-        // First try common identifier attributes
-        for (String attr : Arrays.asList("name", "id", "uuid", "sqlName", "logicalFilePath")) {
+        // Include common identifier attributes (including namespace for elements like TypeName/MeasureName)
+        for (String attr : Arrays.asList("name", "namespace", "id", "uuid", "sqlName", "logicalFilePath")) {
             String val = getAttributeValue(obj, attr);
             if (val != null) {
                 sb.append("|").append(attr).append("=").append(val);
             }
         }
 
-        // If no identifier found, include all attributes and single-valued references
-        // to create a unique content-based signature
-        if (sb.toString().equals(obj.eClass().getName())) {
-            // Include all attribute values
-            for (EStructuralFeature feature : obj.eClass().getEAllStructuralFeatures()) {
-                if (feature.isDerived() || feature.isTransient()) {
-                    continue;
+        // Always include single-valued non-containment references for disambiguation.
+        // E.g., Expression Instance elements all have name="self" but differ in their
+        // elementName reference (TypeName:northwind::entities::Person vs ::Address).
+        // Also include all attributes if no common identifiers were found.
+        boolean hasIdentifier = !sb.toString().equals(obj.eClass().getName());
+        for (EStructuralFeature feature : obj.eClass().getEAllStructuralFeatures()) {
+            if (feature.isDerived() || feature.isTransient()) {
+                continue;
+            }
+            if (!hasIdentifier && feature instanceof EAttribute) {
+                Object value = obj.eGet(feature);
+                if (value != null) {
+                    sb.append("|").append(feature.getName()).append("=").append(value);
                 }
-                if (feature instanceof EAttribute) {
-                    Object value = obj.eGet(feature);
-                    if (value != null) {
-                        sb.append("|").append(feature.getName()).append("=").append(value);
-                    }
-                } else if (feature instanceof EReference) {
-                    EReference ref = (EReference) feature;
-                    if (!ref.isMany() && !ref.isContainment()) {
-                        // Single-valued non-containment reference
-                        EObject refTarget = (EObject) obj.eGet(ref);
-                        if (refTarget != null) {
+            } else if (feature instanceof EReference) {
+                EReference ref = (EReference) feature;
+                if (!ref.isMany()) {
+                    EObject refTarget = (EObject) obj.eGet(ref);
+                    if (refTarget != null) {
+                        if (ref.isContainment()) {
+                            // Include contained element's type and recursive content signature for
+                            // disambiguation (e.g., StringAttribute's objectExpression may be
+                            // ObjectNavigationExpression or ObjectVariableReference, and the nested
+                            // variable reference distinguishes Employee.photo from Product.photo)
+                            sb.append("|").append(feature.getName()).append("=")
+                              .append(getContentSignature(refTarget));
+                        } else {
                             String refId = getIdentifier(refTarget);
                             if (refId != null) {
                                 sb.append("|").append(feature.getName()).append("=").append(refId);
@@ -1347,6 +1374,17 @@ public class ModelComparator {
      */
     public static String defaultXmiId(EObject obj) {
         return getXmiId(obj);
+    }
+
+    /**
+     * Returns true if the XMI ID is a structured, deliberately-assigned ID rather than an
+     * EMF auto-generated UUID. Structured IDs contain '/' or ':' (e.g. "(asm/...)/Script",
+     * "AttributeBinding:ns::Type#feat#ROLE"). Auto-generated UUIDs start with '_' and contain
+     * only base64-like characters — they are non-deterministic across runs and must not be
+     * used for element matching.
+     */
+    private static boolean isStructuredXmiId(String xmiId) {
+        return xmiId.contains("/") || xmiId.contains(":");
     }
 
     /**
@@ -1427,7 +1465,8 @@ public class ModelComparator {
      */
     private static final Set<String> SECONDARY_ELEMENT_TYPES = Set.of(
             "EEnumLiteral",           // Enum member literals
-            "EStringToStringMapEntry" // Annotation details
+            "EStringToStringMapEntry", // Annotation details
+            "EGenericType"            // Generic type refs — auto-UUID assigned by EMF, not deterministic across ETL/Zeta
     );
 
     /**
@@ -1451,12 +1490,12 @@ public class ModelComparator {
      * @return list of XMI ID differences
      */
     public static List<Difference> compareXmiIds(Resource expected, Resource actual) {
-        return compareXmiIds(expected, actual, null);
+        return compareXmiIds(expected, actual, null, true);
     }
 
     /**
      * Compares XMI IDs between two resources using custom XMI ID extraction.
-     * Uses flexible matching where rule names can be substrings of each other.
+     * Uses exact matching by default: XMI IDs must be identical strings.
      * <p>
      * This overload allows consumer projects to provide custom XMI ID extraction logic
      * for their specific model types. When the extractor returns null for an element,
@@ -1479,6 +1518,22 @@ public class ModelComparator {
      * @return list of XMI ID differences
      */
     public static List<Difference> compareXmiIds(Resource expected, Resource actual, XmiIdExtractor extractor) {
+        return compareXmiIds(expected, actual, extractor, true);
+    }
+
+    /**
+     * Compares XMI IDs between two resources.
+     *
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @param extractor custom XMI ID extractor, or null to use default extraction
+     * @param exactMatch if {@code true}, XMI IDs must match exactly (string equality);
+     *                   if {@code false}, flexible rule-name matching is used
+     *                   (known ETL↔Zeta equivalences, "Create" prefix stripping, substring containment)
+     * @return list of XMI ID differences
+     */
+    public static List<Difference> compareXmiIds(Resource expected, Resource actual, XmiIdExtractor extractor,
+                                                  boolean exactMatch) {
         List<Difference> differences = new ArrayList<>();
 
         Map<String, EObject> expectedIds = buildXmiIdMap(expected, extractor);
@@ -1506,18 +1561,20 @@ public class ModelComparator {
                 matchedActualIds.add(expectedXmiId);
                 // XMI ID exists in both - verify element types and containers match
                 EObject actualObj = actualIds.get(expectedXmiId);
-                verifyMatchedElements(expectedXmiId, expectedObj, actualObj, differences);
-            } else {
+                verifyMatchedElements(expectedXmiId, expectedObj, actualObj, differences, exactMatch);
+            } else if (!exactMatch) {
                 // Try flexible matching with rule name substring comparison
                 String matchedActualId = findMatchingXmiId(expectedXmiId, actualIds.keySet(), matchedActualIds);
                 if (matchedActualId != null) {
                     matchedActualIds.add(matchedActualId);
                     // Verify element types and containers match
                     EObject actualObj = actualIds.get(matchedActualId);
-                    verifyMatchedElements(expectedXmiId, expectedObj, actualObj, differences);
+                    verifyMatchedElements(expectedXmiId, expectedObj, actualObj, differences, exactMatch);
                 } else {
                     differences.add(new MissingXmiId(expectedXmiId, getObjectIdentifier(expectedObj)));
                 }
+            } else {
+                differences.add(new MissingXmiId(expectedXmiId, getObjectIdentifier(expectedObj)));
             }
         }
 
@@ -1541,7 +1598,7 @@ public class ModelComparator {
      * @param differences list to add any differences to
      */
     private static void verifyMatchedElements(String xmiId, EObject expectedObj, EObject actualObj,
-                                               List<Difference> differences) {
+                                               List<Difference> differences, boolean exactMatch) {
         // Check type match
         String expectedType = expectedObj.eClass().getName();
         String actualType = actualObj.eClass().getName();
@@ -1553,19 +1610,13 @@ public class ModelComparator {
         // Check container match
         String expectedContainer = getContainerIdentifier(expectedObj);
         String actualContainer = getContainerIdentifier(actualObj);
-        if (!containersMatch(expectedContainer, actualContainer)) {
+        if (!containersMatch(expectedContainer, actualContainer, exactMatch)) {
             differences.add(new XmiIdContainerMismatch(xmiId, expectedType, expectedContainer, actualContainer));
         }
     }
 
     /**
-     * Finds a matching XMI ID using flexible rule name comparison.
-     * XMI IDs have format: "(sourcePath)/RuleName" or "(sourcePath)/RuleName/SubPath"
-     * Matching is successful if:
-     * <ul>
-     *   <li>Source paths are identical</li>
-     *   <li>The shorter rule name is a substring of the longer one (case-insensitive)</li>
-     * </ul>
+     * Finds a matching XMI ID using exact string comparison.
      *
      * @param expectedId the expected XMI ID to find a match for
      * @param actualIds all actual XMI IDs to search
@@ -1573,196 +1624,15 @@ public class ModelComparator {
      * @return the matching actual XMI ID, or null if no match found
      */
     private static String findMatchingXmiId(String expectedId, Set<String> actualIds, Set<String> alreadyMatched) {
-        ParsedXmiId expected = parseXmiId(expectedId);
-        if (expected == null) {
+        if (expectedId == null) {
             return null;
         }
 
-        for (String actualId : actualIds) {
-            if (alreadyMatched.contains(actualId)) {
-                continue;
-            }
-
-            ParsedXmiId actual = parseXmiId(actualId);
-            if (actual == null) {
-                continue;
-            }
-
-            // Source paths must match exactly
-            if (!expected.sourcePath.equals(actual.sourcePath)) {
-                continue;
-            }
-
-            // Rule names must have substring relationship (case-insensitive)
-            if (isRuleNameMatch(expected.ruleName, actual.ruleName)) {
-                // If there are sub-paths, they must also match
-                if (expected.subPath == null && actual.subPath == null) {
-                    return actualId;
-                }
-                if (expected.subPath != null && actual.subPath != null) {
-                    if (isRuleNameMatch(expected.subPath, actual.subPath)) {
-                        return actualId;
-                    }
-                }
-            }
+        if (!alreadyMatched.contains(expectedId) && actualIds.contains(expectedId)) {
+            return expectedId;
         }
 
         return null;
-    }
-
-    /**
-     * Known ETL to Zeta rule name equivalences.
-     * Maps ETL rule names (key) to their Zeta equivalents (value).
-     * This handles cases where rule naming conventions differ between transformations.
-     */
-    private static final Map<String, String> ETL_TO_ZETA_RULE_MAPPINGS = Map.ofEntries(
-            // ActorType rules - ETL uses short names, Zeta uses Create prefix
-            Map.entry("ActorType", "CreateActorType"),
-            Map.entry("ActorTypeWithoutPrincipal", "CreateActorTypeWithoutPrincipal"),
-            Map.entry("MappedActorType", "CreateMappedActorType"),
-
-            // Package rules
-            Map.entry("ExtensionPackage", "CreateExtensionPackage"),
-            Map.entry("ExtensionRootPackage", "CreateExtensionRootPackage"),
-
-            // Type rules
-            Map.entry("AutoGeneratedBooleanType", "CreateAutoGeneratedBooleanType"),
-            Map.entry("AutoGeneratedIntegerType", "CreateAutoGeneratedIntegerType"),
-            Map.entry("AutoGeneratedStringType", "CreateAutoGeneratedStringType"),
-            Map.entry("MetadataSecurityType", "CreateMetadataSecurityType"),
-            Map.entry("MetadataType", "CreateMetadataType"),
-            Map.entry("QueryFilterType", "CreateQueryFilterType"),
-            Map.entry("UploadTokenType", "CreateUploadTokenType"),
-
-            // Enumeration rules
-            Map.entry("BooleanOperationEnumeration", "CreateBooleanOperationEnumeration"),
-            Map.entry("EnumerationOperationEnumeration", "CreateEnumerationOperationEnumeration"),
-            Map.entry("NumericOperationEnumeration", "CreateNumericOperationEnumeration"),
-            Map.entry("StringOperationEnumeration", "CreateStringOperationEnumeration"),
-
-            // AssociationEnd rules - ETL uses WithPartner/WithoutPartner suffix
-            Map.entry("AssociationEndWithPartner", "AssociationEnd"),
-            Map.entry("AssociationEndWithoutPartner", "AssociationEnd"),
-
-            // TransferObjectRelation rules
-            Map.entry("AccessTransferObjectRelationWithBinding", "CreateAccessTransferObjectRelationWithBinding"),
-            Map.entry("AccessTransferObjectRelationWithoutBinding", "CreateAccessTransferObjectRelationWithoutBinding"),
-
-            // Operation rules - ETL uses different naming pattern
-            Map.entry("AddReferenceTransferOperationForRelationFeature", "CreateAddReferenceTransferOperationForRelationFeature"),
-            Map.entry("CreateTransferOperationForRelationFeature", "CreateCreateTransferOperationForRelationFeature"),
-            Map.entry("GetRangeReferenceTransferOperationForRelationFeature", "CreateGetRangeReferenceTransferOperationForRelationFeature"),
-            Map.entry("RemoveReferenceTransferOperationForRelationFeature", "CreateRemoveReferenceTransferOperationForRelationFeature"),
-            Map.entry("SetReferenceTransferOperationForRelationFeature", "CreateSetReferenceTransferOperationForRelationFeature"),
-            Map.entry("UnsetReferenceTransferOperationForRelationFeature", "CreateUnsetReferenceTransferOperationForRelationFeature"),
-            Map.entry("ValidateCreateTransferOperationForRelationFeature", "CreateValidateCreateTransferOperationForRelationFeature")
-    );
-
-    /**
-     * Reverse mapping from Zeta to ETL rule names (computed from ETL_TO_ZETA_RULE_MAPPINGS).
-     */
-    private static final Map<String, String> ZETA_TO_ETL_RULE_MAPPINGS;
-    static {
-        Map<String, String> reverse = new HashMap<>();
-        for (Map.Entry<String, String> entry : ETL_TO_ZETA_RULE_MAPPINGS.entrySet()) {
-            reverse.put(entry.getValue(), entry.getKey());
-        }
-        ZETA_TO_ETL_RULE_MAPPINGS = Collections.unmodifiableMap(reverse);
-    }
-
-    /**
-     * Normalizes a rule name by stripping common prefixes like "Create".
-     * This allows matching ETL patterns (e.g., "ExtensionPackage") with
-     * Zeta patterns (e.g., "CreateExtensionPackage").
-     */
-    private static String normalizeRuleName(String name) {
-        if (name == null) {
-            return null;
-        }
-        // Strip "Create" prefix if present (Zeta often adds this)
-        if (name.startsWith("Create") && name.length() > 6) {
-            return name.substring(6);
-        }
-        return name;
-    }
-
-    /**
-     * Checks if two rule names match using normalization, mapping table and substring comparison.
-     * <p>
-     * Matching logic:
-     * <ol>
-     *   <li>Exact match (case-insensitive)</li>
-     *   <li>Normalized match (strip "Create" prefix, case-insensitive)</li>
-     *   <li>Known ETL-to-Zeta mapping equivalence</li>
-     *   <li>Substring containment (shorter in longer, case-insensitive)</li>
-     * </ol>
-     * <p>
-     * For example: "Package" matches "NamespaceToPackage", "ModelToPackage"
-     *              "ExtensionPackage" matches "CreateExtensionPackage" (via normalization)
-     *              "ActorType" matches "CreateActorType" (via normalization or mapping)
-     */
-    private static boolean isRuleNameMatch(String name1, String name2) {
-        if (name1 == null || name2 == null) {
-            return name1 == null && name2 == null;
-        }
-
-        // Exact match (case-insensitive)
-        if (name1.equalsIgnoreCase(name2)) {
-            return true;
-        }
-
-        // Normalized match - strip "Create" prefix and compare
-        String normalized1 = normalizeRuleName(name1);
-        String normalized2 = normalizeRuleName(name2);
-        if (normalized1.equalsIgnoreCase(normalized2)) {
-            return true;
-        }
-        // Also check normalized vs original
-        if (normalized1.equalsIgnoreCase(name2) || name1.equalsIgnoreCase(normalized2)) {
-            return true;
-        }
-
-        // Check known mappings (ETL -> Zeta)
-        String mapped1 = ETL_TO_ZETA_RULE_MAPPINGS.get(name1);
-        if (mapped1 != null && mapped1.equalsIgnoreCase(name2)) {
-            return true;
-        }
-
-        // Check reverse mappings (Zeta -> ETL)
-        String mapped2 = ZETA_TO_ETL_RULE_MAPPINGS.get(name1);
-        if (mapped2 != null && mapped2.equalsIgnoreCase(name2)) {
-            return true;
-        }
-
-        // Also check the other direction
-        mapped1 = ETL_TO_ZETA_RULE_MAPPINGS.get(name2);
-        if (mapped1 != null && mapped1.equalsIgnoreCase(name1)) {
-            return true;
-        }
-        mapped2 = ZETA_TO_ETL_RULE_MAPPINGS.get(name2);
-        if (mapped2 != null && mapped2.equalsIgnoreCase(name1)) {
-            return true;
-        }
-
-        // Fall back to substring matching
-        String lower1 = name1.toLowerCase();
-        String lower2 = name2.toLowerCase();
-        return lower1.contains(lower2) || lower2.contains(lower1);
-    }
-
-    /**
-     * Parsed representation of a structured XMI ID.
-     */
-    private static class ParsedXmiId {
-        final String sourcePath;  // e.g., "(psm/_xxx)"
-        final String ruleName;    // e.g., "Package" or "NamespaceToPackage"
-        final String subPath;     // e.g., "Literal1" (optional)
-
-        ParsedXmiId(String sourcePath, String ruleName, String subPath) {
-            this.sourcePath = sourcePath;
-            this.ruleName = ruleName;
-            this.subPath = subPath;
-        }
     }
 
     /**
@@ -1797,125 +1667,33 @@ public class ModelComparator {
     }
 
     /**
-     * Checks if two container identifiers match.
-     * Uses flexible matching for XMI IDs (rule name substring comparison).
+     * Checks if two container identifiers match using exact string comparison.
      *
      * @param expectedContainer the expected container identifier
      * @param actualContainer the actual container identifier
+     * @param exactMatch ignored (always uses exact matching)
      * @return true if containers match
      */
-    private static boolean containersMatch(String expectedContainer, String actualContainer) {
+    private static boolean containersMatch(String expectedContainer, String actualContainer, boolean exactMatch) {
         if (expectedContainer == null && actualContainer == null) {
             return true;
         }
         if (expectedContainer == null || actualContainer == null) {
             return false;
         }
-        if (expectedContainer.equals(actualContainer)) {
-            return true;
-        }
-
-        // Try flexible XMI ID matching (for ETL vs Zeta rule name differences)
-        ParsedXmiId expectedParsed = parseXmiId(expectedContainer);
-        ParsedXmiId actualParsed = parseXmiId(actualContainer);
-
-        if (expectedParsed != null && actualParsed != null) {
-            // Both are structured XMI IDs - use flexible matching
-            if (!expectedParsed.sourcePath.equals(actualParsed.sourcePath)) {
-                return false;
-            }
-            return isRuleNameMatch(expectedParsed.ruleName, actualParsed.ruleName);
-        }
-
-        // For non-XMI ID containers, use exact match (already checked above)
-        return false;
+        return expectedContainer.equals(actualContainer);
     }
 
     /**
-     * Parses a structured XMI ID into its components.
-     * Handles two formats:
-     * <ul>
-     *   <li>ETL format: "(psm/_xxx)/RuleName" or "(psm/_xxx)/RuleName/SubPath"</li>
-     *   <li>Zeta format: "ElementName/(psm/_xxx)/RuleName"</li>
-     * </ul>
-     * Also handles non-structured IDs (returns null).
+     * Asserts that two Resources have equivalent XMI IDs using exact matching.
+     * Throws AssertionError if XMI IDs differ.
      *
-     * @param xmiId the XMI ID to parse
-     * @return parsed components, or null if not a structured ID
+     * @param expected the expected resource
+     * @param actual the actual resource
+     * @throws AssertionError if XMI IDs differ
      */
-    private static ParsedXmiId parseXmiId(String xmiId) {
-        if (xmiId == null) {
-            return null;
-        }
-
-        // Check for Zeta format: "ElementName/(psm/_xxx)/RuleName" or "ElementName/(source/_xxx)/RuleName"
-        int sourceStart = xmiId.indexOf("/(psm/");
-        if (sourceStart < 0) {
-            sourceStart = xmiId.indexOf("/(source/");
-        }
-        if (sourceStart >= 0) {
-            // Zeta format: extract the source ID part
-            int closeParenIndex = xmiId.indexOf(')', sourceStart);
-            if (closeParenIndex < 0) {
-                return null;
-            }
-            // Extract source path: "(psm/_xxx)" or "(source/_xxx)"
-            String sourcePath = xmiId.substring(sourceStart + 1, closeParenIndex + 1);
-
-            // The rule name comes after the closing parenthesis
-            String rest = xmiId.substring(closeParenIndex + 1);
-            if (rest.isEmpty() || !rest.startsWith("/")) {
-                return null;
-            }
-            rest = rest.substring(1);  // Remove leading "/"
-
-            // Split remaining path for sub-paths
-            int slashIndex = rest.indexOf('/');
-            String ruleName;
-            String subPath = null;
-            if (slashIndex < 0) {
-                ruleName = rest;
-            } else {
-                ruleName = rest.substring(0, slashIndex);
-                subPath = rest.substring(slashIndex + 1);
-            }
-
-            return new ParsedXmiId(sourcePath, ruleName, subPath);
-        }
-
-        // Check for ETL format: "(psm/_xxx)/RuleName"
-        if (!xmiId.startsWith("(")) {
-            return null;  // Not a structured ID
-        }
-
-        int closeParenIndex = xmiId.indexOf(')');
-        if (closeParenIndex < 0) {
-            return null;
-        }
-
-        String sourcePath = xmiId.substring(0, closeParenIndex + 1);  // "(psm/_xxx)"
-
-        // Rest after source path
-        String rest = xmiId.substring(closeParenIndex + 1);
-        if (rest.isEmpty() || !rest.startsWith("/")) {
-            return null;
-        }
-
-        rest = rest.substring(1);  // Remove leading "/"
-
-        // Split remaining path
-        int slashIndex = rest.indexOf('/');
-        String ruleName;
-        String subPath = null;
-
-        if (slashIndex < 0) {
-            ruleName = rest;
-        } else {
-            ruleName = rest.substring(0, slashIndex);
-            subPath = rest.substring(slashIndex + 1);
-        }
-
-        return new ParsedXmiId(sourcePath, ruleName, subPath);
+    public static void assertXmiIdsEquivalent(Resource expected, Resource actual) {
+        assertXmiIdsEquivalent(expected, actual, true);
     }
 
     /**
@@ -1924,20 +1702,72 @@ public class ModelComparator {
      *
      * @param expected the expected resource
      * @param actual the actual resource
+     * @param exactMatch if {@code true}, XMI IDs must match exactly (string equality);
+     *                   if {@code false}, flexible rule-name matching is used
+     *                   (known ETL↔Zeta equivalences, "Create" prefix stripping, substring containment)
      * @throws AssertionError if XMI IDs differ
      */
-    public static void assertXmiIdsEquivalent(Resource expected, Resource actual) {
+    public static void assertXmiIdsEquivalent(Resource expected, Resource actual, boolean exactMatch) {
         if (!isXmiIdComparisonEnabled()) {
             return;
         }
 
-        List<Difference> xmiDifferences = compareXmiIds(expected, actual);
+        List<Difference> xmiDifferences = compareXmiIds(expected, actual, null, exactMatch);
         if (!xmiDifferences.isEmpty()) {
             StringBuilder sb = new StringBuilder("XMI ID comparison failed:\n");
             sb.append(xmiDifferences.size()).append(" XMI ID difference(s):\n");
             for (Difference diff : xmiDifferences) {
                 sb.append("  ").append(diff.describe()).append("\n");
             }
+            throw new AssertionError(sb.toString());
+        }
+    }
+
+    /**
+     * Scans a resource and returns a list of descriptions for every element that has an
+     * auto-generated (non-structured) XMI ID. These IDs are non-deterministic across runs
+     * and will cause false differences in XMI comparisons.
+     *
+     * <p>A structured ID contains {@code '/'} or {@code ':'} (e.g.
+     * {@code "(asm/NS::Type#op)/Script"}, {@code "AttributeBinding:ns::Type#feat#ROLE"}).
+     * Auto-generated EMF UUIDs start with {@code '_'} and contain only base64-like characters.</p>
+     *
+     * @param resource the resource to scan
+     * @return list of {@code "EClassName → xmiId"} strings for elements with unstable IDs
+     */
+    public static List<String> findAutoGeneratedIds(Resource resource) {
+        List<String> found = new ArrayList<>();
+        if (!(resource instanceof XMLResource)) {
+            return found;
+        }
+        XMLResource xmlResource = (XMLResource) resource;
+        TreeIterator<EObject> iter = resource.getAllContents();
+        while (iter.hasNext()) {
+            EObject obj = iter.next();
+            String id = xmlResource.getID(obj);
+            if (id != null && !isStructuredXmiId(id)) {
+                found.add(obj.eClass().getName() + " → " + id
+                        + " (contained in: " + obj.eContainingFeature()
+                        + " of " + (obj.eContainer() != null ? obj.eContainer().eClass().getName() : "root") + ")");
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Asserts that no element in the resource has an auto-generated (non-structured) XMI ID.
+     * Fails with a report of all offending elements if any are found.
+     *
+     * @param resource the resource to scan
+     * @throws AssertionError if any element has an auto-generated XMI ID
+     */
+    public static void assertNoAutoGeneratedIds(Resource resource) {
+        List<String> found = findAutoGeneratedIds(resource);
+        if (!found.isEmpty()) {
+            StringBuilder sb = new StringBuilder(
+                    "Resource contains " + found.size() + " element(s) with auto-generated (non-reproducible) XMI IDs:\n");
+            found.forEach(s -> sb.append("  ").append(s).append("\n"));
+            sb.append("Fix: assign stable XMI IDs at element creation time in the transformation.");
             throw new AssertionError(sb.toString());
         }
     }

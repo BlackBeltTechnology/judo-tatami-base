@@ -9,6 +9,7 @@
 #   --mode STRICT|STRUCTURAL|LENIENT   Comparison mode (default: STRICT)
 #   --basedir /path/to/models          Path to external models directory
 #   --perf-only                        Disable comparison, run performance only
+#   --xmiids                           Also compare XMI IDs (strict identity check)
 #   --module <name>                    Run single module (psm2asm|psm2measure|asm2rdbms|rdbms2liquibase|asm2keycloak)
 #   --json                             Output aggregated JSON to stdout after all tests
 #   --help                             Show this help message
@@ -19,6 +20,7 @@ set -euo pipefail
 COMPARISON_MODE="STRICT"
 BASEDIR=""
 PERF_ONLY=false
+XMI_IDS=false
 SINGLE_MODULE=""
 JSON_OUTPUT=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,6 +48,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --perf-only)
       PERF_ONLY=true
+      shift
+      ;;
+    --xmiids)
+      XMI_IDS=true
       shift
       ;;
     --module)
@@ -95,6 +101,10 @@ if [[ "$PERF_ONLY" == true ]]; then
   MAVEN_PROPS+=" -Djudo.test.comparison.enabled=false"
 fi
 
+if [[ "$XMI_IDS" == true ]]; then
+  MAVEN_PROPS+=" -Djudo.test.comparison.xmiIds=true"
+fi
+
 # --- Filter modules ---
 if [[ -n "$SINGLE_MODULE" ]]; then
   FILTERED_MODULES=()
@@ -129,6 +139,7 @@ echo "============================================"
 echo " Mode:      ${COMPARISON_MODE}"
 echo " Basedir:   ${BASEDIR}"
 echo " Perf-only: ${PERF_ONLY}"
+echo " XMI IDs:   ${XMI_IDS}"
 echo " Modules:   ${#MODULES[@]}"
 if [[ -n "$SINGLE_MODULE" ]]; then
   echo " Filter:    ${SINGLE_MODULE}"
@@ -202,6 +213,7 @@ if [[ "$JSON_OUTPUT" == true ]]; then
   echo "  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S)\","
   echo "  \"comparisonMode\": \"${COMPARISON_MODE}\","
   echo "  \"perfOnly\": ${PERF_ONLY},"
+  echo "  \"xmiIds\": ${XMI_IDS},"
   echo "  \"modules\": ["
 
   FIRST=true

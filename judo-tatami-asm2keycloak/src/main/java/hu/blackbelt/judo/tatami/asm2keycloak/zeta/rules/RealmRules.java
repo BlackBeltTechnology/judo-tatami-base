@@ -108,8 +108,11 @@ public class RealmRules {
         realm.setEnabled(true);
         realm.setLoginWithEmailAllowed(true);
 
-        // Add to target resource
+        // Add to target resource and set deterministic XMI ID
         keycloakResource.getContents().add(realm);
+        if (keycloakResource instanceof org.eclipse.emf.ecore.xmi.XMLResource xmlRes) {
+            xmlRes.setID(realm, "Realm/" + realmName);
+        }
 
         log.debug("Realm created: {}", realm.getRealm());
     }

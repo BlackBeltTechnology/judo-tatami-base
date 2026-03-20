@@ -24,7 +24,6 @@ import hu.blackbelt.judo.meta.psm.derived.ReferenceAccessor;
 import hu.blackbelt.judo.meta.psm.derived.StaticData;
 import hu.blackbelt.judo.meta.psm.derived.StaticNavigation;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
-import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
@@ -79,29 +78,27 @@ public class StaticRules {
     @Greedy
     public TransformFunction<StaticData, EClass> createUnmappedTransferObjectForStaticData() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/UnmappedTransferObjectForStaticData");
+            EClass t = ctx.createTarget(EClass.class, s, "UnmappedTransferObjectForStaticData");
 
             // Name is the static data name with first letter uppercased
             String name = s.getName();
             if (name != null && !name.isEmpty()) {
                 t.setName(Character.toUpperCase(name.charAt(0)) + name.substring(1));
             }
-            
+
             // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
             addClassifier(containerPkg, t);
 
             // Add transferObjectType annotation inline (thread-safe)
-            EAnnotation toAnnotation = createAnnotation(
-                    "(psm/" + getId(s) + ")/TransferObjectTypeAnnotationClassForStaticData",
-                    getAnnotationUri("transferObjectType"));
+            EAnnotation toAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "TransferObjectTypeAnnotationClassForStaticData"), getAnnotationUri("transferObjectType"));
+            ctx.setElementId(toAnnotation, ctx.buildSourceBasedId(s, "TransferObjectTypeAnnotationClassForStaticData"));
             addAnnotationDetail(toAnnotation, "value", "true");
             addAnnotation(t, toAnnotation);
 
             // Add staticQuery annotation inline (thread-safe)
-            EAnnotation staticQueryAnnotation = createAnnotation(
-                    "(psm/" + getId(s) + ")/StaticDataQueryAnnotation",
-                    getAnnotationUri("staticQuery"));
+            EAnnotation staticQueryAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "StaticDataQueryAnnotation"), getAnnotationUri("staticQuery"));
+            ctx.setElementId(staticQueryAnnotation, ctx.buildSourceBasedId(s, "StaticDataQueryAnnotation"));
             addAnnotation(t, staticQueryAnnotation);
 
             // Create and add the static query attribute
@@ -120,12 +117,12 @@ public class StaticRules {
             }
 
             addStructuralFeature(t, attr);
+            ctx.setElementId(attr, ctx.buildSourceBasedId(s, "StaticQueryAttribute"));
 
             // Add expression annotation for the attribute (thread-safe)
             if (s.getGetterExpression() != null) {
-                EAnnotation exprAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/DataReferenceBindingForStaticData",
-                        getAnnotationUri("expression"));
+                EAnnotation exprAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "DataReferenceBindingForStaticData"), getAnnotationUri("expression"));
+                ctx.setElementId(exprAnnotation, ctx.buildSourceBasedId(s, "DataReferenceBindingForStaticData"));
                 addAnnotationDetail(exprAnnotation, "getter", s.getGetterExpression().getExpression());
                 addAnnotationDetail(exprAnnotation, "getter.dialect", s.getGetterExpression().getDialect().toString());
 
@@ -143,9 +140,8 @@ public class StaticRules {
                 if (s.getGetterExpression().getParameterType() != null) {
                     EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
                     if (paramType != null) {
-                        EAnnotation paramAnnotation = createAnnotation(
-                                "(psm/" + getId(s) + ")/TransferAttributeParameterizedAnnotationForStaticData",
-                                getAnnotationUri("parameterized"));
+                        EAnnotation paramAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "TransferAttributeParameterizedAnnotationForStaticData"), getAnnotationUri("parameterized"));
+                        ctx.setElementId(paramAnnotation, ctx.buildSourceBasedId(s, "TransferAttributeParameterizedAnnotationForStaticData"));
                         addAnnotationDetail(paramAnnotation, "value", "true");
                         addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
                         addAnnotation(attr, paramAnnotation);
@@ -181,29 +177,27 @@ public class StaticRules {
                 return null;
             }
             
-            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/UnmappedTransferObjectForStaticNavigation");
+            EClass t = ctx.createTarget(EClass.class, s, "UnmappedTransferObjectForStaticNavigation");
 
             // Name is the static navigation name with first letter uppercased
             String name = s.getName();
             if (name != null && !name.isEmpty()) {
                 t.setName(Character.toUpperCase(name.charAt(0)) + name.substring(1));
             }
-            
+
             // Add to container package (thread-safe)
             EPackage containerPkg = getContainerPackage(s, ctx);
             addClassifier(containerPkg, t);
 
             // Add transferObjectType annotation inline (thread-safe)
-            EAnnotation toAnnotation = createAnnotation(
-                    "(psm/" + getId(s) + ")/TransferObjectTypeAnnotationClassForStaticNavigation",
-                    getAnnotationUri("transferObjectType"));
+            EAnnotation toAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "TransferObjectTypeAnnotationClassForStaticNavigation"), getAnnotationUri("transferObjectType"));
+            ctx.setElementId(toAnnotation, ctx.buildSourceBasedId(s, "TransferObjectTypeAnnotationClassForStaticNavigation"));
             addAnnotationDetail(toAnnotation, "value", "true");
             addAnnotation(t, toAnnotation);
 
             // Add staticQuery annotation inline (thread-safe)
-            EAnnotation staticQueryAnnotation = createAnnotation(
-                    "(psm/" + getId(s) + ")/StaticNavigationQueryAnnotation",
-                    getAnnotationUri("staticQuery"));
+            EAnnotation staticQueryAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "StaticNavigationQueryAnnotation"), getAnnotationUri("staticQuery"));
+            ctx.setElementId(staticQueryAnnotation, ctx.buildSourceBasedId(s, "StaticNavigationQueryAnnotation"));
             addAnnotation(t, staticQueryAnnotation);
 
             // Create and add the static query navigation EReference
@@ -230,12 +224,12 @@ public class StaticRules {
             ref.setChangeable(false);
 
             addStructuralFeature(t, ref);
+            ctx.setElementId(ref, ctx.buildSourceBasedId(s, "StaticQueryNavigation"));
 
             // Add expression annotation for the reference (thread-safe)
             if (s.getGetterExpression() != null) {
-                EAnnotation exprAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/NavigationReferenceBindingForStaticNavigation",
-                        getAnnotationUri("expression"));
+                EAnnotation exprAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "NavigationReferenceBindingForStaticNavigation"), getAnnotationUri("expression"));
+                ctx.setElementId(exprAnnotation, ctx.buildSourceBasedId(s, "NavigationReferenceBindingForStaticNavigation"));
                 addAnnotationDetail(exprAnnotation, "getter", s.getGetterExpression().getExpression());
                 addAnnotationDetail(exprAnnotation, "getter.dialect", s.getGetterExpression().getDialect().toString());
 
@@ -267,9 +261,8 @@ public class StaticRules {
                 if (s instanceof ReferenceAccessor && s.getGetterExpression().getParameterType() != null) {
                     EClass paramType = ctx.equivalent(s.getGetterExpression().getParameterType(), EClass.class);
                     if (paramType != null) {
-                        EAnnotation paramAnnotation = createAnnotation(
-                                "(psm/" + getId(s) + ")/TransferObjectRelationParameterizedAnnotationForStaticNavigation",
-                                getAnnotationUri("parameterized"));
+                        EAnnotation paramAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "TransferObjectRelationParameterizedAnnotationForStaticNavigation"), getAnnotationUri("parameterized"));
+                        ctx.setElementId(paramAnnotation, ctx.buildSourceBasedId(s, "TransferObjectRelationParameterizedAnnotationForStaticNavigation"));
                         addAnnotationDetail(paramAnnotation, "value", "true");
                         addAnnotationDetail(paramAnnotation, "type", getClassifierFQName(paramType));
                         addAnnotation(ref, paramAnnotation);

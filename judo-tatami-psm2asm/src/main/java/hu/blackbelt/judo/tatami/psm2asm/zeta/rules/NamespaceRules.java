@@ -26,9 +26,7 @@ import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
-import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.EAnnotation;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
@@ -101,7 +99,7 @@ public class NamespaceRules {
     @To(type = EPackage.class)
     public TransformFunction<Namespace, EPackage> namespaceToPackage() {
         return (s, ctx) -> {
-            EPackage t = ctx.createTarget(EPackage.class, "(psm/" + getId(s) + ")/Package");
+            EPackage t = ctx.createTarget(EPackage.class, s, "Package");
             t.setName(s.getName());
             return t;
         };
@@ -156,7 +154,7 @@ public class NamespaceRules {
     @To(type = EAnnotation.class)
     public TransformFunction<Model, EAnnotation> modelToPackageVersion() {
         return (s, ctx) -> {
-            EAnnotation t = ctx.createTarget(EAnnotation.class);
+            EAnnotation t = ctx.createTarget(EAnnotation.class, s, "ModelToPackageVersion");
             t.setSource(getAnnotationUri("ModelVersion"));
             addAnnotationDetail(t, "value", s.getVersion());
 

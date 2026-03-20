@@ -832,6 +832,13 @@ public abstract class AbstractExternalModelTest {
     private static final Set<String> SKIP_DIRECTORIES = Set.of("target", "build", ".git", "node_modules", ".gradle");
 
     /**
+     * Generic structural directory names that should not be used as model names.
+     * When a model directory has one of these names, the parent directory's name is
+     * used as the model name instead (e.g. "ActionGroupTest/model/" → "ActionGroupTest").
+     */
+    private static final Set<String> STRUCTURAL_DIRECTORY_NAMES = Set.of("model", "models", "resources", "generated-resources");
+
+    /**
      * Recursive helper for directory scanning with short-circuit behavior.
      * If the directory contains *.model files, it is added as a model and no deeper scanning occurs.
      * Otherwise, child directories are scanned recursively (skipping build output directories).
@@ -842,7 +849,13 @@ public abstract class AbstractExternalModelTest {
         }
 
         if (isModelDirectory(dir)) {
-            String modelName = dir.getFileName().toString();
+            // If the leaf directory name is a generic structural name (e.g. "model"),
+            // use the parent directory's name as the model name so that
+            // "ActionGroupTest/model/" gets name "ActionGroupTest" rather than "model".
+            String leafName = dir.getFileName().toString();
+            String modelName = STRUCTURAL_DIRECTORY_NAMES.contains(leafName) && dir.getParent() != null
+                    ? dir.getParent().getFileName().toString()
+                    : leafName;
             configs.add(new ExternalModelConfig(modelName, dir.toAbsolutePath().normalize(), true, Map.of()));
             log.debug("Discovered model directory: {} -> {}", modelName, dir);
             return; // Short-circuit: do not scan deeper

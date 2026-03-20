@@ -37,6 +37,7 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EcoreFactory;
+import org.eclipse.emf.ecore.xmi.XMLResource;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,17 +91,25 @@ public final class Psm2AsmHelper {
      */
     public static String getId(Object element) {
         if (element instanceof NamespaceElement ne) {
-            // Check XMI resource fragment first (matches ETL's eResource.getId(self))
-            if (ne.eResource() != null) {
-                String fragment = ne.eResource().getURIFragment(ne);
-                if (fragment != null && !fragment.startsWith("/")) {
-                    return fragment;
+            // Use XMLResource.getID() to match ETL's eResource.getId(self) behaviour,
+            // which auto-assigns and caches UUIDs for programmatically-built objects.
+            if (ne.eResource() instanceof XMLResource xmlRes) {
+                String id = xmlRes.getID(ne);
+                if (id != null && !id.isEmpty()) {
+                    return id;
                 }
             }
             return getQualifiedNameWithUnderscore(ne);
         }
-        if (element instanceof EObject) {
-            return ELEMENT_ID_CACHE.computeIfAbsent((EObject) element, e -> {
+        if (element instanceof EObject eo) {
+            // Try XMLResource.getID() first to match ETL's eResource.getId(self) behaviour
+            if (eo.eResource() instanceof XMLResource xmlRes) {
+                String id = xmlRes.getID(eo);
+                if (id != null && !id.isEmpty()) {
+                    return id;
+                }
+            }
+            return ELEMENT_ID_CACHE.computeIfAbsent(eo, e -> {
                 if (e instanceof EModelElement) {
                     for (EAnnotation ann : ((EModelElement) e).getEAnnotations()) {
                         if ("http://blackbelt.hu/judo/meta/ExtendedMetadata/id".equals(ann.getSource())) {

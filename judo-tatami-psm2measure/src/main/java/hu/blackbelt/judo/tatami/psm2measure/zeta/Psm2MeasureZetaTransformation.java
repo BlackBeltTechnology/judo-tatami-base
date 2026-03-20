@@ -20,6 +20,8 @@ package hu.blackbelt.judo.tatami.psm2measure.zeta;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.measure.DerivedMeasure;
+import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.PsmUtils;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
@@ -102,7 +104,8 @@ public class Psm2MeasureZetaTransformation {
         TransformationResult result = executor.transform();
         log.debug("Finished executor.transform()");
 
-        // Post-processing: apply pending XMI IDs to all elements
+        // Post-processing: sort model elements and apply pending XMI IDs
+        sortMeasureModel();
         postProcess(context);
 
         long duration = System.currentTimeMillis() - startTime;
@@ -169,6 +172,42 @@ public class Psm2MeasureZetaTransformation {
         context.setAttribute("measureResource", measureModel.getResource());
 
         return context;
+    }
+
+    /**
+     * Sort measure model elements for deterministic ordering.
+     * Sorts Measures by name, Units within each Measure by name,
+     * and BaseMeasureTerms within each DerivedMeasure by referenced base measure name.
+     */
+    private void sortMeasureModel() {
+        var resource = measureModel.getResource();
+        var contents = resource.getContents();
+
+        // Sort top-level measures by name
+        List<EObject> sorted = new ArrayList<>(contents);
+        sorted.sort(Comparator.comparing(e -> e instanceof Measure m ? m.getName() : ""));
+        contents.clear();
+        contents.addAll(sorted);
+
+        // Sort units within each measure and terms within each derived measure
+        for (EObject root : contents) {
+            if (root instanceof Measure m) {
+                var units = new ArrayList<>(m.getUnits());
+                units.sort(Comparator.comparing(u -> u.getName() != null ? u.getName() : ""));
+                m.getUnits().clear();
+                m.getUnits().addAll(units);
+            }
+            if (root instanceof DerivedMeasure dm) {
+                var terms = new ArrayList<>(dm.getTerms());
+                terms.sort(Comparator.comparing(t ->
+                        t.getBaseMeasure() != null && t.getBaseMeasure().getName() != null
+                                ? t.getBaseMeasure().getName() : ""));
+                dm.getTerms().clear();
+                dm.getTerms().addAll(terms);
+            }
+        }
+
+        log.debug("Sorted measure model: {} measures", contents.size());
     }
 
     /**

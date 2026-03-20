@@ -293,13 +293,12 @@ public class Psm2AsmDualTransformationTest {
                 .psmModel(psmModel)
                 .asmModel(etlResult));
 
-        // Run Zeta transformation
-        PsmModel psmModelForZeta = new Demo().fullDemo();
+        // Run Zeta transformation using the same PSM model so XMI IDs are comparable
         AsmModel zetaResult = buildAsmModel().build();
         Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
-                .psmModel(psmModelForZeta)
+                .psmModel(psmModel)
                 .asmModel(zetaResult)
-                .modelName(psmModelForZeta.getName())
+                .modelName(psmModel.getName())
                 .build();
         zetaTransformation.execute();
 
@@ -310,6 +309,19 @@ public class Psm2AsmDualTransformationTest {
                 zetaResult.getResourceSet().getResources().get(0),
                 ModelComparator.ComparisonMode.STRICT
         );
+
+        // Verify XMI IDs are equivalent (bypasses system property gate).
+        // Uses flexible matching (exactMatch=false) because ETL and Zeta rule names
+        // legitimately differ (e.g., ETL "BoundOperationAnnotation" vs Zeta "BoundAnnotationForBoundTransferOperation").
+        var etlResource = etlResult.getResourceSet().getResources().get(0);
+        var zetaResource = zetaResult.getResourceSet().getResources().get(0);
+        var xmiDifferences = ModelComparator.compareXmiIds(etlResource, zetaResource, null, false);
+        if (!xmiDifferences.isEmpty()) {
+            StringBuilder sb = new StringBuilder("XMI ID comparison failed:\n");
+            sb.append(xmiDifferences.size()).append(" XMI ID difference(s):\n");
+            xmiDifferences.forEach(diff -> sb.append("  ").append(diff.describe()).append("\n"));
+            fail(sb.toString());
+        }
         log.info("SUCCESS: ETL and Zeta transformations produced equivalent models (strict)");
     }
 

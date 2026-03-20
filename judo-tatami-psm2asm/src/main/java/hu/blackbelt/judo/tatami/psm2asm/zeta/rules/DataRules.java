@@ -22,16 +22,12 @@ package hu.blackbelt.judo.tatami.psm2asm.zeta.rules;
 
 import hu.blackbelt.judo.meta.psm.data.*;
 import hu.blackbelt.judo.meta.psm.measure.MeasuredType;
-import hu.blackbelt.judo.meta.psm.namespace.Model;
-import hu.blackbelt.judo.meta.psm.namespace.Namespace;
 import hu.blackbelt.judo.meta.psm.namespace.NamespaceElement;
-import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.*;
 import hu.blackbelt.judo.zeta.annotation.*;
 import hu.blackbelt.judo.zeta.transformation.core.TransformFunction;
 import hu.blackbelt.judo.zeta.transformation.core.TransformGuard;
-import hu.blackbelt.judo.zeta.transformation.core.TransformationContext;
 import org.eclipse.emf.ecore.*;
 
 import static hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmHelper.*;
@@ -90,22 +86,20 @@ public class DataRules {
     @To(type = EClass.class)
     public TransformFunction<EntityType, EClass> createEntityClass() {
         return (s, ctx) -> {
-            EClass t = ctx.createTarget(EClass.class, "(psm/" + getId(s) + ")/EntityClass");
+            EClass t = ctx.createTarget(EClass.class, s, "EntityClass");
             t.setName(s.getName());
             t.setAbstract(s.isAbstract());
             
             // Add entity annotation inline (thread-safe)
-            EAnnotation entityAnnotation = createAnnotation(
-                    "(psm/" + getId(s) + ")/EntityAnnotationClass",
-                    getAnnotationUri("entity"));
+            EAnnotation entityAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "EntityAnnotationClass"), getAnnotationUri("entity"));
+            ctx.setElementId(entityAnnotation, ctx.buildSourceBasedId(s, "EntityAnnotationClass"));
             addAnnotationDetail(entityAnnotation, "value", "true");
             addAnnotation(t, entityAnnotation);
 
             // Add default representation annotation inline if applicable
             if (s.getDefaultRepresentation() != null) {
-                EAnnotation defaultRepAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/EntityDefaultRepresentationAnnotation",
-                        getAnnotationUri("defaultRepresentation"));
+                EAnnotation defaultRepAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "EntityDefaultRepresentationAnnotation"), getAnnotationUri("defaultRepresentation"));
+                ctx.setElementId(defaultRepAnnotation, ctx.buildSourceBasedId(s, "EntityDefaultRepresentationAnnotation"));
                 // Use dot notation for defaultRepresentation value (matches ETL)
                 String defaultRepValue = getQualifiedName(s.getDefaultRepresentation()).replace("::", ".");
                 addAnnotationDetail(defaultRepAnnotation, "value", defaultRepValue);
@@ -115,9 +109,8 @@ public class DataRules {
             // Add documentation annotation inline if applicable
             // Note: ETL guard trims documentation: s.documentation.isDefined() and s.documentation.trim().length() > 0
             if (s.getDocumentation() != null && !s.getDocumentation().trim().isEmpty()) {
-                EAnnotation docAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/DocumentationAnnotationForEntityType",
-                        getAnnotationUri("documentation"));
+                EAnnotation docAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "DocumentationAnnotationForEntityType"), getAnnotationUri("documentation"));
+                ctx.setElementId(docAnnotation, ctx.buildSourceBasedId(s, "DocumentationAnnotationForEntityType"));
                 addAnnotationDetail(docAnnotation, "value", s.getDocumentation().trim());
                 addAnnotation(t, docAnnotation);
             }
@@ -155,7 +148,7 @@ public class DataRules {
     @To(type = EAttribute.class)
     public TransformFunction<Attribute, EAttribute> createAttribute() {
         return (s, ctx) -> {
-            EAttribute t = ctx.createTarget(EAttribute.class, "(psm/" + getId(s) + ")/Attribute");
+            EAttribute t = ctx.createTarget(EAttribute.class, s, "Attribute");
             t.setName(s.getName());
             t.setLowerBound(s.isRequired() ? 1 : 0);
             
@@ -167,9 +160,8 @@ public class DataRules {
 
             // Add identifier annotation inline if applicable (thread-safe)
             if (s.isIdentifier()) {
-                EAnnotation idAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/IdentifierAnnotationForAttribute",
-                        getAnnotationUri("identifier"));
+                EAnnotation idAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "IdentifierAnnotationForAttribute"), getAnnotationUri("identifier"));
+                ctx.setElementId(idAnnotation, ctx.buildSourceBasedId(s, "IdentifierAnnotationForAttribute"));
                 addAnnotationDetail(idAnnotation, "value", "true");
                 addAnnotation(t, idAnnotation);
             }
@@ -177,9 +169,8 @@ public class DataRules {
             // Add string constraints annotation inline if applicable (thread-safe)
             if (s.getDataType() instanceof StringType) {
                 StringType stringType = (StringType) s.getDataType();
-                EAnnotation constraintsAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/AttributeConstraints",
-                        getAnnotationUri("constraints"));
+                EAnnotation constraintsAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "StringAttributeConstraints"), getAnnotationUri("constraints"));
+                ctx.setElementId(constraintsAnnotation, ctx.buildSourceBasedId(s, "StringAttributeConstraints"));
                 addAnnotationDetail(constraintsAnnotation, "maxLength", String.valueOf(stringType.getMaxLength()));
                 if (stringType.getRegExp() != null && !stringType.getRegExp().isEmpty()) {
                     addAnnotationDetail(constraintsAnnotation, "pattern", stringType.getRegExp());
@@ -190,14 +181,15 @@ public class DataRules {
             // Add numeric constraints annotation inline if applicable (thread-safe)
             if (s.getDataType() instanceof NumericType) {
                 NumericType numericType = (NumericType) s.getDataType();
-                EAnnotation constraintsAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/AttributeConstraints",
-                        getAnnotationUri("constraints"));
+                boolean isMeasured = numericType instanceof MeasuredType;
+                String numericSuffix = isMeasured ? "MeasuredAttributeConstraints" : "NumericAttributeConstraints";
+                EAnnotation constraintsAnnotation = createAnnotation(ctx.buildSourceBasedId(s, numericSuffix), getAnnotationUri("constraints"));
+                ctx.setElementId(constraintsAnnotation, ctx.buildSourceBasedId(s, numericSuffix));
                 addAnnotationDetail(constraintsAnnotation, "precision", String.valueOf(numericType.getPrecision()));
                 addAnnotationDetail(constraintsAnnotation, "scale", String.valueOf(numericType.getScale()));
 
                 // Add measured annotations if applicable
-                if (numericType instanceof MeasuredType) {
+                if (isMeasured) {
                     MeasuredType measuredType = (MeasuredType) numericType;
                     if (measuredType.getStoreUnit() != null) {
                         if (measuredType.getStoreUnit().eContainer() instanceof NamespaceElement) {
@@ -217,9 +209,8 @@ public class DataRules {
                     && !(s.getDataType() instanceof EnumerationType)
                     && !(s.getDataType() instanceof StringType)) {
                 String qualifiedName = getQualifiedName((NamespaceElement) s.getDataType());
-                EAnnotation constraintsAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/CustomAttributeConstraints",
-                        getAnnotationUri("constraints"));
+                EAnnotation constraintsAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "CustomAttributeConstraints"), getAnnotationUri("constraints"));
+                ctx.setElementId(constraintsAnnotation, ctx.buildSourceBasedId(s, "CustomAttributeConstraints"));
                 addAnnotationDetail(constraintsAnnotation, "customType", qualifiedName);
                 addAnnotation(t, constraintsAnnotation);
             }
@@ -252,7 +243,7 @@ public class DataRules {
     @To(type = EReference.class)
     public TransformFunction<AssociationEnd, EReference> createAssociationEndRelation() {
         return (s, ctx) -> {
-            EReference t = ctx.createTarget(EReference.class, "(psm/" + getId(s) + ")/AssociationEndRelation");
+            EReference t = ctx.createTarget(EReference.class, s, "AssociationEndRelation");
             t.setName(s.getName());
             t.setLowerBound(s.getCardinality().getLower());
             t.setUpperBound(s.getCardinality().getUpper());
@@ -267,18 +258,16 @@ public class DataRules {
             
             // Add reverse cascade delete annotation inline if applicable (thread-safe)
             if (s.isReverseCascadeDelete()) {
-                EAnnotation reverseCascadeAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/ReverseCascadeDeleteAnnotation",
-                        getAnnotationUri("reverseCascadeDelete"));
+                EAnnotation reverseCascadeAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "ReverseCascadeDeleteAnnotation"), getAnnotationUri("reverseCascadeDelete"));
+                ctx.setElementId(reverseCascadeAnnotation, ctx.buildSourceBasedId(s, "ReverseCascadeDeleteAnnotation"));
                 addAnnotationDetail(reverseCascadeAnnotation, "value", "true");
                 addAnnotation(t, reverseCascadeAnnotation);
             }
 
             // Add documentation annotation inline if applicable (thread-safe)
             if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
-                EAnnotation docAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/DocumentationAnnotation",
-                        getAnnotationUri("documentation"));
+                EAnnotation docAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "DocumentationAnnotationForAssociationEndRelation"), getAnnotationUri("documentation"));
+                ctx.setElementId(docAnnotation, ctx.buildSourceBasedId(s, "DocumentationAnnotationForAssociationEndRelation"));
                 addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
                 addAnnotation(t, docAnnotation);
             }
@@ -311,7 +300,7 @@ public class DataRules {
     @To(type = EReference.class)
     public TransformFunction<Containment, EReference> createContainmentRelation() {
         return (s, ctx) -> {
-            EReference t = ctx.createTarget(EReference.class, "(psm/" + getId(s) + ")/ContainmentRelation");
+            EReference t = ctx.createTarget(EReference.class, s, "ContainmentRelation");
             t.setName(s.getName());
             t.setLowerBound(s.getCardinality().getLower());
             t.setUpperBound(s.getCardinality().getUpper());
@@ -327,9 +316,8 @@ public class DataRules {
             
             // Add documentation annotation inline if applicable (thread-safe)
             if (s.getDocumentation() != null && !s.getDocumentation().isEmpty()) {
-                EAnnotation docAnnotation = createAnnotation(
-                        "(psm/" + getId(s) + ")/DocumentationAnnotation",
-                        getAnnotationUri("documentation"));
+                EAnnotation docAnnotation = createAnnotation(ctx.buildSourceBasedId(s, "DocumentationAnnotationForContainmentRelation"), getAnnotationUri("documentation"));
+                ctx.setElementId(docAnnotation, ctx.buildSourceBasedId(s, "DocumentationAnnotationForContainmentRelation"));
                 addAnnotationDetail(docAnnotation, "value", s.getDocumentation());
                 addAnnotation(t, docAnnotation);
             }
@@ -359,9 +347,8 @@ public class DataRules {
     @Greedy
     public TransformFunction<NamespaceSequence, EAnnotation> createNamespaceSequence() {
         return (s, ctx) -> {
-            EAnnotation t = createAnnotation(
-                    "(psm/" + getId(s) + ")/NamespaceSequence",
-                    getAnnotationUri("sequence"));
+            EAnnotation t = createAnnotation(ctx.buildSourceBasedId(s, "NamespaceSequence"), getAnnotationUri("sequence"));
+            ctx.setElementId(t, ctx.buildSourceBasedId(s, "NamespaceSequence"));
             
             // Add sequence details
             addSequenceDetails(t, s);
@@ -384,9 +371,8 @@ public class DataRules {
     @Greedy
     public TransformFunction<EntitySequence, EAnnotation> createEntitySequence() {
         return (s, ctx) -> {
-            EAnnotation t = createAnnotation(
-                    "(psm/" + getId(s) + ")/EntitySequence",
-                    getAnnotationUri("sequence"));
+            EAnnotation t = createAnnotation(ctx.buildSourceBasedId(s, "EntitySequence"), getAnnotationUri("sequence"));
+            ctx.setElementId(t, ctx.buildSourceBasedId(s, "EntitySequence"));
 
             // Add sequence details
             addSequenceDetails(t, s);
@@ -458,9 +444,8 @@ public class DataRules {
             }
             
             // Create annotation
-            EAnnotation t = createAnnotation(
-                    "(psm/" + getId(s) + ")/UnmappedDefaultOnlyAttributeAnnotation",
-                    getAnnotationUri("unmappedDefaultOnly"));
+            EAnnotation t = createAnnotation(ctx.buildSourceBasedId(s, "UnmappedDefaultOnlyAttributeAnnotation"), getAnnotationUri("unmappedDefaultOnly"));
+            ctx.setElementId(t, ctx.buildSourceBasedId(s, "UnmappedDefaultOnlyAttributeAnnotation"));
             addAnnotationDetail(t, "value", String.valueOf(s.isUnmappedDefaultOnly()));
 
             // Add to the equivalent EAttribute (thread-safe)
@@ -509,9 +494,8 @@ public class DataRules {
             }
 
             // Create annotation
-            EAnnotation t = createAnnotation(
-                    "(psm/" + getId(s) + ")/UnmappedDefaultOnlyReferenceAnnotation",
-                    getAnnotationUri("unmappedDefaultOnly"));
+            EAnnotation t = createAnnotation(ctx.buildSourceBasedId(s, "UnmappedDefaultOnlyReferenceAnnotation"), getAnnotationUri("unmappedDefaultOnly"));
+            ctx.setElementId(t, ctx.buildSourceBasedId(s, "UnmappedDefaultOnlyReferenceAnnotation"));
             addAnnotationDetail(t, "value", String.valueOf(s.isUnmappedDefaultOnly()));
 
             // Add to the equivalent EReference (thread-safe)

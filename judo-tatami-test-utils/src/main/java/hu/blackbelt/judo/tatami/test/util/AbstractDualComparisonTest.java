@@ -268,6 +268,10 @@ public abstract class AbstractDualComparisonTest<S, T> extends AbstractExternalM
             log.info("EQUIVALENT: ETL and ZETA models match ({})", getComparisonMode());
             recordResult(config.modelName(), etl.durationMs(), zeta.durationMs(),
                     etlElements, zetaElements, getOutputLabel(), "EQUIVALENT", 0);
+            // XMI ID comparison runs after structural equivalence is confirmed.
+            // Uses flexible matching (exactMatch=false) because ETL and Zeta rule names
+            // legitimately differ (e.g., ETL "BoundOperationAnnotation" vs Zeta "BoundAnnotationForBoundTransferOperation").
+            ModelComparator.assertXmiIdsEquivalent(etlResource, zetaResource, false);
         } else {
             log.warn("{} differences found", result.getDifferenceCount());
             result.getDifferenceList().stream().limit(10)
