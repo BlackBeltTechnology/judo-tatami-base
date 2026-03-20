@@ -538,8 +538,9 @@ public class ReferenceRules {
             table.getFields().add(fk1);
             table.setField1(fk1);
 
-            // FK2 - to containing class (created inline)
-            // Note: ETL produces two outputs, Zeta produces one; fk2 is created directly
+            // FK2 - to containing class
+            // Note: ETL produces two outputs (fk1, fk2). Create fk2 directly and
+            // register it in the resolution cache so it appears in the trace.
             RdbmsForeignKey fk2 = RdbmsFactory.eINSTANCE.createRdbmsForeignKey();
             fk2.setName(s.getEContainingClass().getName() + "#" + s.getName());
             fk2.setUuid("(asm/" + ctx.getElementId(s) + ")/JunctionTableForeignKeyUnidirectional2");
@@ -559,6 +560,10 @@ public class ReferenceRules {
 
             table.getFields().add(fk2);
             table.setField2(fk2);
+
+            // Register fk2 in the resolution cache so it appears in the trace
+            ctx.getElementResolutionCache().addMapping(
+                    s, EREFERENCE_TO_RDBMS_JUNCTION_TABLE_FK_UNIDIRECTIONAL_2, fk2, false);
 
             return fk1;
         };

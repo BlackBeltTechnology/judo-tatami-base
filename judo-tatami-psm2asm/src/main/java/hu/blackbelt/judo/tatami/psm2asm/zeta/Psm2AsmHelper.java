@@ -89,8 +89,15 @@ public final class Psm2AsmHelper {
      * @return the element's ID string
      */
     public static String getId(Object element) {
-        if (element instanceof NamespaceElement) {
-            return getQualifiedNameWithUnderscore((NamespaceElement) element);
+        if (element instanceof NamespaceElement ne) {
+            // Check XMI resource fragment first (matches ETL's eResource.getId(self))
+            if (ne.eResource() != null) {
+                String fragment = ne.eResource().getURIFragment(ne);
+                if (fragment != null && !fragment.startsWith("/")) {
+                    return fragment;
+                }
+            }
+            return getQualifiedNameWithUnderscore(ne);
         }
         if (element instanceof EObject) {
             return ELEMENT_ID_CACHE.computeIfAbsent((EObject) element, e -> {

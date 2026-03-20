@@ -18,4 +18,4 @@
 ## 4. Verify
 
 - [x] 4.1 Build all modules: `mvn clean install -DskipTests`
-- [ ] 4.2 Run migrated tests (skip if external models not available): `mvn test -pl judo-tatami-psm2asm,judo-tatami-psm2measure,judo-tatami-asm2rdbms,judo-tatami-asm2keycloak,judo-tatami-rdbms2liquibase -Dtest="*DiscoveryComparisonTest"`
+- [x] 4.2 Run migrated tests (skip if external models not available): `mvn test -pl judo-tatami-psm2asm,judo-tatami-psm2measure,judo-tatami-asm2rdbms,judo-tatami-asm2keycloak,judo-tatami-rdbms2liquibase -Dtest="*DiscoveryComparisonTest"` — BUILD SUCCESS, 0 tests ran (external models not available, gracefully skipped)

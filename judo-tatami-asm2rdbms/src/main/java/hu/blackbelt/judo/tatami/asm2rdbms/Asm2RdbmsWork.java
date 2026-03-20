@@ -29,6 +29,10 @@ import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
+import org.eclipse.emf.ecore.EObject;
+
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.epsilon.common.util.UriUtil;
 import org.slf4j.Logger;
@@ -179,10 +183,17 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         // Execute Zeta transformation - returns native Zeta TransformationTrace
         TransformationTrace zetaTrace = transformation.execute();
 
+        // Convert Zeta trace to legacy format so it can be saved/loaded as XMI
+        Map<EObject, List<EObject>> legacyTrace = new java.util.LinkedHashMap<>();
+        for (hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache.TraceEntry entry : zetaTrace.getEntries()) {
+            legacyTrace.computeIfAbsent(entry.getSource(), k -> new java.util.ArrayList<>())
+                    .add(entry.getTarget());
+        }
+
         return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
                 .asmModel(asmModel)
                 .rdbmsModel(rdbmsModel)
-                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
+                .trace(legacyTrace)
                 .build();
     }
 

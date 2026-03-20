@@ -133,6 +133,13 @@ public class Rdbms2LiquibaseZetaTransformation {
         TransformationResult result = executor.transform();
         log.debug("Finished executor.transform()");
 
+        // Sort changesets by logicalFilePath to match ETL output ordering.
+        // ETL processes rules one-by-one (all elements per rule), producing all
+        // create-table changesets before create-foreignkeys. Zeta's ELEMENT_BY_ELEMENT
+        // strategy interleaves them per table. Sorting by logicalFilePath ensures
+        // Liquibase creates all tables before adding FK constraints.
+        sortChangeSetsByLogicalFilePath();
+
         long duration = System.currentTimeMillis() - startTime;
         log.info("RDBMS to Liquibase Zeta transformation completed in {}ms", duration);
 
@@ -233,6 +240,33 @@ public class Rdbms2LiquibaseZetaTransformation {
      */
     private static synchronized void addChangeSetThreadSafe(databaseChangeLog changeLog, ChangeSet changeSet) {
         changeLog.getChangeSet().add(changeSet);
+    }
+
+    /**
+     * Logical file path ordering matching ETL rule execution order.
+     * ETL processes rules in definition order: tables first, then FKs, then not-null.
+     */
+    private static final Map<String, Integer> LOGICAL_FILE_PATH_ORDER = Map.of(
+            "create-tables", 0,
+            "create-foreignkeys", 1,
+            "add-not-null", 2
+    );
+
+    /**
+     * Sort changesets by logicalFilePath to match ETL output ordering.
+     * ETL processes all elements per rule before moving to the next rule,
+     * producing all create-table changesets before any create-foreignkeys.
+     * Zeta's ELEMENT_BY_ELEMENT strategy interleaves them per element.
+     * Sorting ensures Liquibase creates all tables before adding FK constraints.
+     */
+    private void sortChangeSetsByLogicalFilePath() {
+        List<ChangeSet> changeSets = new ArrayList<>(changeLog.getChangeSet());
+        changeSets.sort(Comparator.comparingInt(cs -> {
+            String path = cs.getLogicalFilePath();
+            return LOGICAL_FILE_PATH_ORDER.getOrDefault(path, 99);
+        }));
+        changeLog.getChangeSet().clear();
+        changeLog.getChangeSet().addAll(changeSets);
     }
 
     /**

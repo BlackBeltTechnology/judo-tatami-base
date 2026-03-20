@@ -33,6 +33,8 @@ import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -148,6 +150,37 @@ public class Asm2KeycloakZetaTraceTest {
         }
 
         log.info("JSON trace export size: {} characters", json.length());
+    }
+
+    @Test
+    void testZetaTraceJsonRoundTrip() throws Exception {
+        Asm2KeycloakTransformationTrace tatamiTrace = Asm2KeycloakTransformationTrace.asm2KeycloakTransformationTraceBuilder()
+                .asmModel(asmModel)
+                .keycloakModel(keycloakModel)
+                .zetaTrace(trace)
+                .build();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        tatamiTrace.save(baos);
+        byte[] jsonBytes = baos.toByteArray();
+        assertTrue(jsonBytes.length > 0, "Saved JSON should not be empty");
+
+        Asm2KeycloakTransformationTrace loaded = Asm2KeycloakTransformationTrace.fromModelsAndTrace(
+                DEMO, asmModel, keycloakModel, new ByteArrayInputStream(jsonBytes));
+
+        assertTrue(loaded.isZetaTrace(), "Loaded trace should be a Zeta trace");
+        assertNotNull(loaded.getZetaTrace(), "Loaded Zeta trace should not be null");
+
+        int originalCount = trace.getEntries().size();
+        int loadedCount = loaded.getZetaTrace().getEntries().size();
+        assertEquals(originalCount, loadedCount,
+                "Loaded trace should have same number of entries as original");
+
+        // For keycloak, trace may be empty if no realm-annotated actors, but legacy map should match
+        if (originalCount > 0) {
+            assertFalse(loaded.getTransformationTrace().isEmpty(),
+                    "getTransformationTrace() should return non-empty map for loaded Zeta trace");
+        }
     }
 
     @Test

@@ -813,43 +813,50 @@ public abstract class AbstractExternalModelTest {
     }
 
     /**
-     * Scans a directory recursively for subdirectories containing model files.
+     * Scans a directory for subdirectories containing model files.
      *
-     * <p>For each subdirectory that contains at least one {@code *.model} file,
-     * creates an {@link ExternalModelConfig} with the subdirectory name as the model name.
+     * <p>When {@code *.model} files are found at a given level, scanning does not descend
+     * deeper into that subtree (short-circuit). If no model files are found, child directories
+     * are scanned recursively.
      *
      * @param searchDir the directory to scan
      * @return a stream of discovered model configurations
      */
     private static Stream<ExternalModelConfig> scanDirectory(Path searchDir) {
         List<ExternalModelConfig> configs = new ArrayList<>();
+        scanDirectoryRecursive(searchDir, configs);
+        return configs.stream();
+    }
 
-        try {
-            // First check if the search directory itself is a model directory
-            if (isModelDirectory(searchDir)) {
-                String modelName = searchDir.getFileName().toString();
-                configs.add(new ExternalModelConfig(modelName, searchDir.toAbsolutePath().normalize(), true, Map.of()));
-                log.debug("Search directory itself is a model directory: {} -> {}", modelName, searchDir);
-            }
+    /** Directory names to skip during recursive scanning (build output, VCS, etc.) */
+    private static final Set<String> SKIP_DIRECTORIES = Set.of("target", "build", ".git", "node_modules", ".gradle");
 
-            // Then scan subdirectories recursively
-            try (Stream<Path> walk = Files.walk(searchDir)) {
-                walk.filter(Files::isDirectory)
-                        .filter(AbstractExternalModelTest::isModelDirectory)
-                        .forEach(dir -> {
-                            String modelName = dir.getFileName().toString();
-                            // Skip if already added as the search directory itself
-                            if (!dir.equals(searchDir)) {
-                                configs.add(new ExternalModelConfig(modelName, dir.toAbsolutePath().normalize(), true, Map.of()));
-                                log.debug("Discovered model from search directory: {} -> {}", modelName, dir);
-                            }
-                        });
-            }
-        } catch (IOException e) {
-            log.warn("Failed to scan directory '{}': {}", searchDir, e.getMessage());
+    /**
+     * Recursive helper for directory scanning with short-circuit behavior.
+     * If the directory contains *.model files, it is added as a model and no deeper scanning occurs.
+     * Otherwise, child directories are scanned recursively (skipping build output directories).
+     */
+    private static void scanDirectoryRecursive(Path dir, List<ExternalModelConfig> configs) {
+        if (!Files.isDirectory(dir)) {
+            return;
         }
 
-        return configs.stream();
+        if (isModelDirectory(dir)) {
+            String modelName = dir.getFileName().toString();
+            configs.add(new ExternalModelConfig(modelName, dir.toAbsolutePath().normalize(), true, Map.of()));
+            log.debug("Discovered model directory: {} -> {}", modelName, dir);
+            return; // Short-circuit: do not scan deeper
+        }
+
+        // No model files at this level — recurse into children, skipping build output
+        try (Stream<Path> children = Files.list(dir)) {
+            children.filter(Files::isDirectory)
+                    .filter(child -> !SKIP_DIRECTORIES.contains(child.getFileName().toString()))
+                    .sorted()
+                    .forEach(child -> scanDirectoryRecursive(child, configs));
+        } catch (IOException e) {
+            log.warn("Failed to scan directory '{}': {}", dir, e.getMessage());
+        }
     }
 
     /**

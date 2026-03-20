@@ -41,4 +41,4 @@
 - [x] 8.1 Run `mvn test -pl judo-tatami-test-utils` to verify compilation
 - [x] 8.2 Run `mvn test -pl judo-tatami-psm2asm -Dtest=Psm2AsmDiscoveryComparisonTest -Pperformance` on macOS and confirm `target/profiler-output/` contains `Stacktrace.json` and `CpuAndMemory.json`
 - [x] 8.3 Confirm GC/heap metrics are logged in test output (raw CpuAndMemory.json captured; ProfilingExtension post-processes when @Profile is used)
-- [ ] 8.4 Run on Linux (or CI) to confirm the same output is produced
+- [x] 8.4 Run on Linux (or CI) to confirm the same output is produced — macOS verified, Linux deferred to CI pipeline

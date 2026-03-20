@@ -35,6 +35,8 @@ import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -157,6 +159,40 @@ public class Psm2AsmZetaTraceTest {
         assertTrue(json.contains("timestamp"), "JSON should contain 'timestamp' field");
 
         log.info("JSON trace export size: {} characters", json.length());
+    }
+
+    @Test
+    void testZetaTraceJsonRoundTrip() throws Exception {
+        // Build the tatami trace wrapper with zetaTrace set
+        Psm2AsmTransformationTrace tatamiTrace = Psm2AsmTransformationTrace.psm2AsmTransformationTraceBuilder()
+                .psmModel(psmModel)
+                .asmModel(asmModel)
+                .zetaTrace(trace)
+                .build();
+
+        // Save to JSON
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        tatamiTrace.save(baos);
+        byte[] jsonBytes = baos.toByteArray();
+        assertTrue(jsonBytes.length > 0, "Saved JSON should not be empty");
+
+        // Load from JSON via fromModelsAndTrace
+        Psm2AsmTransformationTrace loaded = Psm2AsmTransformationTrace.fromModelsAndTrace(
+                DEMO, psmModel, asmModel, new ByteArrayInputStream(jsonBytes));
+
+        // Assert zetaTrace is populated
+        assertTrue(loaded.isZetaTrace(), "Loaded trace should be a Zeta trace");
+        assertNotNull(loaded.getZetaTrace(), "Loaded Zeta trace should not be null");
+
+        // Assert entries match
+        int originalCount = trace.getEntries().size();
+        int loadedCount = loaded.getZetaTrace().getEntries().size();
+        assertEquals(originalCount, loadedCount,
+                "Loaded trace should have same number of entries as original");
+
+        // Assert legacy map is populated (via getTransformationTrace conversion)
+        assertFalse(loaded.getTransformationTrace().isEmpty(),
+                "getTransformationTrace() should return non-empty map for loaded Zeta trace");
     }
 
     @Test

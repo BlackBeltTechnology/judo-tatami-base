@@ -32,6 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -143,6 +145,34 @@ public class Psm2MeasureZetaTraceTest {
         assertTrue(json.contains("timestamp"), "JSON should contain 'timestamp' field");
 
         log.info("JSON trace export size: {} characters", json.length());
+    }
+
+    @Test
+    void testZetaTraceJsonRoundTrip() throws Exception {
+        Psm2MeasureTransformationTrace tatamiTrace = Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
+                .psmModel(psmModel)
+                .measureModel(measureModel)
+                .zetaTrace(trace)
+                .build();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        tatamiTrace.save(baos);
+        byte[] jsonBytes = baos.toByteArray();
+        assertTrue(jsonBytes.length > 0, "Saved JSON should not be empty");
+
+        Psm2MeasureTransformationTrace loaded = Psm2MeasureTransformationTrace.fromModelsAndTrace(
+                DEMO, psmModel, measureModel, new ByteArrayInputStream(jsonBytes));
+
+        assertTrue(loaded.isZetaTrace(), "Loaded trace should be a Zeta trace");
+        assertNotNull(loaded.getZetaTrace(), "Loaded Zeta trace should not be null");
+
+        int originalCount = trace.getEntries().size();
+        int loadedCount = loaded.getZetaTrace().getEntries().size();
+        assertEquals(originalCount, loadedCount,
+                "Loaded trace should have same number of entries as original");
+
+        assertFalse(loaded.getTransformationTrace().isEmpty(),
+                "getTransformationTrace() should return non-empty map for loaded Zeta trace");
     }
 
     @Test

@@ -24,7 +24,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TraceEntry;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
+import hu.blackbelt.judo.tatami.core.ZetaTraceLoader;
+import hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -135,8 +138,19 @@ public class Asm2RdbmsTransformationTrace implements TransformationTrace {
 
     @Override
     public Map<EObject, List<EObject>> getTransformationTrace() {
-        // Return ETL trace or empty map for Zeta (backward compatibility)
-        return trace != null ? trace : Collections.emptyMap();
+        if (trace != null) {
+            return trace;
+        }
+        if (zetaTrace != null) {
+            // Convert Zeta trace entries to legacy format: source → [targets]
+            Map<EObject, List<EObject>> legacyTrace = new java.util.LinkedHashMap<>();
+            for (hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache.TraceEntry entry : zetaTrace.getEntries()) {
+                legacyTrace.computeIfAbsent(entry.getSource(), k -> new java.util.ArrayList<>())
+                        .add(entry.getTarget());
+            }
+            return legacyTrace;
+        }
+        return Collections.emptyMap();
     }
 
     /**
@@ -284,7 +298,20 @@ public class Asm2RdbmsTransformationTrace implements TransformationTrace {
         } while (b != -1 && Character.isWhitespace(b));
         buffered.reset();
 
-        if (b == '{' || b == -1) {
+        if (b == '{') {
+            // JSON format (Zeta trace) — parse and reconstruct ElementResolutionCache
+            ZetaTraceLoader loader = new ZetaTraceLoader();
+            List<TraceEntry> entries = loader.loadTrace(buffered,
+                    ImmutableList.of(asmModel.getResourceSet(), rdbmsModel.getResourceSet()));
+            return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
+                    .rdbmsModel(rdbmsModel)
+                    .asmModel(asmModel)
+                    .zetaTrace(rebuildZetaTrace(entries))
+                    .build();
+        }
+
+        if (b == -1) {
+            // Empty stream — no trace data
             return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
                     .rdbmsModel(rdbmsModel)
                     .asmModel(asmModel)
@@ -304,6 +331,25 @@ public class Asm2RdbmsTransformationTrace implements TransformationTrace {
 
     }
 
+    private static hu.blackbelt.judo.zeta.transformation.core.TransformationTrace rebuildZetaTrace(
+            List<TraceEntry> entries) {
+        ElementResolutionCache cache = new ElementResolutionCache(true);
+        for (TraceEntry entry : entries) {
+            for (EObject source : entry.getSources()) {
+                for (EObject target : entry.getTargets()) {
+                    if (entry.getDiscriminator() != null) {
+                        cache.addDiscriminatedMapping(source, target,
+                                entry.getRuleName(), entry.getDiscriminator());
+                    } else {
+                        cache.addMapping(source, entry.getRuleName(),
+                                target, entry.isPrimary());
+                    }
+                }
+            }
+        }
+        return new hu.blackbelt.judo.zeta.transformation.core.TransformationTrace(cache);
+    }
+
     /**
      * Save trace to the given stream.
      *
@@ -313,7 +359,9 @@ public class Asm2RdbmsTransformationTrace implements TransformationTrace {
      */
     public Resource save(OutputStream outputStream) throws IOException {
         if (isZetaTrace()) {
-            zetaTrace.saveToJson(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+            OutputStreamWriter writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
+            zetaTrace.saveToJson(writer);
+            writer.flush();
             return null;
         }
         Resource  traceResoureSaved = getAsm2RdbmsTraceResource(

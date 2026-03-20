@@ -23,9 +23,11 @@ Teams need a flexible way to discover multiple external models without touching 
 4. **Discovered models** from `-Djudo.test.discovery.basedir` system property (existing, lowest priority)
 
 ### Detection Strategy
-- Scan search directories recursively for subdirectories containing `*.model` files
+- Scan search directories for subdirectories containing `*.model` files
+- When `*.model` files are found at a given level, do **not** scan deeper into that subtree (short-circuit)
 - Subdirectory name becomes the model name
-- Search directory itself can be a model directory if it contains `*.model` files
+- Search directory itself can be a model directory if it contains `*.model` files (scanning stops there)
+- If no `*.model` files at current level, recurse into child directories
 - Missing search directories are skipped silently (no error, no test failure)
 
 ### Properties File Format
