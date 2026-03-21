@@ -1,0 +1,44 @@
+name: Performance Tests with Profiling
+
+on:
+  workflow_dispatch:
+    inputs:
+      profiler_enabled:
+        description: 'Enable JVM profiler'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  performance-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Configure perf_event for async-profiler
+        run: echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+
+      - name: Run performance tests
+        run: |
+          mvn test -Pperformance \
+            -Djudo.test.profiler.enabled=${{ inputs.profiler_enabled || 'false' }} \
+            -Djudo.test.profiler.format=collapsed \
+            -Djudo.test.profiler.thresholdMs=100 \
+            --batch-mode
+
+      - name: Upload profiler output
+        if: ${{ inputs.profiler_enabled == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: profiler-output
+          path: '**/target/profiler-output/'
+          retention-days: 7

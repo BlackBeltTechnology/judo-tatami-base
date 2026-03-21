@@ -23,11 +23,17 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.epsilon.common.util.UriUtil;
+import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 
 import java.io.File;
 import java.util.List;
@@ -42,6 +48,8 @@ import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTrans
 import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace.fromModelsAndTrace;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
 import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
+import static org.junit.jupiter.api.Assertions.fail;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 @Slf4j
 public class Asm2RdbmsTest {
@@ -75,35 +83,135 @@ public class Asm2RdbmsTest {
         registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
     }
 
-    @Test
-    public void testAsm2RdbmsTransformation() throws Exception {
+    @ParameterizedTest(name = "testAsm2RdbmsTransformation with {0}")
+    @EnumSource(TransformationMode.class)
+    public void testAsm2RdbmsTransformation(TransformationMode transformationMode) throws Exception {
 
-        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace =
-                executeAsm2RdbmsTransformation(asm2RdbmsParameter()
-                        .asmModel(asmModel)
-                        .rdbmsModel(rdbmsModel)
-                        .createTrace(true)
-                        .dialect("hsqldb"));
+        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace;
 
-        // Saving trace map
-        asm2RdbmsTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
+        if (transformationMode.isZeta()) {
+            // Load mapping model for Zeta transformation
+            String dialect = "hsqldb";
+            java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+            RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                    rdbmsLoadArgumentsBuilder()
+                            .validateModel(false)
+                            .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms"))
+                            .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                    .toURL()
+                                    .openStream()));
+            rdbmsModel.getResource().getContents().addAll(mappingModel.getResource().getContents());
 
-        // Loading trace map
-        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
-                fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
+            log.info("Running Zeta transformation");
+            Asm2RdbmsZetaTransformation transformation = Asm2RdbmsZetaTransformation.builder()
+                    .asmModel(asmModel)
+                    .rdbmsModel(rdbmsModel)
+                    .dialect("hsqldb")
+                    .build();
+            transformation.execute();
+            // For Zeta transformation, trace is not available
+            asm2RdbmsTransformationTrace = null;
+        } else {
+            log.info("Running ETL transformation");
+            asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                    .asmModel(asmModel)
+                    .rdbmsModel(rdbmsModel)
+                    .createTrace(true)
+                    .dialect("hsqldb"));
+        }
 
+        // Trace operations only for ETL transformation
+        if (asm2RdbmsTransformationTrace != null) {
+            // Saving trace map
+            asm2RdbmsTransformationTrace.save(new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
 
-        // Resolve serialized URI's as EObject map
-        Map<EObject, List<EObject>> resolvedTrace = asm2RdbmsTransformationTraceLoaded.getTransformationTrace();
+            // Loading trace map
+            Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
+                    fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
 
-        // Printing trace
-        for (EObject e : resolvedTrace.keySet()) {
-            for (EObject t : resolvedTrace.get(e)) {
-                log.trace(e.toString() + " -> " + t.toString());
+            // Resolve serialized URI's as EObject map
+            Map<EObject, List<EObject>> resolvedTrace = asm2RdbmsTransformationTraceLoaded.getTransformationTrace();
+
+            // Printing trace
+            for (EObject e : resolvedTrace.keySet()) {
+                for (EObject t : resolvedTrace.get(e)) {
+                    log.trace(e.toString() + " -> " + t.toString());
+                }
             }
         }
 
         rdbmsModel.saveRdbmsModel(rdbmsSaveArgumentsBuilder()
                 .file(new File(TARGET_TEST_CLASSES, NORTHWIND_RDBMS_MODEL)));
+    }
+
+    /**
+     * Test that ETL and Zeta transformations produce equivalent RDBMS models.
+     */
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Prepare ASM model (same for both transformations)
+        PsmModel psmModel = new Demo().fullDemo();
+        AsmModel sharedAsmModel = AsmModel.buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(sharedAsmModel));
+
+        // Run ETL transformation
+        log.info("Running ETL transformation for equivalence test...");
+        RdbmsModel etlResult = RdbmsModel.buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(etlResult.getResourceSet());
+        registerRdbmsDataTypesMetamodel(etlResult.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(etlResult.getResourceSet());
+        executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                .asmModel(sharedAsmModel)
+                .rdbmsModel(etlResult)
+                .createTrace(false)
+                .dialect("hsqldb"));
+
+        // Run Zeta transformation
+        log.info("Running Zeta transformation for equivalence test...");
+        RdbmsModel zetaResult = RdbmsModel.buildRdbmsModel().build();
+        registerRdbmsNameMappingMetamodel(zetaResult.getResourceSet());
+        registerRdbmsDataTypesMetamodel(zetaResult.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(zetaResult.getResourceSet());
+        
+        // Load mapping model for Zeta transformation
+        String dialect = "hsqldb";
+        java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+        RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                rdbmsLoadArgumentsBuilder()
+                        .validateModel(false)
+                        .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms-zeta"))
+                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                .toURL()
+                                .openStream()));
+        zetaResult.getResource().getContents().addAll(mappingModel.getResource().getContents());
+
+        Asm2RdbmsZetaTransformation zetaTransformation = Asm2RdbmsZetaTransformation.builder()
+                .asmModel(sharedAsmModel)
+                .rdbmsModel(zetaResult)
+                .dialect("hsqldb")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        log.info("Comparing ETL and Zeta output models...");
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
     }
 }

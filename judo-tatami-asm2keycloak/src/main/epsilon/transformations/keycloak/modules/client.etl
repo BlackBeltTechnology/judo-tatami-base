@@ -17,6 +17,7 @@ rule CreateKeycloakClient
         t.bearerOnly = false;
 
         realm.clients.add(t);
+        t.eResource.setID(t, "(asm/" + s.eResource.getURIFragment(s) + ")/CreateKeycloakClient");
         log.debug("Client created: " + t.name);
 }
 
@@ -40,4 +41,5 @@ rule CreateKeycloakClientClaim
         }
 
         s.eContainer.equivalent("CreateKeycloakClient").attributeBindings.add(t);
+        t.eResource.setID(t, "(asm/" + s.eResource.getURIFragment(s) + ")/CreateKeycloakClientClaim");
 }

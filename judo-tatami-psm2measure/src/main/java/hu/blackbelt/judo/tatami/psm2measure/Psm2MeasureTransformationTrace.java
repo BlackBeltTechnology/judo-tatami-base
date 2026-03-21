@@ -24,7 +24,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TraceEntry;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
+import hu.blackbelt.judo.tatami.core.ZetaTraceLoader;
+import hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -34,12 +37,9 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.URIHandler;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -64,8 +64,11 @@ public class Psm2MeasureTransformationTrace implements TransformationTrace {
     @Getter
     MeasureModel measureModel;
 
-    @NonNull
+    // ETL trace (null when Zeta used)
     Map<EObject, List<EObject>> trace;
+
+    // Zeta trace (null when ETL used)
+    hu.blackbelt.judo.zeta.transformation.core.TransformationTrace zetaTrace;
 
     @Override
     public List<Class> getSourceModelTypes() {
@@ -135,7 +138,34 @@ public class Psm2MeasureTransformationTrace implements TransformationTrace {
 
     @Override
     public Map<EObject, List<EObject>> getTransformationTrace() {
-        return trace;
+        if (trace != null) {
+            return trace;
+        }
+        if (zetaTrace != null) {
+            Map<EObject, List<EObject>> legacyTrace = new java.util.LinkedHashMap<>();
+            for (hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache.TraceEntry entry : zetaTrace.getEntries()) {
+                legacyTrace.computeIfAbsent(entry.getSource(), k -> new java.util.ArrayList<>())
+                        .add(entry.getTarget());
+            }
+            return legacyTrace;
+        }
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Get the Zeta transformation trace.
+     * @return the Zeta TransformationTrace, or null if ETL was used
+     */
+    public hu.blackbelt.judo.zeta.transformation.core.TransformationTrace getZetaTrace() {
+        return zetaTrace;
+    }
+
+    /**
+     * Check if this trace was produced by Zeta transformation.
+     * @return true if Zeta trace is available, false if ETL trace
+     */
+    public boolean isZetaTrace() {
+        return zetaTrace != null;
     }
 
     @Override
@@ -258,17 +288,67 @@ public class Psm2MeasureTransformationTrace implements TransformationTrace {
 
         checkArgument(psmModel.getName().equals(measureModel.getName()), "Model name does not match");
 
+        BufferedInputStream buffered = new BufferedInputStream(traceModelInputStream);
+        buffered.mark(1024);
+
+        // Peek at first non-whitespace byte to detect format
+        int b;
+        do {
+            b = buffered.read();
+        } while (b != -1 && Character.isWhitespace(b));
+        buffered.reset();
+
+        if (b == '{') {
+            // JSON format (Zeta trace) — parse and reconstruct ElementResolutionCache
+            ZetaTraceLoader loader = new ZetaTraceLoader();
+            List<TraceEntry> entries = loader.loadTrace(buffered,
+                    ImmutableList.of(psmModel.getResourceSet(), measureModel.getResourceSet()));
+            return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
+                    .measureModel(measureModel)
+                    .psmModel(psmModel)
+                    .zetaTrace(rebuildZetaTrace(entries))
+                    .build();
+        }
+
+        if (b == -1) {
+            // Empty stream — no trace data
+            return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
+                    .measureModel(measureModel)
+                    .psmModel(psmModel)
+                    .build();
+        }
+
+        // XMI format - ETL trace (legacy)
         Resource traceResoureLoaded = createPsm2MeasureTraceResource(
                 URI.createURI(PSM_2_MEASURE_TRACE_URI_PREFIX + modelName),
                 null);
 
-        traceResoureLoaded.load(traceModelInputStream, ImmutableMap.of());
+        traceResoureLoaded.load(buffered, ImmutableMap.of());
 
         return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
                 .measureModel(measureModel)
                 .psmModel(psmModel)
                 .trace(resolvePsm2MeasureTrace(traceResoureLoaded, psmModel, measureModel)).build();
 
+    }
+
+    private static hu.blackbelt.judo.zeta.transformation.core.TransformationTrace rebuildZetaTrace(
+            List<TraceEntry> entries) {
+        ElementResolutionCache cache = new ElementResolutionCache(true);
+        for (TraceEntry entry : entries) {
+            for (EObject source : entry.getSources()) {
+                for (EObject target : entry.getTargets()) {
+                    if (entry.getDiscriminator() != null) {
+                        cache.addDiscriminatedMapping(source, target,
+                                entry.getRuleName(), entry.getDiscriminator());
+                    } else {
+                        cache.addMapping(source, entry.getRuleName(),
+                                target, entry.isPrimary());
+                    }
+                }
+            }
+        }
+        return new hu.blackbelt.judo.zeta.transformation.core.TransformationTrace(cache);
     }
 
     /**
@@ -279,6 +359,12 @@ public class Psm2MeasureTransformationTrace implements TransformationTrace {
      * @throws IOException
      */
     public Resource save(OutputStream outputStream) throws IOException {
+        if (isZetaTrace()) {
+            OutputStreamWriter writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
+            zetaTrace.saveToJson(writer);
+            writer.flush();
+            return null;
+        }
         Resource  traceResoureSaved = getPsm2MeasureTraceResource(
                 trace,
                 URI.createURI(PSM_2_MEASURE_TRACE_URI_PREFIX + getModelName()));
