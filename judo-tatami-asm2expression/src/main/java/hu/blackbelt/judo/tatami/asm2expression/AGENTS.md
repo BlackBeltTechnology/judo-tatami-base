@@ -1,0 +1,7 @@
+# AGENTS.md — hu.blackbelt.judo.tatami.asm2expression (main)
+
+| File | Purpose |
+|---|---|
+| `Asm2Expression.java` | Entry point extracting JQL expressions from an `AsmModel` into an `ExpressionModel`. Exports nested `@Builder` param class `Asm2ExpressionParameter` (`asm2ExpressionParameter()`; `asmModel` and `expressionModel` `@NonNull`, `measureModel` optional, `config` defaults to new `Asm2ExpressionConfiguration`) and static `executeAsm2Expression(...)` in builder and value form. Drives `AsmJqlExtractor` over ASM, measure and expression `ResourceSet`s and calls `extractExpressions()`. Null `measureModel` substitutes `MeasureModelResourceSupport.createMeasureResourceSet()`; expression model is mutated in place, not returned. |
+| `Asm2ExpressionConfiguration.java` | Config flag object for JQL expression building. Exports `isResolveOnlyCurrentLambdaScope()` / `setResolveOnlyCurrentLambdaScope(boolean)`, default `true`, mapped onto `JqlExpressionBuilderConfig` by `Asm2Expression`. |
+| `Asm2ExpressionWork.java` | Workflow step wrapping `Asm2Expression` for the Tatami pipeline. Extends `AbstractTransformationWork`; exports `Asm2ExpressionWork(TransformationContext)`, `execute()`. Reads `AsmModel` (required), `MeasureModel` (optional) and `Asm2ExpressionConfiguration` (optional) from context; creates and registers an `ExpressionModel` named/versioned after the ASM model when absent. Missing `AsmModel` throws `IllegalArgumentException`. |

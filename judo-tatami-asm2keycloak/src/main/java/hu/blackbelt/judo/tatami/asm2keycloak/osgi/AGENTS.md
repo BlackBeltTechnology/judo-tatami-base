@@ -1,0 +1,8 @@
+# AGENTS.md — asm2keycloak/osgi
+
+OSGi Declarative Services wrapper around the ASM→Keycloak transformation.
+
+| File | Purpose |
+|---|---|
+| `Asm2KeycloakTransformationAsmModelTracker.java` | Extends `AbstractModelTracker<AsmModel>`; `@Component(immediate = true, configurationPolicy = REQUIRE)`. On each tracked `AsmModel` calls injected `Asm2KeycloakTransformationSerivce.install`, registers the produced `KeycloakModel` as an OSGi service and keeps the `ServiceRegistration` keyed by `asmModel.getName()`. Exports `activate(ComponentContext)`, `deactivate()`, `install(AsmModel)`, `uninstall(AsmModel)`, `getModelClass()`. Duplicate model name is logged and ignored, not replaced. `deactivate()` unregisters every registration, so callers must not hold a `KeycloakModel` service reference across bundle stop. Requires component configuration present, else DS never activates it. |
+| `Asm2KeycloakTransformationSerivce.java` | Declares `@Component(service = Asm2KeycloakTransformationSerivce.class, immediate = true)`. Exports `activate(BundleContext)` and `install(AsmModel) : KeycloakModel`. Builds an empty `KeycloakModel` named/versioned after the ASM model, resolves the ETL script root from the bundle entry `/tatami/asm2keycloak/transformations/asmToKeycloak.etl`, runs `Asm2Keycloak.executeAsm2KeycloakTransformation`, and registers the resulting `Asm2KeycloakTransformationTrace` as a `TransformationTrace` service keyed by `AsmModel`. Always takes the ETL path — the Zeta engine is not reachable from this component. Bundle must ship the ETL scripts at that exact entry path or `getEntry(...)` returns null and `install` throws. Name misspells "Service" — DS wiring depends on the literal. |
