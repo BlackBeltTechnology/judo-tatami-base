@@ -1,0 +1,26 @@
+# judo-tatami-psm2asm/src/test/java/hu/blackbelt/judo/tatami/psm2asm
+
+PSM→ASM transformation tests. Most tests are `@ParameterizedTest` +
+`@EnumSource(TransformationMode.class)`, so each case runs once per engine; the
+shared private `transform(testName, mode)` saves the PSM, runs
+`validatePsm(...)`, then branches on `transformationMode.isZeta()` between
+`Psm2AsmZetaTransformation.builder()` and `executePsm2AsmTransformation(...)`,
+and writes `target/test-classes/<class>-<testName>-asm.model`.
+
+| File | Purpose |
+|---|---|
+| `AbstractDualTransformationTest.java` | Reusable dual-engine base; declares abstract `createSourceModel()`, `runEtlTransformation`, `runZetaTransformation`, supplies `testTransformation(TransformationMode)` + `testDualEquivalence()`. → see `AbstractDualTransformationTest.java.AGENTS.md` |
+| `AccessPointTest.java` | Actor-type access-point cases: `testGetPrincipalOperations`, `testExposedServicesAndGraphs`, plus `testEtlAndZetaEquivalence`. Builds `ActorType` via `newActorTypeBuilder` over mapped/unmapped transfer objects and asserts exposed services and exposed graphs land on the generated `EClass`. Read signature-level (672 lines). |
+| `OperationTest.java` | Checks `initializer` annotation propagation for unbound operations. `testInitializerAnnotation(TransformationMode)` builds `newUnboundOperationBuilder` with `newOperationBodyBuilder`; `testEtlAndZetaEquivalence` re-runs both engines and compares. |
+| `Psm2AsmAccessPointTest.java` | Access-point mapping cases `testEntityTypeAsAccessPoint` and `testAccessPoint` over `newMappedActorTypeBuilder`/`newActorTypeBuilder` plus `newStaticNavigationBuilder`. Asserts `EXPRESSION_SOURCE` = `AsmUtils.getAnnotationUri("expression")` details on derived features. |
+| `Psm2AsmDataTest.java` | Entity/attribute/relation mapping: `testData` and `testSequences`. Asserts `entity`, `constraints`, `identifier` annotation URIs (`ENTITY_SOURCE`, `CONSTRAINTS_SOURCE`, `ID_SOURCE`) on generated `EClass`/`EAttribute`, plus measured-type units. |
+| `Psm2AsmDerivedTest.java` | Derived-element mapping: `testDerived` and `testDerivedInUnmappedTransferObjectTypes`. Covers `DataProperty`, `NavigationProperty`, `StaticNavigation`; asserts `expression` and `constraints` annotations carry the PSM getter expression onto derived ASM features. |
+| `Psm2AsmDualTransformationTest.java` | ETL-vs-Zeta equivalence suite on `MODEL_NAME` `demo`. Tests: `testEtlAndZetaProduceEquivalentModels`, `...Strict`, `testParameterizedTransferAttributeAnnotation`, `testParameterizedTransferObjectRelationAnnotation`, `testAbstractEntityDualTransformation`, `testZetaV2TransformationExecutes` (TransformationRegistry path). |
+| `Psm2AsmHelperTest.java` | Pins `Psm2AsmHelper.getId()` to XMI-fragment parity with ETL. Asserts the returned id equals `entityType.eResource().getURIFragment(entityType)` and is not a positional `/`-path; calls `Psm2AsmHelper.clearCaches()` first so the static cache cannot mask a regression. |
+| `Psm2AsmInheritanceTest.java` | Inheritance mapping over `MODEL_NAME` `inheritanceModel`, saved as `inheritance-asm.model`. `testInheritance` asserts `ESuperTypes`, inherited attributes and association ends; `testEtlAndZetaEquivalence` compares engines. Local `asStream(Iterator, boolean)` adapts EMF iterators. |
+| `Psm2AsmNamespaceTest.java` | Package/namespace mapping. `testNamespace` asserts generated `EPackage` `nsURI` = `http://blackbelt.hu/judo/Test`, `nsPrefix` = `runtimeTest`, and `http://blackbelt.hu/judo/meta/ExtendedMetadata` annotations; `testEtlAndZetaEquivalence` compares engines. |
+| `Psm2AsmServiceTest.java` | Service-layer suite: `testTransferObject`, `testOperation`, `testTransferObjectTypeAnnotationOnDefaultTransferObjects`, `testEtlAndZetaEquivalence`; asserts 15 `AsmUtils.getAnnotationUri(...)` constants. → see `Psm2AsmServiceTest.java.AGENTS.md` |
+| `Psm2AsmTest.java` | End-to-end run over the northwind `Demo().fullDemo()` model. Saves the trace to `northwind-psm2asm.model`, reloads it with `fromModelsAndTrace(...)` and resolves serialized URIs back to `EObject`s, then asserts `demo.services.OrderInfo` exists and owns an `items` `EReference`. |
+| `Psm2AsmTypeTest.java` | Primitive/measured type mapping. `testType` asserts each PSM type yields the expected `EDataType` instance class name — `java.lang.String`, `Integer`, `Long`, `java.math.BigDecimal`, `Float`, `Double`, `Boolean`, `java.time.LocalDate`/`LocalDateTime`/`LocalTime`, `java.lang.Object` for custom types. |
+| `Psm2AsmWorkTest.java` | Exercises `Psm2AsmWork` inside the tatami workflow engine. `testSimpleWorkflow` wraps the work in `aNewSequentialFlow()`, runs `aNewWorkFlowEngine()`, asserts `WorkReport.getStatus()` is `WorkStatus.COMPLETED`, then pulls `AsmModel`/`PsmModel` back out of the `TransformationContext` — absent models fail with `IllegalArgumentException`. |
+| `Psm2AsmZetaTraceTest.java` | Nine assertions on the Zeta `TransformationTrace` returned by `Psm2AsmZetaTransformation.execute()`: non-null, non-empty, `CreateEntityClass`/`CreateAttribute`/`CreateTransferObjectClass` source→target pairs, presence of rule names `CreateEntityClass`, `CreateAttribute`, `ModelToPackage`, JSON export and a byte-stream round trip, and that every `TraceEntry` has valid source and target. |

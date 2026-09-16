@@ -1,0 +1,3 @@
+# `PsmValidationWork.java`
+
+Validates `PsmModel` via Epsilon EVL. Extends `AbstractTransformationWork`; `execute()` pulls `PsmModel` from `TransformationContext` and runs `PsmEpsilonValidator.validatePsm(logger, model, PsmEpsilonValidator.calculatePsmValidationScriptURI())`. PSM model must already sit in the context — missing one throws `IllegalArgumentException`. EVL output buffers into a `StringBuilderLogger` closed via try-with-resources. Local variable holding the PSM model is misnamed `esmModel` (ESM, not PSM) — cosmetic, does not affect behaviour.

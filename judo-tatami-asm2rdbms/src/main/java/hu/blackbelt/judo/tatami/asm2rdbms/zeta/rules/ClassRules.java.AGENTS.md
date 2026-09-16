@@ -1,0 +1,4 @@
+# `ClassRules.java`
+
+Maps entity `EClass` to `RdbmsTable` plus its tracking columns; port of `class.etl`. Exports guard `isEntityType` and rules `eClassToRdbmsTable`, `eClassToTableIdField`, `eClassToTableTypeField`, `eClassToTableVersionField`, `eClassToTableCreateUsernameField`, `eClassToTableCreateUserIdField`, `eClassToTableCreateTimestampField`, `eClassToTableUpdateUsernameField`, `eClassToTableUpdateUserIdField`, `eClassToTableUpdateTimestampField`.
+Every field rule resolves its owner via `ctx.equivalent(s, ECLASS_TO_RDBMS_TABLE)`, so `eClassToRdbmsTable` must have produced the table first or the lookup yields no table. Guard restricts all rules to entity `EClass` only. Needs `AsmUtils` + `TypeMapping` map injected.

@@ -1,0 +1,5 @@
+# `Psm2AsmWork.java`
+
+Workflow work driving PSM→ASM with engine selection. Extends `AbstractTransformationWork`; exports `Psm2AsmWorkParameter` (`createTrace=false`, `parallel=true`, `useCache=true`, `transformationMode` defaulting to `TransformationMode.fromSystemProperty()`) and two constructors — one taking an explicit script-root `URI`, one defaulting to `Psm2Asm.calculatePsm2AsmTransformationScriptURI()`.
+`execute()` requires `PsmModel` in `TransformationContext` (missing one throws `IllegalArgumentException`), creates an empty `AsmModel` via `buildAsmModel()` when absent, puts it back into the context *before* transforming, calls `EmfUtils.addEmfPackagesToResourceSet` on the ASM resource set, then branches on `workParam.transformationMode.isZeta()` to `Psm2AsmZetaTransformation` or to `Psm2Asm.executePsm2AsmTransformation`.
+Zeta path ignores `createTrace`, `parallel` and `useCache` — those parameters only affect the ETL path. Result `Psm2AsmTransformationTrace` is put into the context; default engine is whatever the system property resolves to, so engine choice is ambient unless a `Psm2AsmWorkParameter` is placed in the context.

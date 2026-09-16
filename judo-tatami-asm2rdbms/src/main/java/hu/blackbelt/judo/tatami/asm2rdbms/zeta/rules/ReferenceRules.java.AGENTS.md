@@ -1,0 +1,4 @@
+# `ReferenceRules.java`
+
+Maps `EReference` to foreign keys and junction tables; port of `reference.etl`. Exports guards `isValidReference`, `needsForeignKey`, `needsInverseForeignKey`, `isValidReferenceForJunction`, `needsJunctionTableFirst`, `needsJunctionTableBidirectional`, `needsJunctionTableUnidirectional` and rules `eReferenceToRdbmsTableForeignKey`, `eReferenceToRdbmsTableInverseForeignKey`, `eReferenceToRdbmsJunctionTable` (`@Lazy`), `eReferenceToRdbmsJunctionTablePrimaryKey`, `eReferenceToRdbmsJunctionTableForeignKeyBidirectional`, `eReferenceToRdbmsJunctionTableForeignKeyUnidirectional`.
+`@Lazy` junction-table rule never fires from the main trace — it materialises only on `ctx.equivalent(s, EREFERENCE_TO_RDBMS_JUNCTION_TABLE)`; junction PK/FK rules depend on that call. Reads `rdbmsRules` `Rules`/`Rule` for name shortening, plus injected `AsmUtils` and `TypeMapping` map.

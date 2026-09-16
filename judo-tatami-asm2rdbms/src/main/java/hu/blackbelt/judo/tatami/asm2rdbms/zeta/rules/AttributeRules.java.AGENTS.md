@@ -1,0 +1,4 @@
+# `AttributeRules.java`
+
+Maps ASM `EAttribute` to RDBMS fields; port of `attribute.etl`. Exports guards `isAttributeInEntityType`, `isAttributeInEntityTypeNotDerived`, `isIdentifierAttributeInEntityType` and rules `eAttributeToRdbmsField` (`@Abstract`, base `RdbmsField`), `eAttributeToTableValueField` (`@Extends` base, emits `RdbmsValueField` and appends it to owner table), `eAttributeToIndex` (emits index for identifier attributes).
+`@Abstract` rule never runs standalone — child must call `ctx.executeParentRule(EATTRIBUTE_TO_RDBMS_FIELD, s)`. Needs `AsmUtils` and `Map<String,TypeMapping>` injected; default no-arg constructor exists only for registry instantiation, so registry-built instances resolve type mappings only after injection.
