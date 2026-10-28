@@ -20,21 +20,23 @@ package hu.blackbelt.judo.tatami.psm2measure;
  * #L%
  */
 
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureZetaTransformation;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 import java.net.URI;
 import java.util.Optional;
 
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
 import static hu.blackbelt.judo.meta.measure.runtime.MeasureModel.buildMeasureModel;
+import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
 
 @Slf4j
 public class Psm2MeasureWork extends AbstractTransformationWork {
@@ -47,6 +49,13 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
         Boolean parallel = true;
         @Builder.Default
         Boolean useCache = true;
+        
+        /**
+         * The transformation engine to use. Defaults to ZETA.
+         * Set to ETL for backward compatibility or debugging.
+         */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
     final URI transformationScriptRoot;
@@ -76,19 +85,55 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
         Psm2MeasureWorkParameter workParam = getTransformationContext().getByClass(Psm2MeasureWorkParameter.class)
                 .orElseGet(() -> Psm2MeasureWorkParameter.psm2MeasureWorkParameter().build());
 
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
+        Psm2MeasureTransformationTrace psm2MeasureTransformationTrace;
+        
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing PSM to Measure transformation using Zeta engine");
+            psm2MeasureTransformationTrace = executeZetaTransformation(psmModel.get(), measureModel, workParam);
+        } else {
+            log.info("Executing PSM to Measure transformation using ETL engine");
+            psm2MeasureTransformationTrace = executeEtlTransformation(psmModel.get(), measureModel, workParam);
+        }
 
-            Psm2MeasureTransformationTrace psm2measureTransformationTrace = executePsm2MeasureTransformation(Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter()
-                    .psmModel(psmModel.get())
+        getTransformationContext().put(psm2MeasureTransformationTrace);
+    }
+
+    private Psm2MeasureTransformationTrace executeZetaTransformation(
+            PsmModel psmModel, MeasureModel measureModel, Psm2MeasureWorkParameter workParam) {
+
+        // Note: Zeta transformation currently does not support useCache or parallel flags
+        // These are ETL-specific optimizations.
+        if (workParam.useCache || workParam.parallel) {
+            log.debug("Zeta transformation ignores useCache and parallel flags (ETL-specific)");
+        }
+
+        Psm2MeasureZetaTransformation transformation = Psm2MeasureZetaTransformation.builder()
+                .psmModel(psmModel)
+                .measureModel(measureModel)
+                .build();
+
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
+        return Psm2MeasureTransformationTrace.psm2MeasureTransformationTraceBuilder()
+                .psmModel(psmModel)
+                .measureModel(measureModel)
+                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
+                .build();
+    }
+
+    private Psm2MeasureTransformationTrace executeEtlTransformation(
+            PsmModel psmModel, MeasureModel measureModel, Psm2MeasureWorkParameter workParam) throws Exception {
+        
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
+            return executePsm2MeasureTransformation(Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter()
+                    .psmModel(psmModel)
                     .measureModel(measureModel)
                     .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
                     .createTrace(workParam.createTrace)
                     .useCache(workParam.useCache)
                     .parallel(workParam.parallel));
-
-            getTransformationContext().put(psm2measureTransformationTrace);
         }
-
     }
 }

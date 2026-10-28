@@ -1,0 +1,4 @@
+# `Psm2AsmTransformationPsmModelTracker.java`
+
+Tracks `PsmModel` OSGi services, publishes derived `AsmModel`. `@Component(immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)` extending `AbstractModelTracker<PsmModel>`; `@Reference Psm2AsmTransformationSerivce`. Exports `activate(ComponentContext)` (opens tracker on bundle context), `deactivate()` (closes tracker, unregisters every `AsmModel` registration), `install(PsmModel)`, `uninstall(PsmModel)`, `getModelClass()` → `PsmModel.class`.
+Keys both `models` and `registrations` by `psmModel.getName()` — two PSM models sharing a name collide; second rejected with error log, not exception. `install` swallows transformation failures into `log.error`, registers nothing; callers get no signal. `registrations` is `ConcurrentHashMap` but `models` plain `HashMap` — maps not guarded consistently under concurrent OSGi callbacks. `AsmModel` registered with `asmModel.toDictionary()` as service properties.

@@ -1,0 +1,4 @@
+# `NamespaceRules.java`
+
+Port of `namespace.etl`; produces ASM package tree the other rule classes attach to, hence registry phase 1. Exports `@Abstract namespaceToPackage` (base `Namespace` → `EPackage`), `modelToPackage` (`@Extends` base; `Model` → root `EPackage`, applying context attributes `nsURI` / `nsPrefix`), `packageToPackage` (`@Extends` base; nested `Package` → `EPackage`), `modelToPackageVersion` (version `EAnnotation`), guard `hasVersion`.
+`namespaceToPackage` is `@Abstract` — never fires standalone; children call `ctx.executeParentRule(NAMESPACE_TO_PACKAGE, s)`. Root packages attached to ASM resource only in `postProcess`, not here.

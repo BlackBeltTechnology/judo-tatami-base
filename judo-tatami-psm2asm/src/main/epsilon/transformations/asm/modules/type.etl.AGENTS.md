@@ -1,0 +1,4 @@
+# `type.etl`
+
+Maps PSM primitive and enumeration types to ASM `EDataType`/`EEnum` classifiers. Exports `CreateEnumeration` (`EnumerationType` → `EEnum` with literals) and one rule per primitive: `CreateStringType`, `CreateIntegerType`, `CreateDecimalType`, `CreateBooleanType`, `CreatePasswordType`, `CreateBinaryType`, `CreateXMLType`, `CreateDateType`, `CreateTimestampType`, `CreateTimeType`, `CreateCustomType`, plus `CreateMeasuredAnnotationOfIntegerType` attaching measure metadata to measured integers.
+All rules `@greedy`. Only module importing nothing but `../utils/_importUtils.eol` — it has no dependency on `namespace.etl`, so type classifiers are attached by their own container lookup.

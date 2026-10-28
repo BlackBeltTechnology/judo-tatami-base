@@ -70,6 +70,11 @@
         <!--suppress UnresolvedMavenProperty -->
         <logback-test-config>${maven.multiModuleProjectDirectory}/logback-test.xml</logback-test-config>
         <logback-version>1.5.12</logback-version>
+
+        <!-- ETL-Zeta model comparison configuration defaults -->
+        <judo.test.comparison.enabled>true</judo.test.comparison.enabled>
+        <judo.test.comparison.mode>STRICT</judo.test.comparison.mode>
+        <judo.test.comparison.maxDifferences>50</judo.test.comparison.maxDifferences>
         <lombok-version>1.18.34</lombok-version>
 
         <karaf-version>4.4.7</karaf-version>
@@ -83,24 +88,24 @@
 
         <java-embedded-compiler-version>1.1.0.20260312_044623_dcc18ab8_develop</java-embedded-compiler-version>
 
-        <judo-tatami-core-version>1.1.4.20260312_044536_3538de70_develop</judo-tatami-core-version>
-        <judo-tatami-util-version>1.0.0.20260312_044854_e7967e1b_develop</judo-tatami-util-version>
+        <judo-tatami-core-version>1.1.4-SNAPSHOT</judo-tatami-core-version>
+        <judo-tatami-util-version>1.0.0-SNAPSHOT</judo-tatami-util-version>
 
         <!-- Model versions -->
-        <judo-dao-api-version>1.0.4.20260311_102800_7e7131d1_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20260312_050505_e9d167cf_develop</judo-sdk-common-version>
-        <judo-operation-utils-version>1.1.3.20260312_050424_cebdea40_develop</judo-operation-utils-version>
-        <judo-meta-rdbms-version>1.0.2.20260312_050056_974b151c_develop</judo-meta-rdbms-version>
-		<judo-meta-psm-version>1.3.0.20260312_045505_a2b65e27_develop</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.4.20260312_044738_20a09856_develop</judo-meta-jql-version>
-        <judo-meta-asm-version>1.1.4.20260312_050057_b71fcea9_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20260312_050411_8c879fe1_develop</judo-meta-expression-version>
-        <judo-meta-expression-psm-version>1.0.5.20260312_050800_14358780_develop</judo-meta-expression-psm-version>
-        <judo-meta-expression-asm-version>1.0.5.20260312_050845_8dc2e759_develop</judo-meta-expression-asm-version>
-        <judo-meta-keycloak-version>1.0.1.20260312_050130_84dcf30c_develop</judo-meta-keycloak-version>
-        <judo-meta-measure-version>1.0.2.20260312_045735_df1ac44d_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20260312_045736_55632be1_develop</judo-meta-liquibase-version>
-        <judo-dispatcher-api-version>1.0.3.20260311_104219_ef26bd53_develop</judo-dispatcher-api-version>
+        <judo-dao-api-version>1.0.4.20250605_192947_c2e81b28_develop</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4-SNAPSHOT</judo-sdk-common-version>
+        <judo-operation-utils-version>1.1.3-SNAPSHOT</judo-operation-utils-version>
+        <judo-meta-rdbms-version>1.0.2-SNAPSHOT</judo-meta-rdbms-version>
+		<judo-meta-psm-version>1.3.0-SNAPSHOT</judo-meta-psm-version>
+        <judo-meta-jql-version>1.0.4.20251205_154635_81b4b882_develop</judo-meta-jql-version>
+        <judo-meta-asm-version>1.1.4-SNAPSHOT</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5-SNAPSHOT</judo-meta-expression-version>
+        <judo-meta-expression-psm-version>1.0.5-SNAPSHOT</judo-meta-expression-psm-version>
+        <judo-meta-expression-asm-version>1.0.5-SNAPSHOT</judo-meta-expression-asm-version>
+        <judo-meta-keycloak-version>1.0.1-SNAPSHOT</judo-meta-keycloak-version>
+        <judo-meta-measure-version>1.0.2-SNAPSHOT</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2-SNAPSHOT</judo-meta-liquibase-version>
+        <judo-dispatcher-api-version>1.0.3.20250605_191812_7164733f_develop</judo-dispatcher-api-version>
 
         <xtext-version>2.39.0</xtext-version>
 
@@ -113,6 +118,9 @@
         <sonar.language>java</sonar.language>
         <sonar.java.source>${java.version}</sonar.java.source>
         <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- Zeta Framework -->
+        <judo-zeta-version>1.0.0-SNAPSHOT</judo-zeta-version>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>
@@ -238,7 +246,7 @@
                 <artifactId>antlr-runtime</artifactId>
                 <version>3.2</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
@@ -543,6 +551,28 @@
                 <version>1.5.1_1</version>
             </dependency>
 
+            <!-- Zeta Framework -->
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>hu.blackbelt.judo.zeta.annotations</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>hu.blackbelt.judo.zeta.transformation-core</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>hu.blackbelt.judo.zeta.validation-core</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.zeta</groupId>
+                <artifactId>hu.blackbelt.judo.zeta.common</artifactId>
+                <version>${judo-zeta-version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
     <build>
@@ -597,6 +627,12 @@
                     <configuration>
                         <systemPropertyVariables>
                             <logback.configurationFile>${logback-test-config}</logback.configurationFile>
+                            <!-- ETL-Zeta model comparison configuration -->
+                            <judo.test.comparison.enabled>${judo.test.comparison.enabled}</judo.test.comparison.enabled>
+                            <judo.test.comparison.mode>${judo.test.comparison.mode}</judo.test.comparison.mode>
+                            <judo.test.comparison.maxDifferences>${judo.test.comparison.maxDifferences}</judo.test.comparison.maxDifferences>
+                            <!-- Zeta framework debug -->
+                            <zeta.debug>${zeta.debug}</zeta.debug>
                         </systemPropertyVariables>
                         <!--suppress UnresolvedMavenProperty -->
                         <argLine>
@@ -608,6 +644,8 @@
                             --add-opens java.base/java.net=ALL-UNNAMED
                         </argLine>
                         <trimStackTrace>false</trimStackTrace>
+                        <!-- Exclude performance tests by default. Run with -Dgroups=performance to include them -->
+                        <excludedGroups>performance</excludedGroups>
                     </configuration>
                 </plugin>
 
@@ -852,11 +890,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.4.1</version>
+                <version>3.11.2</version>
                 <configuration>
-                    <source>8</source>
+                    <source>21</source>
+                    <release>21</release>
                     <detectJavaApiLink>false</detectJavaApiLink>
                     <failOnError>false</failOnError>
+                    <failOnWarnings>false</failOnWarnings>
+                    <doclint>none</doclint>
                     <sourcepath>${project.basedir}/target/delombok</sourcepath>
                     <tags>
                         <tag>
@@ -879,7 +920,6 @@
                             <placement>a</placement>
                             <head>EMF Param</head>
                         </tag>
-
                     </tags>
                 </configuration>
                 <executions>
@@ -896,6 +936,34 @@
     </build>
 
     <profiles>
+        <!-- Profile to run performance tests -->
+        <profile>
+            <id>performance</id>
+            <properties>
+                <!-- Enable JVM profiler during performance tests -->
+                <judo.test.profiler.enabled>true</judo.test.profiler.enabled>
+                <judo.test.profiler.thresholdMs>100</judo.test.profiler.thresholdMs>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludedGroups combine.self="override" />
+                            <groups>performance</groups>
+                            <!-- jvm-profiler Java agent: collects Stacktrace.json and CpuAndMemory.json -->
+                            <argLine>-javaagent:${maven.multiModuleProjectDirectory}/judo-tatami-test-utils/lib/jvm-profiler.jar=reporter=com.uber.profiling.reporters.FileOutputReporter,outputDir=target/profiler-output,sampleInterval=100,metricInterval=1000</argLine>
+                            <systemPropertyVariables>
+                                <judo.test.profiler.enabled>${judo.test.profiler.enabled}</judo.test.profiler.enabled>
+                                <judo.test.profiler.thresholdMs>${judo.test.profiler.thresholdMs}</judo.test.profiler.thresholdMs>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>generate-checksum</id>
             <activation>
@@ -966,6 +1034,7 @@
                 </property>
             </activation>
             <modules>
+                <module>judo-tatami-test-utils</module>
                 <module>judo-tatami-psm2asm</module>
                 <module>judo-tatami-psm2measure</module>
                 <module>judo-tatami-asm2rdbms</module>

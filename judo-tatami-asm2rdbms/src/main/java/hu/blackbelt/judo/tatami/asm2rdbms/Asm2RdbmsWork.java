@@ -20,23 +20,31 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  * #L%
  */
 
+import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
+import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
+import lombok.Builder;
+import org.eclipse.emf.ecore.EObject;
+
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.epsilon.common.util.UriUtil;
+import org.slf4j.Logger;
+
+import java.net.URI;
+import java.util.Optional;
+
 import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.buildRdbmsModel;
 import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel;
 import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
 import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
 import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTransformation;
-
-import java.net.URI;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
-import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
-import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Asm2RdbmsWork extends AbstractTransformationWork {
@@ -69,6 +77,13 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         String inverseForeignKeyPrefix = "FK_INV_";
         @Builder.Default
         String junctionTablePrefix = "J_";
+        
+        /**
+         * The transformation engine to use. Defaults to ZETA.
+         * Set to ETL for backward compatibility or debugging.
+         */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
     final URI transformationScriptRoot;
@@ -120,14 +135,74 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
         registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
 
-        // Load mapping model
-
         putModel(getTransformationContext(), rdbmsModel, dialect);
 
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
+        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace;
+        
+        if (workParameter.transformationMode.isZeta()) {
+            log.info("Executing ASM to RDBMS transformation using Zeta engine for dialect: {}", dialect);
+            asm2RdbmsTransformationTrace = executeZetaTransformation(asmModel.get(), rdbmsModel, workParameter);
+        } else {
+            log.info("Executing ASM to RDBMS transformation using ETL engine for dialect: {}", dialect);
+            asm2RdbmsTransformationTrace = executeEtlTransformation(asmModel.get(), rdbmsModel, workParameter);
+        }
 
-            Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
-                    .asmModel(asmModel.get())
+        putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);
+    }
+
+    private Asm2RdbmsTransformationTrace executeZetaTransformation(
+            AsmModel asmModel, RdbmsModel rdbmsModel, Asm2RdbmsWorkParameter workParameter) throws Exception {
+
+        // Load the mapping model (rules, type mappings, name mappings) into the RDBMS resource set
+        // This is equivalent to what the ETL path does in Asm2Rdbms.executeAsm2RdbmsTransformation()
+        RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
+                        .validateModel(false)
+                        .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms"))
+                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", modelRoot)
+                                .toURL()
+                                .openStream()));
+        rdbmsModel.getResource().getContents().addAll(mappingModel.getResource().getContents());
+
+        Asm2RdbmsZetaTransformation transformation = Asm2RdbmsZetaTransformation.builder()
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .dialect(dialect)
+                .tablePrefix(workParameter.tablePrefix)
+                .columnPrefix(workParameter.columnPrefix)
+                .foreignKeyPrefix(workParameter.foreignKeyPrefix)
+                .inverseForeignKeyPrefix(workParameter.inverseForeignKeyPrefix)
+                .junctionTablePrefix(workParameter.junctionTablePrefix)
+                .nameSize(workParameter.nameSize)
+                .shortNameSize(workParameter.shortNameSize)
+                .tableNameMaxSize(workParameter.tableNameMaxSize)
+                .columnNameMaxSize(workParameter.columnMaxNameSize)
+                .createSimpleName(workParameter.createSimpleName)
+                .build();
+
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
+        // Convert Zeta trace to legacy format so it can be saved/loaded as XMI
+        Map<EObject, List<EObject>> legacyTrace = new java.util.LinkedHashMap<>();
+        for (hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache.TraceEntry entry : zetaTrace.getEntries()) {
+            legacyTrace.computeIfAbsent(entry.getSource(), k -> new java.util.ArrayList<>())
+                    .add(entry.getTarget());
+        }
+
+        return Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .trace(legacyTrace)
+                .build();
+    }
+
+    private Asm2RdbmsTransformationTrace executeEtlTransformation(
+            AsmModel asmModel, RdbmsModel rdbmsModel, Asm2RdbmsWorkParameter workParameter) throws Exception {
+        
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
+            return executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
+                    .asmModel(asmModel)
                     .rdbmsModel(rdbmsModel)
                     .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
@@ -146,10 +221,7 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
                     .foreignKeyPrefix(workParameter.foreignKeyPrefix)
                     .inverseForeignKeyPrefix(workParameter.inverseForeignKeyPrefix)
                     .junctionTablePrefix(workParameter.junctionTablePrefix)
-
             );
-
-            putAsm2RdbmsTrace(getTransformationContext(), asm2RdbmsTransformationTrace, dialect);
         }
     }
 }

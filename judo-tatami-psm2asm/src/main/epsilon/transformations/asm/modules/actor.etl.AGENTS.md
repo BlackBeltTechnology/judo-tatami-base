@@ -1,0 +1,4 @@
+# `actor.etl`
+
+Maps actor-flavoured `JUDOPSM!TransferObjectType` to ASM annotations on the already-created `EClass`. Rules `CreateActorAnnotation` (guard `s.actorType.isDefined()`; emits `actor` annotation with `name`, optional `realm` details), `CreateActorTypeAnnotation` (guard kind-of `AbstractActorType`; emits `actorType` annotation with `value=true`, plus `managed` for `MappedActorType` and optional `kind`), `CreateRealmTypeAnnotation`, `CreateDocumentationAnnotationForActorType` (extends `CreateDocumentationAnnotation`).
+All rules are `@greedy` and attach to `s.asmEquivalent()` — the transfer-object class rules in `transferObject.etl` must have produced the equivalent first. Imports `operation.etl` and `namespace.etl`.

@@ -14,6 +14,7 @@ pre {
         r.realm = realmName;
         r.enabled = true;
         r.loginWithEmailAllowed = true;
+        r.eResource.setID(r, "Realm/" + realmName);
 
         log.debug("Realm created: " + r.realm);
     }

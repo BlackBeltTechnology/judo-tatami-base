@@ -27,14 +27,18 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel.AsmValidationException;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.RdbmsValidationException;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsUtils;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
+import org.eclipse.epsilon.common.util.UriUtil;
+import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.SaveArguments.asmSaveArgumentsBuilder;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.buildAsmModel;
@@ -87,21 +91,44 @@ public class Asm2RdbmsMappingTestBase {
     }
 
     protected void executeTransformation(final String testName) {
+        executeTransformation(testName, TransformationMode.ETL);
+    }
+
+    protected void executeTransformation(final String testName, final TransformationMode transformationMode) {
         Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = null;
         try {
-            logger.debug("Executing asm2rdbms transformation");
-            asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(asm2RdbmsParameter()
-                    .asmModel(asmModel)
-                    .rdbmsModel(rdbmsModel)
-                    .createTrace(true)
-                    .dialect("hsqldb"));
+            if (transformationMode.isZeta()) {
+                // Load mapping model (contains TypeMappings) - same as ETL version does
+                String dialect = "hsqldb";
+                java.net.URI excelModelUri = Asm2Rdbms.calculateAsm2RdbmsModelURI();
+                RdbmsModel mappingModel = RdbmsModel.loadRdbmsModel(
+                        rdbmsLoadArgumentsBuilder()
+                                .validateModel(false)
+                                .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms"))
+                                .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", excelModelUri)
+                                        .toURL()
+                                        .openStream()));
+                rdbmsModel.getResource().getContents().addAll(mappingModel.getResource().getContents());
+                logger.debug("Executing asm2rdbms Zeta transformation");
+                Asm2RdbmsZetaTransformation transformation = Asm2RdbmsZetaTransformation.builder()
+                        .asmModel(asmModel)
+                        .rdbmsModel(rdbmsModel)
+                        .dialect("hsqldb")
+                        .build();
+                transformation.execute();
+            } else {
+                logger.debug("Executing asm2rdbms ETL transformation");
+                asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(asm2RdbmsParameter()
+                        .asmModel(asmModel)
+                        .rdbmsModel(rdbmsModel)
+                        .createTrace(true)
+                        .dialect("hsqldb"));
+                rdbmsModel = asm2RdbmsTransformationTrace.getRdbmsModel();
+            }
 
         } catch (Exception e) {
             fail("Unable to execute transformation", e);
         }
-
-        logger.debug("Extracting models from transformation trace");
-        rdbmsModel = asm2RdbmsTransformationTrace.getRdbmsModel();
 
         logger.debug("Initializing rdbmsUtils");
         rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
@@ -112,7 +139,9 @@ public class Asm2RdbmsMappingTestBase {
                     .file(new File(TARGET_TEST_CLASSES, format("%s-%s.model", testName, ASM_MODEL_NAME))));
             rdbmsModel.saveRdbmsModel(rdbmsSaveArgumentsBuilder()
                     .file(new File(TARGET_TEST_CLASSES, format("%s-%s.model", testName, RDBMS_MODEL_NAME))));
-            asm2RdbmsTransformationTrace.save(new File(TARGET_TEST_CLASSES, format("%s-Asm2RdbmsTransformationTrace.model", testName)));
+            if (asm2RdbmsTransformationTrace != null) {
+                asm2RdbmsTransformationTrace.save(new File(TARGET_TEST_CLASSES, format("%s-Asm2RdbmsTransformationTrace.model", testName)));
+            }
         } catch (AsmValidationException e) {
             fail("AsmModel is not valid", e);
         } catch (RdbmsValidationException e) {

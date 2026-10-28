@@ -1,0 +1,4 @@
+# `Asm2RdbmsRuleNames.java`
+
+Final, non-instantiable holder of the rule-name constants shared by the Zeta rules and trace consumers, one per ETL rule: `ROOT_PACKAGE_TO_MODEL`/`ROOT_PACKAGE_TO_CONFIGURATION` (values keep the ETL's `rootPackege` misspelling), the ten `ECLASS_TO_*` table and system-field rules, `EATTRIBUTE_TO_RDBMS_FIELD`/`_TABLE_VALUE_FIELD`/`_INDEX`, and the six `EREFERENCE_TO_*` FK and junction-table rules.
+Values must stay byte-identical to the ETL rule names — trace element IDs embed them, so renaming a value orphans existing traces. Zeta splits the ETL's single unidirectional junction FK rule into `..._FK_UNIDIRECTIONAL_1` and `..._2`.

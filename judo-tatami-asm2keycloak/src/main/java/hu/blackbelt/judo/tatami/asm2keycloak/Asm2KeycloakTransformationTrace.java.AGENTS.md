@@ -1,0 +1,5 @@
+# `Asm2KeycloakTransformationTrace.java`
+
+Implements `TransformationTrace` over the ASM→Keycloak pair and carries EITHER the ETL trace (`Map<EObject, List<EObject>>`) or the Zeta trace (`zeta.transformation.core.TransformationTrace`) — the unused one stays null, so read through `isZetaTrace()`/`getZetaTrace()`/`getTransformationTrace()` rather than the fields.
+Exports `fromModelsAndTrace(...)`, `resolveAsm2KeycloakTrace(...)`, `createAsm2KeycloakTraceResource(...)`, `getAsm2KeycloakTrace(...)`, `save(...)`, `getSourceModelTypes()` = `[AsmModel]`, `getTargetModelType()` = `KeycloakModel`.
+Trace resource URIs use prefix `asm2keycloakTrace:` and postfix `asm2keycloak`; the constants are misnamed `ASM_2_RDBMS_*` though their values are the keycloak ones. Serialisation round-trip requires source/target models to be registered in the resolving `ResourceSet`, else trace entries resolve to null.

@@ -1,0 +1,7 @@
+# `Asm2RdbmsZetaTransformation.java`
+
+Runs the ASM→RDBMS lowering on the Zeta `TransformationRegistry` + `TransformationExecutor`. Lombok `@Builder` takes `@NonNull asmModel`, `@NonNull rdbmsModel`, `@NonNull dialect` plus optional naming knobs; `execute()` returns the native Zeta `TransformationTrace`.
+Constructor resolves dialect defaults — table/column/short/name sizes 30/30/6/28 for `oracle`, else 62/58/16/60 — and prefix defaults `T_`, `C_`, `FK_`, `FK_INV_`, `J_`, matching `Asm2Rdbms`. Indexes `TypeMappings` by `asmType` and grabs the first `Rules` root from the RDBMS resource set, throwing `IllegalStateException("Rules not found in RDBMS model...")` when the `mapping-<dialect>-rdbms.model` was not merged in first.
+Registers `PackageRules`, `ClassRules`, `AttributeRules`, `ReferenceRules` in ETL import order. Calls `Asm2RdbmsHelper.clearCaches()` before each run and forces `parallel(false)` — parallel execution NPEs in `postProcess` on large models.
+Context aliases resources `asm`/`rdbms` and exposes attributes `dialect`, `modelVersion`, the four `*Size` values, `createSimpleName`, the five prefixes, `asmUtils`, `typeMappings`, `rules` under exactly those keys.
+`postProcess` attaches each root package's `RdbmsModel` equivalent to the resource and then rewrites `sqlName` from every `NameMapping` matched on element `uuid` — the ETL `post` block's job. Nested `Asm2RdbmsModelProvider` enumerates sources via `AsmUtils`, so only ASM-resident elements are visible.

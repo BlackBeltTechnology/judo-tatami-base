@@ -2,5 +2,23 @@ import "modules/measure.etl";
 import "modules/unit.etl";
 
 post {
-    // measureUtils.validateUniqueXmiids();
+    // Sort measures by name for deterministic ordering
+    var measures = MEASURES!Measure.all.sortBy(m | m.name);
+    var resource = measures.first.eResource;
+    resource.getContents().clear();
+    resource.getContents().addAll(measures);
+
+    // Sort units within each measure by name
+    for (m in measures) {
+        var sortedUnits = m.units.sortBy(u | u.name);
+        m.units.clear();
+        m.units.addAll(sortedUnits);
+    }
+
+    // Sort terms within each derived measure by base measure name
+    for (dm in MEASURES!DerivedMeasure.all) {
+        var sortedTerms = dm.terms.sortBy(t | t.baseMeasure.name);
+        dm.terms.clear();
+        dm.terms.addAll(sortedTerms);
+    }
 }

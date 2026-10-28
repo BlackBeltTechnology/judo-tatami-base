@@ -21,21 +21,24 @@ package hu.blackbelt.judo.tatami.psm2asm;
  */
 
 import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+
+import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 
 import java.net.URI;
 import java.util.Optional;
 
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.buildAsmModel;
+import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
 
 @Slf4j
 public class Psm2AsmWork extends AbstractTransformationWork {
@@ -48,9 +51,15 @@ public class Psm2AsmWork extends AbstractTransformationWork {
         Boolean createTrace = false;
         @Builder.Default
         Boolean parallel = true;
-
         @Builder.Default
         Boolean useCache = true;
+        
+        /**
+         * The transformation engine to use. Defaults to ZETA.
+         * Set to ETL for backward compatibility or debugging.
+         */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
     public Psm2AsmWork(TransformationContext transformationContext, URI transformationScriptRoot) {
@@ -78,18 +87,50 @@ public class Psm2AsmWork extends AbstractTransformationWork {
         Psm2AsmWorkParameter workParam = getTransformationContext().getByClass(Psm2AsmWorkParameter.class)
                 .orElseGet(() -> Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter().build());
 
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
+        Psm2AsmTransformationTrace psm2AsmTransformationTrace;
+        
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing PSM to ASM transformation using Zeta engine");
+            psm2AsmTransformationTrace = executeZetaTransformation(psmModel.get(), asmModel, workParam);
+        } else {
+            log.info("Executing PSM to ASM transformation using ETL engine");
+            psm2AsmTransformationTrace = executeEtlTransformation(psmModel.get(), asmModel, workParam);
+        }
 
-            Psm2AsmTransformationTrace psm2AsmTransformationTrace = executePsm2AsmTransformation(Psm2Asm.Psm2AsmParameter.psm2AsmParameter()
-                    .psmModel(psmModel.get())
+        getTransformationContext().put(psm2AsmTransformationTrace);
+    }
+
+    private Psm2AsmTransformationTrace executeZetaTransformation(
+            PsmModel psmModel, AsmModel asmModel, Psm2AsmWorkParameter workParam) {
+
+        Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModel)
+                .asmModel(asmModel)
+                .modelName(psmModel.getName())
+                .build();
+
+        // Execute Zeta transformation - returns native Zeta TransformationTrace
+        TransformationTrace zetaTrace = transformation.execute();
+
+        return Psm2AsmTransformationTrace.psm2AsmTransformationTraceBuilder()
+                .psmModel(psmModel)
+                .asmModel(asmModel)
+                .zetaTrace(zetaTrace)  // Use Zeta trace, not ETL trace field
+                .build();
+    }
+
+    private Psm2AsmTransformationTrace executeEtlTransformation(
+            PsmModel psmModel, AsmModel asmModel, Psm2AsmWorkParameter workParam) throws Exception {
+        
+        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
+            return executePsm2AsmTransformation(Psm2Asm.Psm2AsmParameter.psm2AsmParameter()
+                    .psmModel(psmModel)
                     .asmModel(asmModel)
                     .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
                     .scriptUri(transformationScriptRoot)
                     .createTrace(workParam.createTrace)
                     .useCache(workParam.useCache)
                     .parallel(workParam.parallel));
-
-            getTransformationContext().put(psm2AsmTransformationTrace);
         }
     }
 }

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>hu.blackbelt.judo.tatami</groupId>
+        <artifactId>judo-tatami-base-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>judo-tatami-test-utils</artifactId>
+    <packaging>jar</packaging>
+    <name>Judo :: Tatami :: Test Utils</name>
+    <description>Shared test utilities for generating realistic model data for performance testing</description>
+
+    <dependencies>
+        <!-- PSM Model -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.psm.model</artifactId>
+        </dependency>
+
+        <!-- ASM Model -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
+        </dependency>
+
+        <!-- RDBMS Model -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.rdbms.model</artifactId>
+        </dependency>
+
+        <!-- Measure Model -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.measure.model</artifactId>
+        </dependency>
+
+        <!-- JUnit 5 API for profiler extension -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+
+        <!-- jvm-profiler (pure Java agent, works on macOS and Linux without native library setup) -->
+        <!-- Bundled JAR from commit 07ecfce5bb - bypasses Maven mirror restrictions -->
+        <dependency>
+            <groupId>com.github.uber-common</groupId>
+            <artifactId>jvm-profiler</artifactId>
+            <version>master-07ecfce5bb-1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/jvm-profiler.jar</systemPath>
+        </dependency>
+
+        <!-- Optional: LangChain4j for LLM integration -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.35.0</version>
+            <optional>true</optional>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>performance</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- jvm-profiler Java agent: pure Java, works on macOS and Linux -->
+                            <argLine>
+                                -javaagent:${project.basedir}/lib/jvm-profiler.jar=reporter=com.uber.profiling.reporters.FileOutputReporter,outputDir=target/profiler-output,sampleInterval=100,metricInterval=1000
+                            </argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

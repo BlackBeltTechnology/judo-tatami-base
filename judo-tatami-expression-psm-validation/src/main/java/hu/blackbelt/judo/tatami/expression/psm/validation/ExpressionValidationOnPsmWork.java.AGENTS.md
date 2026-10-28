@@ -1,0 +1,3 @@
+# `ExpressionValidationOnPsmWork.java`
+
+Validates expressions against PSM via Epsilon EVL. Extends `AbstractTransformationWork`; `execute()` pulls `ExpressionModel` and `PsmModel` from `TransformationContext` and calls `ExpressionValidatorOnPsm.validateExpressionOnPsm(logger, psm, expression)`. Both models must already be in the context — a missing one throws `IllegalArgumentException`. No separate measure model: PSM carries its own measures. EVL output goes through a `StringBuilderLogger` closed via try-with-resources.

@@ -1,4 +1,5 @@
 package hu.blackbelt.judo.tatami.psm2asm;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
 
 /*-
  * #%L
@@ -35,10 +36,16 @@ import hu.blackbelt.judo.meta.psm.namespace.Package;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.service.*;
 import hu.blackbelt.judo.meta.psm.type.Primitive;
+import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -97,8 +104,69 @@ public class Psm2AsmInheritanceTest {
                 .build();
     }
 
-    @Test
-    public void testInheritance() throws Exception {
+    private void transform(final String testName, final TransformationMode transformationMode) throws Exception {
+        if (transformationMode.isZeta()) {
+            log.info("Running Zeta transformation for test: {}", testName);
+            Psm2AsmZetaTransformation transformation = Psm2AsmZetaTransformation.builder()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel)
+                    .modelName("model")
+                    .build();
+            transformation.execute();
+        } else {
+            log.info("Running ETL transformation for test: {}", testName);
+            executePsm2AsmTransformation(psm2AsmParameter()
+                    .psmModel(psmModel)
+                    .asmModel(asmModel));
+        }
+
+        asmModel.saveAsmModel(asmSaveArgumentsBuilder()
+                .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, testName + "-" + transformationMode + "-" + INHERITANCE_ASM_MODEL))));
+    }
+
+    /**
+     * Runs both ETL and Zeta transformations and compares their outputs.
+     * This should be called at the end of parameterized tests to verify equivalence.
+     */
+    private void compareTransformations(final String testName) throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Run ETL fresh
+        AsmModel etlModel = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModel)
+                .asmModel(etlModel));
+
+        // Run Zeta fresh - use psmModel.getName() to match what ETL uses
+        AsmModel zetaModel = buildAsmModel().build();
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModel)
+                .asmModel(zetaModel)
+                .modelName(psmModel.getName())
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlModel.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaModel.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
+        } else {
+            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
+            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
+        }
+    }
+
+    @ParameterizedTest(name = "testInheritance with {0}")
+    @EnumSource(TransformationMode.class)
+    public void testInheritance(TransformationMode transformationMode) throws Exception {
         log.info("testInheritance~~~~~~~~~~~~~~~~~~~~");
         Primitive string = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         EntityType personEntity = newEntityTypeBuilder().withName("Person")
@@ -220,12 +288,7 @@ public class Psm2AsmInheritanceTest {
                 .build();
         psmModel.addContent(model);
 
-        executePsm2AsmTransformation(psm2AsmParameter()
-                .psmModel(psmModel)
-                .asmModel(asmModel));
-
-        asmModel.saveAsmModel(asmSaveArgumentsBuilder()
-                .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, INHERITANCE_ASM_MODEL))));
+        transform("testInheritance", transformationMode);
 
         final Optional<EClass> asmEmployeeTransferObject = allAsm(EClass.class).filter(clazz -> employeeTransferObject.getName().equals(clazz.getName())).findAny();
         assertTrue(asmEmployeeTransferObject.isPresent());
@@ -247,6 +310,8 @@ public class Psm2AsmInheritanceTest {
         final Optional<EAnnotation> exposedByAnnotationOfFirstNameInPersonTransferObject = AsmUtils.getExtensionAnnotationByName(firstNameInPersonTransferObject.get(), "exposedBy", false);
 //        assertTrue(exposedByAnnotationOfFirstNameInPersonTransferObject.isPresent());
 //        assertTrue(exposedByAnnotationOfFirstNameInPersonTransferObject.get().getDetails().containsValue("model.AP"));
+
+        compareTransformations("testInheritance");
     }
 
     static <T> Stream<T> asStream(Iterator<T> sourceIterator, boolean parallel) {
@@ -262,4 +327,156 @@ public class Psm2AsmInheritanceTest {
         return allAsm().filter(e -> clazz.isAssignableFrom(e.getClass())).map(e -> (T) e);
     }
 
+    @Test
+    public void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        // Build model for ETL
+        Primitive stringEtl = newStringTypeBuilder().withName("String").withMaxLength(255).build();
+        EntityType personEntityEtl = newEntityTypeBuilder().withName("Person")
+                .withAttributes(ImmutableList.of(
+                        newAttributeBuilder().withName("firstName").withDataType(stringEtl).withRequired(true).build(),
+                        newAttributeBuilder().withName("lastName").withDataType(stringEtl).withRequired(true).build(),
+                        newAttributeBuilder().withName("title").withDataType(stringEtl).build()
+                )).build();
+        TransferObjectType personTransferObjectEtl = newMappedTransferObjectTypeBuilder().withName("MTO_Person")
+                .withEntityType(personEntityEtl)
+                .withAttributes(ImmutableList.of(
+                        newTransferAttributeBuilder().withName("firstName").withDataType(stringEtl).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("lastName").withDataType(stringEtl).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("title").withDataType(stringEtl).build()
+                ))
+                .build();
+        EntityType employeeEntityEtl = newEntityTypeBuilder().withName("Employee").withSuperEntityTypes(personEntityEtl)
+                .withAttributes(ImmutableList.of(
+                        newAttributeBuilder().withName("titleOfCourtesy").withDataType(stringEtl).build()
+                ))
+                .build();
+        MappedTransferObjectType employeeTransferObjectEtl = newMappedTransferObjectTypeBuilder().withName("MTO_Employee")
+                .withAttributes(ImmutableList.of(
+                        newTransferAttributeBuilder().withName("firstName").withDataType(stringEtl).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("lastName").withDataType(stringEtl).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("title").withDataType(stringEtl).build()
+                ))
+                .withAttributes(ImmutableList.of(
+                        newTransferAttributeBuilder().withName("titleOfCourtesy").withDataType(stringEtl).build()))
+                .withEntityType(employeeEntityEtl)
+                .build();
+        AssociationEnd ownerAssociationEndEtl = newAssociationEndBuilder().withName("owner")
+                .withTarget(employeeEntityEtl)
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .build();
+        EntityType categoryEntityEtl = newEntityTypeBuilder().withName("Category")
+                .withRelations(ImmutableList.of(ownerAssociationEndEtl))
+                .build();
+        TransferObjectRelation ownerTransferRelationEtl = newTransferObjectRelationBuilder().withName("owner")
+                .withTarget(employeeTransferObjectEtl)
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .build();
+        MappedTransferObjectType categoryTransferObjectEtl = newMappedTransferObjectTypeBuilder().withName("MTO_Category")
+                .withEntityType(categoryEntityEtl)
+                .withRelations(ImmutableList.of(ownerTransferRelationEtl))
+                .build();
+        Package entitiesEtl = newPackageBuilder().withName("entities").withElements(ImmutableList.of(
+                categoryEntityEtl, employeeEntityEtl, personEntityEtl
+        )).build();
+        Package serviceEtl = newPackageBuilder().withName("service").withElements(ImmutableList.of(
+                categoryTransferObjectEtl, employeeTransferObjectEtl, personTransferObjectEtl
+        )).build();
+        Package typesEtl = newPackageBuilder().withName("types").withElements(ImmutableList.of(stringEtl)).build();
+        Model modelEtl = newModelBuilder().withName("model")
+                .withPackages(ImmutableList.of(entitiesEtl, serviceEtl, typesEtl))
+                .build();
+
+        PsmModel psmModelEtl = buildPsmModel().build();
+        psmModelEtl.addContent(modelEtl);
+        AsmModel etlResult = buildAsmModel().build();
+        executePsm2AsmTransformation(psm2AsmParameter()
+                .psmModel(psmModelEtl)
+                .asmModel(etlResult));
+
+        // Build model for Zeta
+        Primitive stringZeta = newStringTypeBuilder().withName("String").withMaxLength(255).build();
+        EntityType personEntityZeta = newEntityTypeBuilder().withName("Person")
+                .withAttributes(ImmutableList.of(
+                        newAttributeBuilder().withName("firstName").withDataType(stringZeta).withRequired(true).build(),
+                        newAttributeBuilder().withName("lastName").withDataType(stringZeta).withRequired(true).build(),
+                        newAttributeBuilder().withName("title").withDataType(stringZeta).build()
+                )).build();
+        TransferObjectType personTransferObjectZeta = newMappedTransferObjectTypeBuilder().withName("MTO_Person")
+                .withEntityType(personEntityZeta)
+                .withAttributes(ImmutableList.of(
+                        newTransferAttributeBuilder().withName("firstName").withDataType(stringZeta).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("lastName").withDataType(stringZeta).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("title").withDataType(stringZeta).build()
+                ))
+                .build();
+        EntityType employeeEntityZeta = newEntityTypeBuilder().withName("Employee").withSuperEntityTypes(personEntityZeta)
+                .withAttributes(ImmutableList.of(
+                        newAttributeBuilder().withName("titleOfCourtesy").withDataType(stringZeta).build()
+                ))
+                .build();
+        MappedTransferObjectType employeeTransferObjectZeta = newMappedTransferObjectTypeBuilder().withName("MTO_Employee")
+                .withAttributes(ImmutableList.of(
+                        newTransferAttributeBuilder().withName("firstName").withDataType(stringZeta).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("lastName").withDataType(stringZeta).withRequired(true).build(),
+                        newTransferAttributeBuilder().withName("title").withDataType(stringZeta).build()
+                ))
+                .withAttributes(ImmutableList.of(
+                        newTransferAttributeBuilder().withName("titleOfCourtesy").withDataType(stringZeta).build()))
+                .withEntityType(employeeEntityZeta)
+                .build();
+        AssociationEnd ownerAssociationEndZeta = newAssociationEndBuilder().withName("owner")
+                .withTarget(employeeEntityZeta)
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .build();
+        EntityType categoryEntityZeta = newEntityTypeBuilder().withName("Category")
+                .withRelations(ImmutableList.of(ownerAssociationEndZeta))
+                .build();
+        TransferObjectRelation ownerTransferRelationZeta = newTransferObjectRelationBuilder().withName("owner")
+                .withTarget(employeeTransferObjectZeta)
+                .withCardinality(newCardinalityBuilder().withLower(0).withUpper(1).build())
+                .build();
+        MappedTransferObjectType categoryTransferObjectZeta = newMappedTransferObjectTypeBuilder().withName("MTO_Category")
+                .withEntityType(categoryEntityZeta)
+                .withRelations(ImmutableList.of(ownerTransferRelationZeta))
+                .build();
+        Package entitiesZeta = newPackageBuilder().withName("entities").withElements(ImmutableList.of(
+                categoryEntityZeta, employeeEntityZeta, personEntityZeta
+        )).build();
+        Package serviceZeta = newPackageBuilder().withName("service").withElements(ImmutableList.of(
+                categoryTransferObjectZeta, employeeTransferObjectZeta, personTransferObjectZeta
+        )).build();
+        Package typesZeta = newPackageBuilder().withName("types").withElements(ImmutableList.of(stringZeta)).build();
+        Model modelZeta = newModelBuilder().withName("model")
+                .withPackages(ImmutableList.of(entitiesZeta, serviceZeta, typesZeta))
+                .build();
+
+        PsmModel psmModelZeta = buildPsmModel().build();
+        psmModelZeta.addContent(modelZeta);
+        AsmModel zetaResult = buildAsmModel().build();
+        Psm2AsmZetaTransformation zetaTransformation = Psm2AsmZetaTransformation.builder()
+                .psmModel(psmModelZeta)
+                .asmModel(zetaResult)
+                .modelName("model")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                etlResult.getResourceSet().getResources().get(0).getContents().get(0),
+                zetaResult.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
+    }
 }

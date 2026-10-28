@@ -28,8 +28,13 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsJunctionTable;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.RdbmsValidationException;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.test.util.ModelComparator;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,8 +134,9 @@ public class Rdbms2LiquibaseContentTest {
             fail(format("Missing AddNotNullConstraints from %s: %s", changeSetId, expected.toString()));
     }
 
-    @Test
-    public void testContents() {
+    @ParameterizedTest(name = "testContents with {0}")
+    @EnumSource(TransformationMode.class)
+    public void testContents(TransformationMode transformationMode) throws Exception {
         /////////////////////
         // setup rdbms model
 
@@ -205,10 +211,19 @@ public class Rdbms2LiquibaseContentTest {
                     rdbmsSaveArgumentsBuilder()
                             .file(new File(TARGET_TEST_CLASSES, format("testContents-%s-rdbms.model", rdbmsModel.getName())))
                             .build());
-            executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
-                    .rdbmsModel(rdbmsModel)
-                    .liquibaseModel(liquibaseModel)
-                    .dialect("hsqldb"));
+            if (transformationMode.isZeta()) {
+                Rdbms2LiquibaseZetaTransformation transformation = Rdbms2LiquibaseZetaTransformation.builder()
+                        .rdbmsModel(rdbmsModel)
+                        .liquibaseModel(liquibaseModel)
+                        .dialect("hsqldb")
+                        .build();
+                transformation.execute();
+            } else {
+                executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
+                        .rdbmsModel(rdbmsModel)
+                        .liquibaseModel(liquibaseModel)
+                        .dialect("hsqldb"));
+            }
 
             liquibaseModel.saveLiquibaseModel(
                     liquibaseSaveArgumentsBuilder()
@@ -361,6 +376,161 @@ public class Rdbms2LiquibaseContentTest {
                      liquibaseUtils.getColumn(CHANGE_SET_CREATE_TABLE_ID + rdbmsJunctionTable.getSqlName(), rdbmsJunctionTable.getSqlName(), TEST_TABLE2_FK)
                              .get().getRemarks());
 
+        // Compare ETL and Zeta outputs
+        compareTransformations("testContents", rdbmsModel);
     }
 
+    /**
+     * Runs both ETL and Zeta transformations and compares their outputs.
+     */
+    private void compareTransformations(final String testName, RdbmsModel sourceRdbmsModel) throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        final String MODEL_NAME = "TestModel";
+
+        // Run ETL fresh
+        RdbmsModel rdbmsModelEtl = buildTestRdbmsModel();
+        LiquibaseModel liquibaseModelEtl = buildLiquibaseModel().name(MODEL_NAME).build();
+
+        executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
+                .rdbmsModel(rdbmsModelEtl)
+                .liquibaseModel(liquibaseModelEtl)
+                .dialect("hsqldb"));
+
+        // Run Zeta fresh
+        RdbmsModel rdbmsModelZeta = buildTestRdbmsModel();
+        LiquibaseModel liquibaseModelZeta = buildLiquibaseModel().name(MODEL_NAME).build();
+
+        Rdbms2LiquibaseZetaTransformation zetaTransformation = Rdbms2LiquibaseZetaTransformation.builder()
+                .rdbmsModel(rdbmsModelZeta)
+                .liquibaseModel(liquibaseModelZeta)
+                .dialect("hsqldb")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                liquibaseModelEtl.getResourceSet().getResources().get(0).getContents().get(0),
+                liquibaseModelZeta.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models for {}", testName);
+        } else {
+            log.warn("Models have differences for {}:\n{}", testName, result.getSummary());
+            fail("ETL and Zeta models are not equivalent for " + testName + ":\n" + result.getDetailedReport());
+        }
+    }
+
+    private RdbmsModel buildTestRdbmsModel() {
+        final String MODEL_NAME = "TestModel";
+        final RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel().build();
+
+        registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
+        registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
+        registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
+
+        // table 1
+        final RdbmsTable rdbmsTable1 = newRdbmsTableBuilderInit(TEST_TABLE1_NAME)
+                .withSqlName(TEST_TABLE1_NAME)
+                .withFields(
+                        newRdbmsValueFieldBuilder()
+                                .withName(NUMBER_FIELD_NAME)
+                                .withUuid(TEST_TABLE1_NAME + "#" + NUMBER_FIELD_NAME)
+                                .withSqlName(NUMBER_FIELD_NAME)
+                                .withRdbmsTypeName("DECIMAL")
+                                .withStorageByte(1)
+                                .withScale(2)
+                                .withPrecision(3)
+                                .withSize(4)
+                                .withMandatory(true)
+                                .build()
+                )
+                .build();
+        rdbmsTable1.getPrimaryKey().setSqlName(rdbmsTable1.getPrimaryKey().getName());
+        rdbmsTable1.getPrimaryKey().setRdbmsTypeName("ID");
+
+        // table 2
+        final RdbmsTable rdbmsTable2 = newRdbmsTableBuilderInit(TEST_TABLE2_NAME)
+                .withSqlName(TEST_TABLE2_NAME)
+                .build();
+        rdbmsTable2.getPrimaryKey().setSqlName(rdbmsTable2.getPrimaryKey().getName());
+        rdbmsTable2.getPrimaryKey().setRdbmsTypeName("ID");
+
+        // junction table
+        final RdbmsJunctionTable rdbmsJunctionTable =
+                newRdbmsJunctionTableBuilderInit(TEST_JUNCTION_TABLE_NAME, rdbmsTable1, rdbmsTable2).build();
+
+        rdbmsJunctionTable.setSqlName(rdbmsJunctionTable.getName());
+        rdbmsJunctionTable.getPrimaryKey().setSqlName(rdbmsJunctionTable.getPrimaryKey().getName());
+        rdbmsJunctionTable.getPrimaryKey().setRdbmsTypeName("ID");
+        rdbmsJunctionTable.getField1().setSqlName(rdbmsJunctionTable.getField1().getName());
+        rdbmsJunctionTable.getField1().setRdbmsTypeName("FOREIGN_KEY");
+        rdbmsJunctionTable.getField2().setSqlName(rdbmsJunctionTable.getField2().getName());
+        rdbmsJunctionTable.getField2().setRdbmsTypeName("FOREIGN_KEY");
+
+        rdbmsModel.addContent(
+                newRdbmsModelBuilder()
+                        .withName(MODEL_NAME)
+                        .withRdbmsTables(rdbmsTable1)
+                        .withRdbmsTables(rdbmsTable2)
+                        .withRdbmsTables(rdbmsJunctionTable)
+                        .withConfiguration(
+                                newRdbmsConfigurationBuilder()
+                                        .withDialect("hsqldb")
+                                        .build()
+                        )
+                        .build()
+        );
+
+        return rdbmsModel;
+    }
+
+    @Test
+    void testEtlAndZetaEquivalence() throws Exception {
+        if (!ModelComparator.isComparisonEnabled()) {
+            log.info("Model comparison is disabled via system property");
+            return;
+        }
+
+        final String MODEL_NAME = "TestModel";
+
+        // Build model and run ETL
+        RdbmsModel rdbmsModelEtl = buildTestRdbmsModel();
+        LiquibaseModel liquibaseModelEtl = buildLiquibaseModel().name(MODEL_NAME).build();
+
+        executeRdbms2LiquibaseTransformation(rdbms2LiquibaseParameter()
+                .rdbmsModel(rdbmsModelEtl)
+                .liquibaseModel(liquibaseModelEtl)
+                .dialect("hsqldb"));
+
+        // Build model and run Zeta
+        RdbmsModel rdbmsModelZeta = buildTestRdbmsModel();
+        LiquibaseModel liquibaseModelZeta = buildLiquibaseModel().name(MODEL_NAME).build();
+
+        Rdbms2LiquibaseZetaTransformation zetaTransformation = Rdbms2LiquibaseZetaTransformation.builder()
+                .rdbmsModel(rdbmsModelZeta)
+                .liquibaseModel(liquibaseModelZeta)
+                .dialect("hsqldb")
+                .build();
+        zetaTransformation.execute();
+
+        // Compare models
+        ModelComparator.ComparisonResult result = ModelComparator.compare(
+                liquibaseModelEtl.getResourceSet().getResources().get(0).getContents().get(0),
+                liquibaseModelZeta.getResourceSet().getResources().get(0).getContents().get(0),
+                ModelComparator.getConfiguredMode()
+        );
+
+        if (result.isEquivalent()) {
+            log.info("SUCCESS: ETL and Zeta transformations produced equivalent models");
+        } else {
+            log.warn("Models have differences:\n{}", result.getSummary());
+            fail("ETL and Zeta models are not equivalent:\n" + result.getDetailedReport());
+        }
+    }
 }
