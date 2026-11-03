@@ -4,7 +4,7 @@
 
 `execute()` requires an `AsmModel` in the context (throws `IllegalArgumentException` otherwise), registers the NameMapping/DataTypes/TableMappingRules metamodels on the RDBMS resource set, then dispatches on `Asm2RdbmsWorkParameter.transformationMode`.
 
-Zeta path loads `mapping-<dialect>-rdbms.model` itself (via `UriResolver.resolve`, Epsilon-free), runs `Asm2RdbmsZetaTransformation`, and flattens the Zeta trace entries into the legacy `Map<EObject, List<EObject>>` so the result stays XMI-serialisable.
+Zeta path loads `mapping-<dialect>-rdbms.model` itself (via `UriResolver.resolve`, Epsilon-free), runs `Asm2RdbmsZetaTransformation`, and flattens the Zeta trace entries into the legacy `Map<EObject, List<EObject>>` so the result stays XMI-serialisable. `executeZetaTransformation` legacyTrace dedupes targets per source (identity): Zeta emits one entry per (source, rule[, discriminator]), so repeated targets would yield duplicate `RdbmsField` per attribute. Covered by `Asm2RdbmsWorkTest#testZetaTraceHasNoDuplicateTargets`. See change: split-etl-artifacts (esm-itest Zeta fixes).
 
 ETL/DUAL path: `EtlEngineRegistry.require(Asm2RdbmsEtlEngine.class, ARTIFACT_COORDINATES).execute(asm, rdbms, dialect, log, workParameter)`; missing add-on throws `EtlEngineMissingException` naming `judo-tatami-asm2rdbms-etl`. Constructors `(ctx, URI modelRoot, dialect)` and `(ctx, dialect)` (default root `ExcelMappingModels2Rdbms.calculateExcelMappingModelURI()`); the script-root `URI` parameter was removed. `Asm2RdbmsWorkParameter` has `@Getter` so the `-etl` engine reads it.
 

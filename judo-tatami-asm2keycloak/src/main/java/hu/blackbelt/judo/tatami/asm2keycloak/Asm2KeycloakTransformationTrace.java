@@ -143,8 +143,12 @@ public class Asm2KeycloakTransformationTrace implements TransformationTrace {
         if (zetaTrace != null) {
             Map<EObject, List<EObject>> legacyTrace = new java.util.LinkedHashMap<>();
             for (hu.blackbelt.judo.zeta.transformation.core.ElementResolutionCache.TraceEntry entry : zetaTrace.getEntries()) {
-                legacyTrace.computeIfAbsent(entry.getSource(), k -> new java.util.ArrayList<>())
-                        .add(entry.getTarget());
+                // Zeta records one entry per (source, rule[, discriminator]), so a target can repeat; the legacy
+                // source -> targets trace lists it once (EObject equality is identity). See change: split-etl-artifacts.
+                java.util.List<EObject> targets = legacyTrace.computeIfAbsent(entry.getSource(), k -> new java.util.ArrayList<>());
+                if (!targets.contains(entry.getTarget())) {
+                    targets.add(entry.getTarget());
+                }
             }
             return legacyTrace;
         }

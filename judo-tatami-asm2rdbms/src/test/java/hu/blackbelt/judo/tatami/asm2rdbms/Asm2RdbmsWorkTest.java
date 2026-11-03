@@ -26,8 +26,15 @@ import static hu.blackbelt.judo.tatami.psm2asm.etl.Psm2Asm.Psm2AsmParameter.psm2
 import static hu.blackbelt.judo.tatami.psm2asm.etl.Psm2Asm.executePsm2AsmTransformation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,6 +44,9 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.Lists;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.rdbms.RdbmsField;
+import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EObject;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngine;
 import hu.blackbelt.judo.tatami.core.workflow.flow.WorkFlow;
@@ -86,5 +96,37 @@ public class Asm2RdbmsWorkTest {
 
         log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
         assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+    }
+
+    /**
+     * The runtime (RdbmsResolver via TransformationTraceService) requires exactly one RdbmsField per ASM attribute.
+     * Zeta records one trace entry per (source, rule), so the same target can appear under several rules; the
+     * legacy source -> targets trace must not repeat it.
+     */
+    @Test
+    void testZetaTraceHasNoDuplicateTargets() {
+        WorkFlow workflow = aNewSequentialFlow().execute(asm2RdbmsWorks.toArray(new Work[asm2RdbmsWorks.size()])).build();
+        assertThat(aNewWorkFlowEngine().build().run(workflow).getStatus(), equalTo(WorkStatus.COMPLETED));
+
+        for (String dialect : DIALECT_LIST) {
+            Map<EObject, List<EObject>> trace = Asm2RdbmsWork.getAsm2RdbmsTrace(transformationContext, dialect)
+                    .orElseThrow().getTransformationTrace();
+            assertTrue(trace.keySet().stream().anyMatch(EAttribute.class::isInstance), "trace must contain attributes");
+            List<String> duplicated = trace.entrySet().stream()
+                    .filter(e -> {
+                        Set<EObject> unique = Collections.newSetFromMap(new IdentityHashMap<>());
+                        unique.addAll(e.getValue());
+                        return unique.size() != e.getValue().size();
+                    })
+                    .map(e -> String.valueOf(e.getKey()))
+                    .collect(Collectors.toList());
+            assertEquals(List.of(), duplicated, dialect + ": sources with duplicate trace targets");
+            trace.forEach((source, targets) -> {
+                if (source instanceof EAttribute) {
+                    assertEquals(1, targets.stream().filter(RdbmsField.class::isInstance).count(),
+                            dialect + ": RdbmsField targets of " + ((EAttribute) source).getName());
+                }
+            });
+        }
     }
 }
