@@ -478,6 +478,58 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- ETL add-ons (split-etl-artifacts): Epsilon reaches a classpath only through these -->
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-util-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-psm2asm-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-psm2measure-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-asm2rdbms-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-asm2keycloak-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-psm-validation-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-asm-validation-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-expression-psm-validation-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-expression-asm-validation-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-rdbms2liquibase-etl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>hu.blackbelt.judo.tatami</groupId>
                 <artifactId>judo-tatami-psm2measure</artifactId>
@@ -1035,16 +1087,26 @@
             </activation>
             <modules>
                 <module>judo-tatami-test-utils</module>
+                <module>judo-tatami-util-etl</module>
                 <module>judo-tatami-psm2asm</module>
+                <module>judo-tatami-psm2asm-etl</module>
                 <module>judo-tatami-psm2measure</module>
+                <module>judo-tatami-psm2measure-etl</module>
                 <module>judo-tatami-asm2rdbms</module>
+                <module>judo-tatami-asm2rdbms-etl</module>
                 <module>judo-tatami-rdbms2liquibase</module>
+                <module>judo-tatami-rdbms2liquibase-etl</module>
                 <module>judo-tatami-asm2expression</module>
                 <module>judo-tatami-psm-validation</module>
                 <module>judo-tatami-asm-validation</module>
                 <module>judo-tatami-expression-asm-validation</module>
                 <module>judo-tatami-expression-psm-validation</module>
                 <module>judo-tatami-asm2keycloak</module>
+                <module>judo-tatami-asm2keycloak-etl</module>
+                <module>judo-tatami-psm-validation-etl</module>
+                <module>judo-tatami-asm-validation-etl</module>
+                <module>judo-tatami-expression-psm-validation-etl</module>
+                <module>judo-tatami-expression-asm-validation-etl</module>
             </modules>
         </profile>
 

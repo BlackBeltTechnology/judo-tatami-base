@@ -20,46 +20,6 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 			</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-resources-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>copy-scripts</id>
-						<phase>process-resources</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${basedir}/target/classes/tatami/asm2keycloak</outputDirectory>
-							<resources>
-								<resource>
-									<directory>src/main/epsilon</directory>
-									<filtering>false</filtering>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
-
-					<execution>
-						<id>copy-models</id>
-						<phase>process-resources</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${basedir}/target/classes/tatami/asm2keycloak/model</outputDirectory>
-							<resources>
-								<resource>
-									<directory>model</directory>
-									<filtering>false</filtering>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
-
-				</executions>
-			</plugin>
 
 			<plugin>
 				<groupId>org.apache.felix</groupId>
@@ -69,34 +29,20 @@
 					<obrRepository>NONE</obrRepository>
 					<instructions>
 						<Export-Package>
-							tatami/asm2keycloak;version=${project.version},
 							hu.blackbelt.judo.tatami.asm2keycloak.*;version=${project.version}
 						</Export-Package>
-						<Include-Resource>
-							{maven-resources},
-							tatami=target/classes/tatami
-						</Include-Resource>
 						<Import-Package>
                             ${osgi-default-import},
                             *
 						</Import-Package>
-						<Asm2Keycloak-Transformation-ModelRoot>tatami/asm2keycloak/model</Asm2Keycloak-Transformation-ModelRoot>
-						<Asm2Keycloak-Transformation-ScriptRoot>tatami/asm2keycloak/transformations</Asm2Keycloak-Transformation-ScriptRoot>
 					</instructions>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
 
+	<!-- Zeta-only: no Epsilon. ETL lives in judo-tatami-asm2keycloak-etl (split-etl-artifacts). -->
 	<dependencies>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-execution</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-osgi</artifactId>
-        </dependency>
         <dependency>
 			<groupId>hu.blackbelt.judo.meta</groupId>
 			<artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
@@ -117,6 +63,12 @@
 		<dependency>
 			<groupId>hu.blackbelt.judo.tatami</groupId>
 			<artifactId>judo-tatami-psm2asm</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- test fixtures build the input ASM with the psm2asm ETL engine -->
+		<dependency>
+			<groupId>hu.blackbelt.judo.tatami</groupId>
+			<artifactId>judo-tatami-psm2asm-etl</artifactId>
 			<scope>test</scope>
 		</dependency>
 

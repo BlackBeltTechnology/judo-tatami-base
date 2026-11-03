@@ -1,6 +1,6 @@
 # `Asm2RdbmsHelper.java`
 
-Final, non-instantiable static facade the Zeta rule classes call for every naming, typing and identity decision, ported 1:1 from the EOL operation library under `epsilon/operations/`. Parity with that library is the invariant — a divergence here makes the ZETA and ETL engines emit different schemas for the same ASM model.
+Final, non-instantiable static facade the Zeta rule classes call for every naming, typing and identity decision, ported 1:1 from the EOL operation library under `judo-tatami-asm2rdbms-etl` `src/main/epsilon/operations/`. Parity with that library is the invariant — a divergence here makes the ZETA and ETL engines emit different schemas for the same ASM model.
 
 ## Identity
 
@@ -27,3 +27,5 @@ Length budgets and prefixes arrive as explicit parameters, not globals — the c
 ## Cache management
 
 `clearCaches()` empties both static caches. `Asm2RdbmsZetaTransformation.execute()` calls it first — two transformations run in one JVM without it would reuse the previous model's IDs. Caches are `ConcurrentHashMap`, so the class is safe under parallel rule execution.
+
+See change: split-etl-artifacts: ETL operation library moved to `judo-tatami-asm2rdbms-etl`; path reference updated.

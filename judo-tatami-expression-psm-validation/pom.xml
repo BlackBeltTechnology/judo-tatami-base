@@ -78,5 +78,15 @@
             <artifactId>judo-tatami-psm2measure</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm-etl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure-etl</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

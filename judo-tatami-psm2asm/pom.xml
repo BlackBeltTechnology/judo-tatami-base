@@ -20,30 +20,6 @@
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-scripts</id>
-                        <!-- here the phase you need -->
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${basedir}/target/classes/tatami/psm2asm</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/epsilon</directory>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
@@ -53,15 +29,10 @@
                         <Export-Package>
                             hu.blackbelt.judo.tatami.psm2asm.*;version=${project.version}
                         </Export-Package>
-                        <Include-Resource>
-                            tatami/=target/classes/tatami
-                        </Include-Resource>
-
                         <Import-Package>
                             ${osgi-default-import},
                             *
                         </Import-Package>
-                        <Psm2Asm-Transformation-ScriptRoot>tatami/psm2asm/transformations/asm</Psm2Asm-Transformation-ScriptRoot>
                     </instructions>
                 </configuration>
             </plugin>
@@ -104,15 +75,8 @@
         </pluginManagement>
     </build>
 
+    <!-- Zeta-only: no Epsilon. ETL lives in judo-tatami-psm2asm-etl (split-etl-artifacts). -->
     <dependencies>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-execution</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-osgi</artifactId>
-        </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.psm.model</artifactId>

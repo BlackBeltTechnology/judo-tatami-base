@@ -20,10 +20,10 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseZetaTransformation;
@@ -31,7 +31,6 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
-import java.net.URI;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel.buildLiquibaseModel;
@@ -39,6 +38,10 @@ import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelR
 import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
 import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
 
+/**
+ * RDBMS to Liquibase transformation work. Zeta runs in this (Epsilon-free) artifact; ETL/DUAL delegate to the
+ * optional {@link Rdbms2LiquibaseEtlEngine} add-on. See change: split-etl-artifacts.
+ */
 @Slf4j
 public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
 
@@ -59,18 +62,11 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
         TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
-    final URI transformationScriptRoot;
-
     private final String dialect;
 
-    public Rdbms2LiquibaseWork(TransformationContext transformationContext, URI transformationScriptRoot, String dialect) {
-        super(transformationContext);
-        this.transformationScriptRoot = transformationScriptRoot;
-        this.dialect = dialect;
-    }
-
     public Rdbms2LiquibaseWork(TransformationContext transformationContext, String dialect) {
-        this(transformationContext, Rdbms2Liquibase.calculateRdbms2LiquibaseTransformationScriptURI(), dialect);
+        super(transformationContext);
+        this.dialect = dialect;
     }
 
     public static Optional<RdbmsModel> getRdbmsModel(TransformationContext transformationContext, String dialect) {
@@ -129,16 +125,9 @@ public class Rdbms2LiquibaseWork extends AbstractTransformationWork {
     private void executeEtlTransformation(
             RdbmsModel rdbmsModel, LiquibaseModel liquibaseModel, Rdbms2LiquibaseWorkParameter workParam) throws Exception {
         
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            Rdbms2Liquibase.executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.rdbms2LiquibaseParameter()
-                    .rdbmsModel(rdbmsModel)
-                    .useCache(workParam.useCache)
-                    .parallel(workParam.parallel)
-                    .createTrace(workParam.createTrace)
-                    .liquibaseModel(liquibaseModel)
-                    .log((Logger)getTransformationContext().get(Logger.class).orElseGet(() -> logger))
-                    .scriptUri(transformationScriptRoot)
-                    .dialect(dialect));
-        }
+        EtlEngineRegistry.require(Rdbms2LiquibaseEtlEngine.class, Rdbms2LiquibaseEtlEngine.ARTIFACT_COORDINATES)
+                .execute(rdbmsModel, liquibaseModel, dialect,
+                        (Logger) getTransformationContext().get(Logger.class).orElse(null),
+                        workParam.createTrace, workParam.useCache, workParam.parallel);
     }
 }

@@ -20,13 +20,11 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.osgi;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
-import hu.blackbelt.epsilon.runtime.osgi.BundleURIHandler;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseNamespaceFixUriHandler;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase;
+import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2LiquibaseWork;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.URIHandler;
@@ -34,10 +32,11 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 
-import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
-import static hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2Liquibase.executeRdbms2LiquibaseTransformation;
-
+/**
+ * Runs the RDBMS to Liquibase transformation (hsqldb) through {@link Rdbms2LiquibaseWork}, honouring the
+ * transformation mode (ZETA by default); ETL requires the judo-tatami-rdbms2liquibase-etl bundle.
+ * See change: split-etl-artifacts.
+ */
 @Component(immediate = true, service = Rdbms2LiquibaseTranformationSerivce.class)
 @Slf4j
 public class Rdbms2LiquibaseTranformationSerivce {
@@ -52,7 +51,7 @@ public class Rdbms2LiquibaseTranformationSerivce {
     public LiquibaseModel install(RdbmsModel rdbmsModel) throws Exception {
         URIHandler liquibaseNamespaceFixUriHandlerFromBundle =
                 new LiquibaseNamespaceFixUriHandler(
-                        new BundleURIHandler("liquibase", "", bundleContext.getBundle())
+                        new BundleEntryURIHandler("liquibase", "", bundleContext.getBundle())
                 );
 
         URI liquibasUri = URI.createURI("liquibase:" + rdbmsModel.getName() + ".changlelog.xml");
@@ -64,24 +63,14 @@ public class Rdbms2LiquibaseTranformationSerivce {
                 .uriHandler(liquibaseNamespaceFixUriHandlerFromBundle)
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
+        String dialect = "hsqldb";
+        TransformationContext transformationContext = new TransformationContext(rdbmsModel.getName());
+        transformationContext.put("rdbms:" + dialect, rdbmsModel);
+        transformationContext.put(liquibaseModel);
         try {
-            java.net.URI scriptUri =
-                    bundleContext.getBundle()
-                            .getEntry("/tatami/rdbms2liquibase/transformations/rdbmsToLiquibase.etl")
-                            .toURI()
-                            .resolve(".");
-
-            executeRdbms2LiquibaseTransformation(Rdbms2Liquibase.Rdbms2LiquibaseParameter.rdbms2LiquibaseParameter()
-                    .rdbmsModel(rdbmsModel)
-                    .liquibaseModel(liquibaseModel)
-                    .log(logger)
-                    .scriptUri(scriptUri)
-                    .dialect("hsqldb"));
-
-            log.info(yellow("{}"), logger.getBuffer());
+            new Rdbms2LiquibaseWork(transformationContext, dialect).execute();
         } catch (Exception e) {
-            log.info(red("{}"), logger.getBuffer());
+            log.error("RDBMS to Liquibase transformation failed for model: " + rdbmsModel.getName(), e);
             throw e;
         }
 

@@ -1,6 +1,6 @@
 # `Psm2AsmHelper.java`
 
-778 lines, `hu.blackbelt.judo.tatami.psm2asm.zeta`. Static helper surface shared by every rule class in `rules/`. Java counterpart of the EOL operations in `../../../../../../../epsilon/transformations/asm/utils/`.
+778 lines, `hu.blackbelt.judo.tatami.psm2asm.zeta`. Static helper surface shared by every rule class in `rules/`. Java counterpart of the EOL operations in `judo-tatami-psm2asm-etl/src/main/epsilon/transformations/asm/utils/` (ETL add-on module).
 
 ## Identity and naming
 
@@ -41,3 +41,5 @@
 - All three caches are `static` `ConcurrentHashMap`s keyed by `EObject` / `NamespaceElement` instances. They are **global process state**, not per-transformation. `Psm2AsmZetaTransformation.execute()` calls `clearCaches()` as its first phase; any other entry point that skips that call leaks stale ids across models and pins the previous model's `EObject`s in memory.
 - Two transformations running concurrently in one JVM share these caches — the class is not safe for parallel multi-model use.
 - `getAnnotationUri` results must match `AsmUtils.getAnnotationUri` in the ETL path, or Zeta and ETL outputs diverge on annotation `source`.
+
+See change: split-etl-artifacts: ETL scripts moved to `judo-tatami-psm2asm-etl`; path references updated.

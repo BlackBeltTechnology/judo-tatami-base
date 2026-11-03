@@ -4,7 +4,7 @@
 
 ## What it holds
 
-179 `public static final String` constants, one per PSM→ASM rule name. Each constant's value is the **exact ETL rule name** from `../../../../../../../epsilon/transformations/asm/modules/*.etl`, e.g. `NAMESPACE_TO_PACKAGE = "NamespaceToPackage"`, `MODEL_TO_PACKAGE = "ModelToPackage"`, `MODEL_TO_PACKAGE_VERSION = "ModelToPackageVersion"`, `PACKAGE_TO_PACKAGE = "PackageToPackage"`, `CREATE_DOCUMENTATION_ANNOTATION = "CreateDocumentationAnnotation"`, `CREATE_ENUMERATION = "CreateEnumeration"`.
+179 `public static final String` constants, one per PSM→ASM rule name. Each constant's value is the **exact ETL rule name** from `judo-tatami-psm2asm-etl/src/main/epsilon/transformations/asm/modules/*.etl` (ETL add-on module), e.g. `NAMESPACE_TO_PACKAGE = "NamespaceToPackage"`, `MODEL_TO_PACKAGE = "ModelToPackage"`, `MODEL_TO_PACKAGE_VERSION = "ModelToPackageVersion"`, `PACKAGE_TO_PACKAGE = "PackageToPackage"`, `CREATE_DOCUMENTATION_ANNOTATION = "CreateDocumentationAnnotation"`, `CREATE_ENUMERATION = "CreateEnumeration"`.
 
 ## Sections (each names its ETL source module)
 
@@ -16,3 +16,5 @@
 - Values must stay byte-identical to the ETL rule names, including upstream misspellings, so the ETL and Zeta engines produce comparable traces.
 - Rule classes in `rules/` import these statically (`import static ...Psm2AsmRuleNames.*`). Never inline a rule name string in a rule class.
 - The `Split TransferOperation Rules (Type-optimized)` group has no ETL counterpart: those names exist only in the Zeta engine, so an ETL/Zeta trace diff will show them as Zeta-only entries.
+
+See change: split-etl-artifacts: ETL scripts moved to `judo-tatami-psm2asm-etl`; path references updated.

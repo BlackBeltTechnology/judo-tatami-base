@@ -34,11 +34,14 @@ Position relative to its neighbours:
 - **`judo-tatami-pipeline`** is *above* both: the newer pipeline runner that
   consumes these bundles as pipeline stages rather than as workflow `Work` items.
 
-Each step ships its rules **twice**: as Eclipse Epsilon ETL/EOL/EGL scripts under
-`src/main/epsilon/`, and as an annotated Java rule set under `.../zeta/rules`
-driven by the Zeta transformation core. Comparison and trace-equivalence tests
-hold the two engines to the same output — this dual-engine invariant, not any one
-engine, is the contract of this repository.
+Each dual-mode step ships its rules **twice**: as an annotated Java rule set under
+`.../zeta/rules` driven by the Zeta transformation core (core module, Epsilon-free,
+default engine), and as Eclipse Epsilon ETL/EOL/EGL scripts under `src/main/epsilon/`
+in a sibling `judo-tatami-X-etl` add-on module. Core `XWork` reaches the add-on only
+through the typed `XEtlEngine` contract (`EtlEngineRegistry`: `ServiceLoader` or OSGi DS).
+Comparison and trace-equivalence tests (in the `-etl` modules) hold the two engines to
+the same output — this dual-engine invariant, not any one engine, is the contract of
+this repository. See change: split-etl-artifacts.
 
 **Repository:** BlackBeltTechnology/judo-tatami-base ·
 **Artifact:** `hu.blackbelt.judo.tatami:judo-tatami-base-parent` (aggregator POM,
@@ -57,31 +60,51 @@ on it, and `psm2asm` precedes everything that needs an ASM to test against.
 
 <modules>
   <module>judo-tatami-test-utils</module>
+  <module>judo-tatami-util-etl</module>
   <module>judo-tatami-psm2asm</module>
+  <module>judo-tatami-psm2asm-etl</module>
   <module>judo-tatami-psm2measure</module>
+  <module>judo-tatami-psm2measure-etl</module>
   <module>judo-tatami-asm2rdbms</module>
+  <module>judo-tatami-asm2rdbms-etl</module>
   <module>judo-tatami-rdbms2liquibase</module>
+  <module>judo-tatami-rdbms2liquibase-etl</module>
   <module>judo-tatami-asm2expression</module>
   <module>judo-tatami-psm-validation</module>
+  <module>judo-tatami-psm-validation-etl</module>
   <module>judo-tatami-asm-validation</module>
+  <module>judo-tatami-asm-validation-etl</module>
   <module>judo-tatami-expression-asm-validation</module>
+  <module>judo-tatami-expression-asm-validation-etl</module>
   <module>judo-tatami-expression-psm-validation</module>
+  <module>judo-tatami-expression-psm-validation-etl</module>
   <module>judo-tatami-asm2keycloak</module>
+  <module>judo-tatami-asm2keycloak-etl</module>
 </modules>
 
 | Reactor module | Packaging | Reads → writes, and what it is for |
 |---|---|---|
-| `judo-tatami-test-utils` | `jar` | **Test infrastructure the other ten depend on — the only non-bundle here.** Generates realistic PSM/ASM/RDBMS model data at chosen scale (`RealisticPsmModelGenerator` and siblings) so performance numbers come from model shapes resembling real projects; supplies `StructuralModelComparator` / `ModelChecksumCalculator` for engine-vs-engine output diffing, `DualTraceComparator` for trace equivalence, and a JUnit 5 `ProfilingExtension` that drives the jvm-profiler agent and an LLM-backed hotspot analyser. Published as a normal jar because it is consumed at `test` scope, not deployed to a container. |
-| `judo-tatami-psm2asm` | `bundle` | **PSM → ASM.** The pivot of the estate: lowers platform-level namespaces, entity data, relations, transfer objects, actors, static/derived members and bound operations into the application-specific model every later step reads. Both engines present — ETL modules under `epsilon/transformations/asm/modules/` and `Psm2AsmZetaTransformation` with `zeta/rules/*Rules` — and `Psm2AsmTransformationTrace` records the source-to-target mapping consumers navigate. |
+| `judo-tatami-test-utils` | `jar` | **Test infrastructure every other module depends on — the only non-bundle here.** Generates realistic PSM/ASM/RDBMS model data at chosen scale (`RealisticPsmModelGenerator` and siblings) so performance numbers come from model shapes resembling real projects; supplies `StructuralModelComparator` / `ModelChecksumCalculator` for engine-vs-engine output diffing, `DualTraceComparator` for trace equivalence, and a JUnit 5 `ProfilingExtension` that drives the jvm-profiler agent and an LLM-backed hotspot analyser. Published as a normal jar because it is consumed at `test` scope, not deployed to a container. |
+| `judo-tatami-util-etl` | `bundle` | **Epsilon trace extraction.** `EtlTransformationTraceExtractor`: the two Epsilon-context trace methods moved from `judo-tatami-util`, so that artifact stays Epsilon-free. Used by `esm2psm`, `jsl2psm` and the `-etl` entry classes. |
+| `judo-tatami-psm2asm` | `bundle` | **PSM → ASM.** The pivot of the estate: lowers platform-level namespaces, entity data, relations, transfer objects, actors, static/derived members and bound operations into the application-specific model every later step reads. Both engines present — `Psm2AsmZetaTransformation` with `zeta/rules/*Rules` here, ETL modules under `epsilon/transformations/asm/modules/` in `judo-tatami-psm2asm-etl` — and `Psm2AsmTransformationTrace` records the source-to-target mapping consumers navigate. |
+| `judo-tatami-psm2asm-etl` | `bundle` | **ETL add-on for PSM → ASM.** Holds `etl/Psm2Asm` (package `.etl`), the `src/main/epsilon` scripts, `Psm2AsmEtlEngineImpl` + DS `Psm2AsmEtlEngineComponent` + `META-INF/services` registration, and the ETL/dual-engine/perf tests. Epsilon reaches a classpath only through it. |
 | `judo-tatami-psm2measure` | `bundle` | **PSM → Measure.** Splits the unit-of-measure world out of the PSM into a standalone measure model: measures, their units, and the conversion factors between them. Kept separate because the expression layer resolves a measured value against this model, not against the PSM — `asm2expression` and both expression validators consume it. |
-| `judo-tatami-asm2rdbms` | `bundle` | **ASM → RDBMS.** Turns application classes, attributes and references into tables, fields, foreign keys and constraints. Dialect-aware: `ExcelMappingModels2Rdbms` converts the Excel-authored type/name-mapping and rule workbooks into dialect mapping models at build time, so HSQLDB, PostgreSQL and Oracle each get correct types and identifier lengths; `AbbreviateUtils` shortens generated identifiers to the target's limit deterministically. |
-| `judo-tatami-rdbms2liquibase` | `bundle` | **RDBMS → Liquibase.** Emits the changelog that materialises a schema — full creation via `Rdbms2Liquibase`, and, via `Rdbms2LiquibaseIncremental`, the delta between two RDBMS model versions so an existing database can be migrated rather than rebuilt. The incremental path is decomposed into ordered sub-transformations (backup, checkup, data update before/after, drop backup); EGL templates generate the raw SQL fragments. Tests run against live HSQLDB/PostgreSQL/YugabyteDB containers. |
+| `judo-tatami-psm2measure-etl` | `bundle` | **ETL add-on for PSM → Measure.** Same shape as `psm2asm-etl`: `etl/Psm2Measure`, scripts, `Psm2MeasureEtlEngineImpl`, DS component, ETL/dual tests. |
+| `judo-tatami-asm2rdbms` | `bundle` | **ASM → RDBMS.** Turns application classes, attributes and references into tables, fields, foreign keys and constraints. Dialect-aware: `ExcelMappingModels2Rdbms` (plain Java, Epsilon-free) converts the CSV type/name-mapping and rule tables (`model/*.csv`, converted from the `.xlsx` workbooks now in `judo-tatami-asm2rdbms-etl`) into dialect mapping models at build time, so HSQLDB, PostgreSQL and Oracle each get correct types and identifier lengths; `AbbreviateUtils` shortens generated identifiers to the target's limit deterministically. |
+| `judo-tatami-asm2rdbms-etl` | `bundle` | **ETL add-on for ASM → RDBMS.** `etl/Asm2Rdbms`, scripts, engine adapter, the `.xlsx` workbooks + spreadsheet configs (parity reference only) and `ExcelMappingParityTest`, which proves the core CSV loader equals the original `excelTo*.etl` output. |
+| `judo-tatami-rdbms2liquibase` | `bundle` | **RDBMS → Liquibase.** Emits the changelog that materialises a schema — full creation via `Rdbms2Liquibase`, and, via `Rdbms2LiquibaseIncremental` (ETL/EGL-only, in `judo-tatami-rdbms2liquibase-etl`), the delta between two RDBMS model versions so an existing database can be migrated rather than rebuilt. The incremental path is decomposed into ordered sub-transformations (backup, checkup, data update before/after, drop backup); EGL templates generate the raw SQL fragments. Container-backed tests (HSQLDB/PostgreSQL/YugabyteDB) live in the `-etl` module. |
+| `judo-tatami-rdbms2liquibase-etl` | `bundle` | **ETL add-on for RDBMS → Liquibase.** `etl/Rdbms2Liquibase`, plus the ETL/EGL-only `Rdbms2LiquibaseIncremental` and `Rdbms2LiquibaseIncrementalWork`, scripts, engine adapter, container-backed tests. |
 | `judo-tatami-asm2expression` | `bundle` | **ASM (+ Measure) → Expression.** The one step with no Epsilon scripts: it parses the JQL bodies attached to an ASM and builds typed expression trees through the JQL expression builder, resolving names against the ASM adapter and units against the measure adapter. Produces the expression model the runtime evaluates for derived attributes, filters and default values. |
-| `judo-tatami-psm-validation` | `bundle` | **PSM → diagnostics.** Epsilon EVL constraints over the platform model, run before any lowering, so a structurally invalid PSM is rejected where the modeller can still recognise their own construct — rather than as an unexplainable ASM or SQL failure downstream. Produces no model. |
-| `judo-tatami-asm-validation` | `bundle` | **ASM → diagnostics.** EVL constraints on the lowered application model, catching invariants that only become expressible after `psm2asm` has run (hence its dependency on that module for test fixtures). Both a classic work item and a Zeta work item are published. |
-| `judo-tatami-expression-asm-validation` | `bundle` | **Expression + ASM (+ Measure) → diagnostics.** Checks that every built expression type-checks against the ASM it will actually be evaluated over, using the ASM and measure adapters. Depends on the real `psm2asm` / `psm2measure` / `asm2expression` chain so validation runs against genuinely produced models, never mocks. |
-| `judo-tatami-expression-psm-validation` | `bundle` | **Expression + PSM (+ ASM) → diagnostics.** The same check pushed up to the authoring layer: expressions are validated against the PSM adapter, so an error is reported in terms of the model the author wrote instead of the derived one. Answers "is this expression legal where it was written", which the ASM-side validator structurally cannot. |
+| `judo-tatami-psm-validation` | `bundle` | **PSM → diagnostics.** Constraints over the platform model, run before any lowering, so a structurally invalid PSM is rejected where the modeller can still recognise their own construct — rather than as an unexplainable ASM or SQL failure downstream. Produces no model. Epsilon-free core: `PsmValidationWork` is mode-aware (ZETA/DUAL → `PsmValidationZetaWork`; ETL → EVL via `PsmValidationEtlEngine` add-on). See change: split-etl-artifacts. |
+| `judo-tatami-psm-validation-etl` | `bundle` | **EVL add-on for PSM validation.** `etl/PsmValidationEtlEngineImpl` (`PsmEpsilonValidator.validatePsm`), DS `PsmValidationEtlEngineComponent`, `META-INF/services` registration, EVL `PsmValidationWorkTest`. Epsilon reaches a classpath only through it. See change: split-etl-artifacts. |
+| `judo-tatami-asm-validation` | `bundle` | **ASM → diagnostics.** Constraints on the lowered application model, catching invariants that only become expressible after `psm2asm` has run (hence its dependency on that module for test fixtures). Epsilon-free core: mode-aware `AsmValidationWork` (ZETA/DUAL → `AsmValidationZetaWork`; ETL → `AsmValidationEtlEngine` add-on). See change: split-etl-artifacts. |
+| `judo-tatami-asm-validation-etl` | `bundle` | **EVL add-on for ASM validation.** `etl/AsmValidationEtlEngineImpl` (`AsmEpsilonValidator.validateAsm`), DS component, `META-INF/services`, EVL `AsmValidationWorkTest`. See change: split-etl-artifacts. |
+| `judo-tatami-expression-asm-validation` | `bundle` | **Expression + ASM (+ Measure) → diagnostics.** Checks that every built expression type-checks against the ASM it will actually be evaluated over, using the ASM and measure adapters. Depends on the real `psm2asm` / `psm2measure` / `asm2expression` chain so validation runs against genuinely produced models, never mocks. Epsilon-free core: mode-aware `ExpressionValidationOnAsmWork` (ZETA/DUAL → Zeta work; ETL → `ExpressionValidationOnAsmEtlEngine` add-on). See change: split-etl-artifacts. |
+| `judo-tatami-expression-asm-validation-etl` | `bundle` | **EVL add-on for expression-on-ASM validation.** `etl/ExpressionValidationOnAsmEtlEngineImpl` (`ExpressionValidatorOnAsm.validateExpressionOnAsm`), DS component, `META-INF/services`, EVL `ExpressionValidationOnAsmWorkTest`. See change: split-etl-artifacts. |
+| `judo-tatami-expression-psm-validation` | `bundle` | **Expression + PSM (+ ASM) → diagnostics.** The same check pushed up to the authoring layer: expressions are validated against the PSM adapter, so an error is reported in terms of the model the author wrote instead of the derived one. Answers "is this expression legal where it was written", which the ASM-side validator structurally cannot. Epsilon-free core: mode-aware `ExpressionValidationOnPsmWork` (ZETA/DUAL → Zeta work; ETL → `ExpressionValidationOnPsmEtlEngine` add-on). See change: split-etl-artifacts. |
+| `judo-tatami-expression-psm-validation-etl` | `bundle` | **EVL add-on for expression-on-PSM validation.** `etl/ExpressionValidationOnPsmEtlEngineImpl` (`ExpressionValidatorOnPsm.validateExpressionOnPsm`), DS component, `META-INF/services`, EVL `ExpressionValidationOnPsmWorkTest` (`@Disabled`, pre-existing). See change: split-etl-artifacts. |
 | `judo-tatami-asm2keycloak` | `bundle` | **ASM → Keycloak.** Derives the identity and authorisation model from the actors declared in an ASM: a `Realm` with its `Client`s, grant flags and attribute bindings, ready for `judo-meta-keycloak` to export as realm-import JSON. Makes the security configuration of a generated application a transformation output rather than hand-maintained infrastructure. |
+| `judo-tatami-asm2keycloak-etl` | `bundle` | **ETL add-on for ASM → Keycloak.** `etl/Asm2Keycloak`, scripts, engine adapter, DS component, ETL/dual tests. |
 
 ## Module internal structure
 
@@ -90,8 +113,8 @@ Each transformation module follows this consistent layout:
 ```
 judo-tatami-{module}/
 ├── src/main/java/hu/blackbelt/judo/tatami/{module}/
-│   ├── {Module}.java                          # Transformation executor (static methods, @Builder parameter)
-│   ├── {Module}Work.java                      # Workflow integration (extends AbstractTransformationWork)
+│   ├── {Module}Work.java                      # Workflow integration (extends AbstractTransformationWork); ETL branch via EtlEngineRegistry
+│   ├── {Module}EtlEngine.java                 # Typed ETL engine contract + ARTIFACT_COORDINATES (dual-mode stages)
 │   ├── {Module}TransformationTrace.java       # Source→target EObject traceability
 │   ├── osgi/
 │   │   ├── {Module}Transformation{Model}Tracker.java  # OSGi model service tracker
@@ -100,14 +123,19 @@ judo-tatami-{module}/
 │       ├── {Module}ZetaTransformation.java    # Zeta-engine entry point
 │       ├── {Module}RuleNames.java             # Rule-name constants shared with traces
 │       └── rules/                             # Annotated Java transformation rules
-├── src/main/epsilon/transformations/
-│   ├── {sourceToTarget}.etl                   # Main ETL transformation script
-│   ├── modules/                               # Modular sub-transformation ETL scripts
-│   └── utils/                                 # Shared EOL utility operations
 ├── src/test/java/hu/blackbelt/judo/tatami/{module}/
-│   ├── {Module}Test.java                      # JUnit 5 tests
-│   └── perf/                                  # Performance + engine-comparison tests
-└── pom.xml                                    # Module POM (bundle packaging)
+│   ├── {Module}WorkTest.java                  # Core (Zeta) tests
+│   └── {Module}WorkEtlMissingTest.java        # ETL mode without add-on fails naming the artifact
+└── pom.xml                                    # Module POM (bundle packaging, no Epsilon)
+
+judo-tatami-{module}-etl/                      # ETL add-on (dual-mode stages only)
+├── src/main/java/.../{module}/etl/
+│   ├── {Module}.java                          # ETL executor (static methods, @Builder parameter)
+│   ├── {Module}EtlEngineImpl.java             # Implements core {Module}EtlEngine
+│   └── osgi/{Module}EtlEngineComponent.java   # DS component registering the engine
+├── src/main/resources/META-INF/services/      # ServiceLoader registration of the engine
+├── src/main/epsilon/transformations/          # {sourceToTarget}.etl, modules/, utils/ (EOL)
+└── src/test/java/.../{module}/                # ETL, dual-engine and perf tests
 ```
 
 > **Note:** The OSGi service class uses the legacy typo `Serivce` (not `Service`) in most modules.
@@ -140,7 +168,7 @@ The Maven wrapper (`./mvnw`) is included. JVM memory and module flags are config
 
 | Profile | Purpose |
 |---------|---------|
-| `modules` | Activates all 11 test-utility/transformation/validation submodules (active by default; disable with `-DskipModules=true`) |
+| `modules` | Activates all 21 test-utility/transformation/ETL-add-on/validation submodules (active by default; disable with `-DskipModules=true`) |
 | `performance` | Runs only the `performance`-tagged tests, sets `judo.test.profiler.enabled=true` and `judo.test.profiler.thresholdMs=100`, and attaches the jvm-profiler Java agent writing `Stacktrace.json` / `CpuAndMemory.json` into `target/profiler-output` |
 | `generate-checksum` | Generates SHA-256 checksums for build artifacts |
 | `sign-artifacts` | Signs artifacts with GPG for release |
@@ -218,15 +246,15 @@ round-trip.
 
 ## Scope guard — invariants an edit must not break
 
-1. **Epsilon scripts are the primary transformation logic** — Java code handles orchestration and framework integration, but the actual model transformation rules live in `.etl`, `.eol`, `.egl`, and `.evl` files under `src/main/epsilon/`
+1. **Epsilon scripts are the ETL transformation logic** — they live in the `-etl` add-on modules under `src/main/epsilon/`, and the EVL validators are reachable only through the validation `-etl` add-ons; core modules of dual-mode stages (including the four validation modules) are Epsilon-free and run Zeta by default
 2. **The `asm2expression` module is the exception** — it uses Java-based JQL expression building instead of Epsilon ETL scripts
 3. **OSGi service class naming typo** — most modules use `TransformationSerivce` (note the typo) rather than `TransformationService`; this is legacy and should be preserved for compatibility
-4. **Database dialect configuration** — `asm2rdbms` generates dialect-specific mapping models at compile time via `ExcelMappingModels2Rdbms` for HSQLDB, PostgreSQL, and Oracle
-5. **The `rdbms2liquibase` module supports incremental migrations** — `Rdbms2LiquibaseIncremental` compares two RDBMS model versions to generate only the changes
+4. **Database dialect configuration** — `asm2rdbms` generates dialect-specific mapping models at compile time via the plain-Java CSV loader `ExcelMappingModels2Rdbms` for HSQLDB, PostgreSQL, and Oracle; its output must equal the original ETL (`ExcelMappingParityTest` in `asm2rdbms-etl`)
+5. **The `rdbms2liquibase` module supports incremental migrations** — `Rdbms2LiquibaseIncremental` (in `rdbms2liquibase-etl`) compares two RDBMS model versions to generate only the changes
 6. **All transformations are traceable** — every ETL-based module produces `TransformationTrace` objects that map source EObjects to target EObjects, serializable for persistence
 7. **Builder pattern is pervasive** — all transformation parameters use Lombok `@Builder` with sensible defaults; look for the static builder method (e.g., `psm2AsmParameter()`)
-8. **Epsilon scripts are copied during build** — the `maven-resources-plugin` copies scripts from `src/main/epsilon/` to `target/classes/tatami/{module}/transformations/` at build time
-9. **The dual engine must stay in step** — where a module ships both Epsilon scripts and a Zeta rule set, comparison and trace tests assert identical output. Changing one side alone breaks the equivalence contract, not merely a test.
+8. **Epsilon scripts are copied during build** — the `maven-resources-plugin` of each `-etl` module copies scripts from `src/main/epsilon/` to `target/classes/tatami/{module}/transformations/` at build time
+9. **The dual engine must stay in step** — where a stage ships both Epsilon scripts (`-etl`) and a Zeta rule set (core), comparison and trace tests assert identical output. Changing one side alone breaks the equivalence contract, not merely a test.
 
 ## Code instructions
 

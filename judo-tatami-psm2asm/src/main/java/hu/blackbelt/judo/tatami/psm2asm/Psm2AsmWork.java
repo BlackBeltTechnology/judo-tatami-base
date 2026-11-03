@@ -20,11 +20,11 @@ package hu.blackbelt.judo.tatami.psm2asm;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.EmfPackages;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2asm.zeta.Psm2AsmZetaTransformation;
@@ -34,16 +34,16 @@ import org.slf4j.Logger;
 
 import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 
-import java.net.URI;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.buildAsmModel;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
 
+/**
+ * PSM to ASM transformation work. Zeta runs in this (Epsilon-free) artifact; ETL/DUAL delegate to the
+ * optional {@link Psm2AsmEtlEngine} add-on. See change: split-etl-artifacts.
+ */
 @Slf4j
 public class Psm2AsmWork extends AbstractTransformationWork {
-
-    final URI transformationScriptRoot;
 
     @Builder(builderMethodName = "psm2AsmWorkParameter")
     public static final class Psm2AsmWorkParameter {
@@ -62,13 +62,8 @@ public class Psm2AsmWork extends AbstractTransformationWork {
         TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
-    public Psm2AsmWork(TransformationContext transformationContext, URI transformationScriptRoot) {
-        super(transformationContext);
-        this.transformationScriptRoot = transformationScriptRoot;
-    }
-
     public Psm2AsmWork(TransformationContext transformationContext) {
-        this(transformationContext, Psm2Asm.calculatePsm2AsmTransformationScriptURI());
+        super(transformationContext);
     }
 
     @Override
@@ -82,7 +77,7 @@ public class Psm2AsmWork extends AbstractTransformationWork {
                         .build());
         getTransformationContext().put(asmModel);
 
-        EmfUtils.addEmfPackagesToResourceSet(asmModel.getResourceSet());
+        EmfPackages.addEmfPackagesToResourceSet(asmModel.getResourceSet());
 
         Psm2AsmWorkParameter workParam = getTransformationContext().getByClass(Psm2AsmWorkParameter.class)
                 .orElseGet(() -> Psm2AsmWork.Psm2AsmWorkParameter.psm2AsmWorkParameter().build());
@@ -121,16 +116,9 @@ public class Psm2AsmWork extends AbstractTransformationWork {
 
     private Psm2AsmTransformationTrace executeEtlTransformation(
             PsmModel psmModel, AsmModel asmModel, Psm2AsmWorkParameter workParam) throws Exception {
-        
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            return executePsm2AsmTransformation(Psm2Asm.Psm2AsmParameter.psm2AsmParameter()
-                    .psmModel(psmModel)
-                    .asmModel(asmModel)
-                    .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
-                    .scriptUri(transformationScriptRoot)
-                    .createTrace(workParam.createTrace)
-                    .useCache(workParam.useCache)
-                    .parallel(workParam.parallel));
-        }
+        return EtlEngineRegistry.require(Psm2AsmEtlEngine.class, Psm2AsmEtlEngine.ARTIFACT_COORDINATES)
+                .execute(psmModel, asmModel,
+                        getTransformationContext().getByClass(Logger.class).orElse(null),
+                        workParam.createTrace, workParam.useCache, workParam.parallel);
     }
 }

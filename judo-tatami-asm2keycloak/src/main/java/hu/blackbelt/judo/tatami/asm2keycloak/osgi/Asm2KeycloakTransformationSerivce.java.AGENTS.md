@@ -1,4 +1,6 @@
 # `Asm2KeycloakTransformationSerivce.java`
 
 Declares `@Component(service = Asm2KeycloakTransformationSerivce.class, immediate = true)`. Exports `activate(BundleContext)` and `install(AsmModel) : KeycloakModel`.
-Builds an empty `KeycloakModel` named/versioned after the ASM model, resolves the ETL script root from the bundle entry `/tatami/asm2keycloak/transformations/asmToKeycloak.etl`, runs `Asm2Keycloak.executeAsm2KeycloakTransformation`, and registers the resulting `Asm2KeycloakTransformationTrace` as a `TransformationTrace` service keyed by `AsmModel`. Always takes the ETL path — the Zeta engine is not reachable from this component. Bundle must ship the ETL scripts at that exact entry path or `getEntry(...)` returns null and `install` throws. Name misspells "Service" — DS wiring depends on the literal.
+Builds an empty `KeycloakModel` named/versioned after the ASM model, puts both models into a new `TransformationContext`, runs `new Asm2KeycloakWork(ctx).execute()` and registers the resulting `Asm2KeycloakTransformationTrace` (read from context; absent → `IllegalStateException`) as a `TransformationTrace` service keyed by `AsmModel`. Engine = `TransformationMode.fromSystemProperty()`, ZETA by default; ETL needs the `judo-tatami-asm2keycloak-etl` bundle. No bundle-entry script lookup, no Epsilon import. Failure logged with `log.error`, rethrown. Name misspells "Service" — DS wiring depends on the literal.
+
+See change: split-etl-artifacts: service runs through `Asm2KeycloakWork`; ETL branch no longer hard-wired.

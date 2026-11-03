@@ -20,21 +20,22 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.tatami.asm2rdbms.zeta.Asm2RdbmsZetaTransformation;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.UriResolver;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
 import lombok.Builder;
+import lombok.Getter;
 import org.eclipse.emf.ecore.EObject;
 
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.epsilon.common.util.UriUtil;
 import org.slf4j.Logger;
 
 import java.net.URI;
@@ -44,11 +45,15 @@ import static hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel.buildRdbmsModel;
 import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel;
 import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
 import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
-import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTransformation;
 
+/**
+ * ASM to RDBMS transformation work. Zeta runs in this (Epsilon-free) artifact; ETL/DUAL delegate to the
+ * optional {@link Asm2RdbmsEtlEngine} add-on. See change: split-etl-artifacts.
+ */
 @Slf4j
 public class Asm2RdbmsWork extends AbstractTransformationWork {
 
+    @Getter
     @Builder(builderMethodName = "asm2RdbmsWorkParameter")
     public static final class Asm2RdbmsWorkParameter {
         @Builder.Default
@@ -86,20 +91,19 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
         TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
-    final URI transformationScriptRoot;
+    /** Directory holding the mapping-&lt;dialect&gt;-rdbms.model files used by the Zeta path. */
     final URI modelRoot;
 
     private String dialect;
 
-    public Asm2RdbmsWork(TransformationContext transformationContext, URI transformationScriptRoot, URI modelRoot, String dialect) {
+    public Asm2RdbmsWork(TransformationContext transformationContext, URI modelRoot, String dialect) {
         super(transformationContext);
-        this.transformationScriptRoot = transformationScriptRoot;
         this.modelRoot = modelRoot;
         this.dialect = dialect;
     }
 
     public Asm2RdbmsWork(TransformationContext transformationContex, String dialect) {
-        this(transformationContex, Asm2Rdbms.calculateAsm2RdbmsTransformationScriptURI(), Asm2Rdbms.calculateAsm2RdbmsModelURI(), dialect);
+        this(transformationContex, ExcelMappingModels2Rdbms.calculateExcelMappingModelURI(), dialect);
     }
 
     public static void putModel(TransformationContext transformationContext, RdbmsModel rdbmsModel, String dialect) {
@@ -159,7 +163,7 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
                 RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
                         .validateModel(false)
                         .uri(org.eclipse.emf.common.util.URI.createURI("mem:mapping-" + dialect + "-rdbms"))
-                        .inputStream(UriUtil.resolve("mapping-" + dialect + "-rdbms.model", modelRoot)
+                        .inputStream(UriResolver.resolve("mapping-" + dialect + "-rdbms.model", modelRoot)
                                 .toURL()
                                 .openStream()));
         rdbmsModel.getResource().getContents().addAll(mappingModel.getResource().getContents());
@@ -200,28 +204,9 @@ public class Asm2RdbmsWork extends AbstractTransformationWork {
     private Asm2RdbmsTransformationTrace executeEtlTransformation(
             AsmModel asmModel, RdbmsModel rdbmsModel, Asm2RdbmsWorkParameter workParameter) throws Exception {
         
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            return executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
-                    .asmModel(asmModel)
-                    .rdbmsModel(rdbmsModel)
-                    .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
-                    .scriptUri(transformationScriptRoot)
-                    .excelModelUri(modelRoot)
-                    .dialect(dialect)
-                    .parallel(workParameter.parallel)
-                    .useCache(workParameter.useCache)
-                    .createTrace(workParameter.createTrace)
-                    .createSimpleName(workParameter.createSimpleName)
-                    .nameSize(workParameter.nameSize)
-                    .shortNameSize(workParameter.shortNameSize)
-                    .tableNameMaxSize(workParameter.tableNameMaxSize)
-                    .columnNameMaxSize(workParameter.columnMaxNameSize)
-                    .tablePrefix(workParameter.tablePrefix)
-                    .columnPrefix(workParameter.columnPrefix)
-                    .foreignKeyPrefix(workParameter.foreignKeyPrefix)
-                    .inverseForeignKeyPrefix(workParameter.inverseForeignKeyPrefix)
-                    .junctionTablePrefix(workParameter.junctionTablePrefix)
-            );
-        }
+        return EtlEngineRegistry.require(Asm2RdbmsEtlEngine.class, Asm2RdbmsEtlEngine.ARTIFACT_COORDINATES)
+                .execute(asmModel, rdbmsModel, dialect,
+                        getTransformationContext().getByClass(Logger.class).orElse(null),
+                        workParameter);
     }
 }

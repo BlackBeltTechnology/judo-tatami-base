@@ -25,23 +25,6 @@
 				<artifactId>maven-resources-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>copy-scripts</id>
-						<phase>process-resources</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${basedir}/target/classes/tatami/asm2rdbms</outputDirectory>
-							<resources>
-								<resource>
-									<directory>src/main/epsilon</directory>
-									<filtering>false</filtering>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
-
-					<execution>
 						<id>copy-models</id>
 						<phase>process-resources</phase>
 						<goals>
@@ -156,22 +139,15 @@
                             *
 						</Import-Package>
 						<Asm2Rdbms-Transformation-ModelRoot>tatami/asm2rdbms/model</Asm2Rdbms-Transformation-ModelRoot>
-						<Asm2Rdbms-Transformation-ScriptRoot>tatami/asm2rdbms/transformations</Asm2Rdbms-Transformation-ScriptRoot>
 					</instructions>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
 
+	<!-- Zeta-only: no Epsilon. ETL lives in judo-tatami-asm2rdbms-etl (split-etl-artifacts).
+	     The mapping tables are CSV (model/*.csv); the exec-maven-plugin generator above is plain Java. -->
 	<dependencies>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-execution</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-osgi</artifactId>
-        </dependency>
         <dependency>
 			<groupId>hu.blackbelt.judo.meta</groupId>
 			<artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
@@ -191,6 +167,12 @@
 		<dependency>
 			<groupId>hu.blackbelt.judo.tatami</groupId>
 			<artifactId>judo-tatami-psm2asm</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- test fixtures build the input ASM with the psm2asm ETL engine -->
+		<dependency>
+			<groupId>hu.blackbelt.judo.tatami</groupId>
+			<artifactId>judo-tatami-psm2asm-etl</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

@@ -40,7 +40,6 @@ import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.LoadArguments.psmLoadA
 import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.loadPsmModel;
 import static hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngineBuilder.aNewWorkFlowEngine;
 import static hu.blackbelt.judo.tatami.core.workflow.flow.SequentialFlow.Builder.aNewSequentialFlow;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.calculatePsm2MeasureTransformationScriptURI;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.PsmValidationException;
@@ -61,7 +60,7 @@ public class Psm2MeasureWorkTest {
         transformationContext = new TransformationContext(NORTHWIND);
         transformationContext.put(psmModel);
 
-        psm2measureWork = new Psm2MeasureWork(transformationContext, calculatePsm2MeasureTransformationScriptURI());
+        psm2measureWork = new Psm2MeasureWork(transformationContext);
     }
 
     @Test

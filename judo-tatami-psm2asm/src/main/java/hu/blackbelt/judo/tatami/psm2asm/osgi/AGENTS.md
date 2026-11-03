@@ -5,4 +5,4 @@ OSGi wiring for PSM→ASM: a tracker watching registered `PsmModel` services and
 | File | Purpose |
 |---|---|
 | `Psm2AsmTransformationPsmModelTracker.java` | `AbstractModelTracker<PsmModel>` DS component publishing derived `AsmModel` from `psmModel.getName()`-keyed OSGi registrations → see `Psm2AsmTransformationPsmModelTracker.java.AGENTS.md` |
-| `Psm2AsmTransformationSerivce.java` | Runs ETL PSM→ASM via `Psm2Asm.executePsm2AsmTransformation`, registers resulting `Psm2AsmTransformationTrace` as `TransformationTrace` service → see `Psm2AsmTransformationSerivce.java.AGENTS.md` |
+| `Psm2AsmTransformationSerivce.java` | Runs PSM→ASM via `Psm2AsmWork` (ZETA default; ETL needs `-etl` bundle), registers `Psm2AsmTransformationTrace` as `TransformationTrace` service → see `Psm2AsmTransformationSerivce.java.AGENTS.md`. See change: split-etl-artifacts. |

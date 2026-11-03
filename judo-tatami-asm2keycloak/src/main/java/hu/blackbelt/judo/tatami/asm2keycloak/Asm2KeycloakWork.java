@@ -20,11 +20,11 @@ package hu.blackbelt.judo.tatami.asm2keycloak;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.tatami.asm2keycloak.zeta.Asm2KeycloakZetaTransformation;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.zeta.transformation.core.TransformationTrace;
@@ -32,12 +32,14 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
-import java.net.URI;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel.buildKeycloakModel;
-import static hu.blackbelt.judo.tatami.asm2keycloak.Asm2Keycloak.executeAsm2KeycloakTransformation;
 
+/**
+ * ASM to Keycloak transformation work. Zeta runs in this (Epsilon-free) artifact; ETL/DUAL delegate to the
+ * optional {@link Asm2KeycloakEtlEngine} add-on. See change: split-etl-artifacts.
+ */
 @Slf4j
 public class Asm2KeycloakWork extends AbstractTransformationWork {
 
@@ -58,15 +60,8 @@ public class Asm2KeycloakWork extends AbstractTransformationWork {
         TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
-    final URI transformationScriptRoot;
-
-    public Asm2KeycloakWork(TransformationContext transformationContext, URI transformationScriptRoot) {
-        super(transformationContext);
-        this.transformationScriptRoot = transformationScriptRoot;
-    }
-
     public Asm2KeycloakWork(TransformationContext transformationContext) {
-        this(transformationContext, Asm2Keycloak.calculateAsm2KeycloakTransformationScriptURI());
+        super(transformationContext);
     }
 
     @Override
@@ -119,16 +114,9 @@ public class Asm2KeycloakWork extends AbstractTransformationWork {
     private Asm2KeycloakTransformationTrace executeEtlTransformation(
             AsmModel asmModel, KeycloakModel keycloakModel, Asm2KeycloakWorkParameter workParam) throws Exception {
         
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            return executeAsm2KeycloakTransformation(
-                    Asm2Keycloak.Asm2KeycloakParameter.asm2KeycloakParameter()
-                            .asmModel(asmModel)
-                            .keycloakModel(keycloakModel)
-                            .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
-                            .scriptUri(transformationScriptRoot)
-                            .createTrace(workParam.createTrace)
-                            .useCache(workParam.useCache)
-                            .parallel(workParam.parallel));
-        }
+        return EtlEngineRegistry.require(Asm2KeycloakEtlEngine.class, Asm2KeycloakEtlEngine.ARTIFACT_COORDINATES)
+                .execute(asmModel, keycloakModel,
+                        getTransformationContext().getByClass(Logger.class).orElse(null),
+                        workParam.createTrace, workParam.useCache, workParam.parallel);
     }
 }

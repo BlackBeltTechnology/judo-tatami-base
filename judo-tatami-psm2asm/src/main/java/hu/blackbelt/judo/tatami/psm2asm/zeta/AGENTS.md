@@ -1,6 +1,6 @@
 # judo-tatami-psm2asm/src/main/java/hu/blackbelt/judo/tatami/psm2asm/zeta
 
-Zeta (native Java) engine for PSM→ASM, the alternative to the Epsilon ETL scripts under `src/main/epsilon/transformations/asm/`. Rule classes live in `rules/`; this package holds the driver, the shared static helpers, and the rule-name constants that keep both engines trace-compatible.
+Zeta (native Java) engine for PSM→ASM, the alternative to the Epsilon ETL scripts under `judo-tatami-psm2asm-etl/src/main/epsilon/transformations/asm/` (ETL add-on module). Rule classes live in `rules/`; this package holds the driver, the shared static helpers, and the rule-name constants that keep both engines trace-compatible.
 
 | File | Purpose |
 |---|---|

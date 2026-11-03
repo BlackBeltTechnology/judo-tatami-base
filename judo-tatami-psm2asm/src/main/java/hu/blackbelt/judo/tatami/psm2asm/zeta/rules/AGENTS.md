@@ -1,6 +1,6 @@
 # judo-tatami-psm2asm/src/main/java/hu/blackbelt/judo/tatami/psm2asm/zeta/rules
 
-Zeta rule classes for PSM→ASM, one per ETL module in `src/main/epsilon/transformations/asm/modules/`. Each class carries `@TransformationContext(source = ..., target = ...)`, declares a public no-arg constructor for `TransformationRegistry`, and exposes `TransformGuard` / `TransformFunction<S,T>` factory methods. Rule names come from static `Psm2AsmRuleNames` constants; ASM tree mutation goes through `Psm2AsmHelper`. Registration order is fixed in `Psm2AsmZetaTransformation.createRegistry()`: Namespace → Type → Data → TransferObject → Derived → Static → Operation → BoundTransferOperationAnnotation → Actor.
+Zeta rule classes for PSM→ASM, one per ETL module in `judo-tatami-psm2asm-etl/src/main/epsilon/transformations/asm/modules/` (ETL add-on module). Each class carries `@TransformationContext(source = ..., target = ...)`, declares a public no-arg constructor for `TransformationRegistry`, and exposes `TransformGuard` / `TransformFunction<S,T>` factory methods. Rule names come from static `Psm2AsmRuleNames` constants; ASM tree mutation goes through `Psm2AsmHelper`. Registration order is fixed in `Psm2AsmZetaTransformation.createRegistry()`: Namespace → Type → Data → TransferObject → Derived → Static → Operation → BoundTransferOperationAnnotation → Actor.
 
 | File | Purpose |
 |---|---|

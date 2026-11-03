@@ -20,10 +20,10 @@ package hu.blackbelt.judo.tatami.psm2measure;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2measure.zeta.Psm2MeasureZetaTransformation;
@@ -32,12 +32,14 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
-import java.net.URI;
 import java.util.Optional;
 
 import static hu.blackbelt.judo.meta.measure.runtime.MeasureModel.buildMeasureModel;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
 
+/**
+ * PSM to Measure transformation work. Zeta runs in this (Epsilon-free) artifact; ETL/DUAL delegate to the
+ * optional {@link Psm2MeasureEtlEngine} add-on. See change: split-etl-artifacts.
+ */
 @Slf4j
 public class Psm2MeasureWork extends AbstractTransformationWork {
 
@@ -58,15 +60,8 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
         TransformationMode transformationMode = TransformationMode.fromSystemProperty();
     }
 
-    final URI transformationScriptRoot;
-
-    public Psm2MeasureWork(TransformationContext transformationContext, URI transformationScriptRoot) {
-        super(transformationContext);
-        this.transformationScriptRoot = transformationScriptRoot;
-    }
-
     public Psm2MeasureWork(TransformationContext transformationContext) {
-        this(transformationContext, Psm2Measure.calculatePsm2MeasureTransformationScriptURI());
+        super(transformationContext);
     }
 
     @Override
@@ -125,15 +120,9 @@ public class Psm2MeasureWork extends AbstractTransformationWork {
     private Psm2MeasureTransformationTrace executeEtlTransformation(
             PsmModel psmModel, MeasureModel measureModel, Psm2MeasureWorkParameter workParam) throws Exception {
         
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            return executePsm2MeasureTransformation(Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter()
-                    .psmModel(psmModel)
-                    .measureModel(measureModel)
-                    .log(getTransformationContext().getByClass(Logger.class).orElseGet(() -> logger))
-                    .scriptUri(transformationScriptRoot)
-                    .createTrace(workParam.createTrace)
-                    .useCache(workParam.useCache)
-                    .parallel(workParam.parallel));
-        }
+        return EtlEngineRegistry.require(Psm2MeasureEtlEngine.class, Psm2MeasureEtlEngine.ARTIFACT_COORDINATES)
+                .execute(psmModel, measureModel,
+                        getTransformationContext().getByClass(Logger.class).orElse(null),
+                        workParam.createTrace, workParam.useCache, workParam.parallel);
     }
 }

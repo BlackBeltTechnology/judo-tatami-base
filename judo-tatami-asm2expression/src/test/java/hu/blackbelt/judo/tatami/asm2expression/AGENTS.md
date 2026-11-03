@@ -4,5 +4,5 @@ Unit tests verifying ASM to Expression metamodel transformation direct API execu
 
 | File | Purpose |
 | --- | --- |
-| `Asm2ExpressionTest.java` | Tests standalone execution of `Asm2Expression.executeAsm2ExpressionGeneration()` against Northwind Demo PSM, ASM, and Measure models. Verifies generation and disk serialization of `northwind-expression.model`. |
-| `Asm2ExpressionWorkTest.java` | Tests `Asm2ExpressionWork` step execution within a `WorkFlowEngine` sequential workflow pipeline. Sets up Northwind PSM2ASM and PSM2Measure prerequisites in a shared `TransformationContext` and asserts `WorkStatus.COMPLETED`. |
+| `Asm2ExpressionTest.java` | Tests standalone execution of `Asm2Expression.executeAsm2ExpressionGeneration()` against Northwind Demo PSM, ASM, and Measure models. Verifies generation and disk serialization of `northwind-expression.model`. Test imports `Psm2Asm`/`Psm2Measure` ETL entry points from `-etl` artifacts (test scope, package `.etl`). See change: split-etl-artifacts. |
+| `Asm2ExpressionWorkTest.java` | Tests `Asm2ExpressionWork` step execution within a `WorkFlowEngine` sequential workflow pipeline. Sets up Northwind PSM2ASM and PSM2Measure prerequisites in a shared `TransformationContext` and asserts `WorkStatus.COMPLETED`. Test imports `Psm2Asm`/`Psm2Measure` ETL entry points from `-etl` artifacts (test scope, package `.etl`). See change: split-etl-artifacts. |
