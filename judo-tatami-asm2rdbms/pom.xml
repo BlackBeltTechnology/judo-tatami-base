@@ -148,6 +148,12 @@
 	<!-- Zeta-only: no Epsilon. ETL lives in judo-tatami-asm2rdbms-etl (split-etl-artifacts).
 	     The mapping tables are CSV (model/*.csv); the exec-maven-plugin generator above is plain Java. -->
 	<dependencies>
+		<!-- AbbreviateUtils; formerly transitive via Epsilon (meta.asm.model now has Epsilon as provided). split-etl-artifacts -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.14.0</version>
+		</dependency>
         <dependency>
 			<groupId>hu.blackbelt.judo.meta</groupId>
 			<artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
