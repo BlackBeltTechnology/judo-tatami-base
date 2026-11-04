@@ -1,0 +1,3 @@
+# `PsmValidationZetaWork.java`
+
+Validates `PsmModel` on the Zeta engine, no Epsilon. `execute()` calls `PsmValidator.validate(log, psmModel)` and returns a `List<ValidationResult>`; filters `Severity.ERROR` entries and throws `PsmJavaValidationException` carrying the full result list plus a `constraintName|message` set when any error exists. Non-error severities (warning/info) pass through and never fail the work — callers expecting EVL's stricter failure surface must check results themselves.

@@ -20,19 +20,33 @@ package hu.blackbelt.judo.tatami.asm.validation;
  * #L%
  */
 
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
-import hu.blackbelt.judo.meta.asm.runtime.AsmEpsilonValidator;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
+/**
+ * ASM validation work. ZETA/DUAL mode runs {@link AsmValidationZetaWork} (Epsilon-free, in this artifact);
+ * ETL mode delegates the EVL validation to the optional {@link AsmValidationEtlEngine} add-on ({@code judo-tatami-asm-validation-etl}).
+ * The mode comes from a {@link AsmValidationWorkParameter} in the context, else {@code judo.transformation.mode}.
+ * See change: split-etl-artifacts.
+ */
 @Slf4j
 public class AsmValidationWork extends AbstractTransformationWork {
+
+    @Builder(builderMethodName = "asmValidationWorkParameter")
+    @Getter
+    public static final class AsmValidationWorkParameter {
+        /** Validation engine; defaults to {@code judo.transformation.mode} (ZETA when unset). */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
+    }
 
     public AsmValidationWork(TransformationContext transformationContext) {
         super(transformationContext);
@@ -42,8 +56,17 @@ public class AsmValidationWork extends AbstractTransformationWork {
     public void execute() throws Exception {
         Optional<AsmModel> asmModel = getTransformationContext().getByClass(AsmModel.class);
         asmModel.orElseThrow(() -> new IllegalArgumentException("ASM Model does not found in transformation context"));
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            AsmEpsilonValidator.validateAsm(logger, asmModel.get(), AsmEpsilonValidator.calculateAsmValidationScriptURI());
+
+        AsmValidationWorkParameter workParam = getTransformationContext().getByClass(AsmValidationWorkParameter.class)
+                .orElseGet(() -> AsmValidationWorkParameter.asmValidationWorkParameter().build());
+
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing ASM validation using Zeta engine");
+            new AsmValidationZetaWork(getTransformationContext()).execute();
+        } else {
+            log.info("Executing ASM validation using EVL engine");
+            EtlEngineRegistry.require(AsmValidationEtlEngine.class, AsmValidationEtlEngine.ARTIFACT_COORDINATES)
+                    .validate(asmModel.get(), log);
         }
     }
 }

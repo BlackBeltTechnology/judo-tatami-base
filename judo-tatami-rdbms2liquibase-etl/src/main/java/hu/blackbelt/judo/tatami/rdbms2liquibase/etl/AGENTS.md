@@ -1,0 +1,8 @@
+# judo-tatami-rdbms2liquibase-etl/src/main/java/hu/blackbelt/judo/tatami/rdbms2liquibase/etl
+ETL entry point of the RDBMS→Liquibase stage plus its engine adapter. Sub-package `.etl` keeps core and add-on split-package free.
+| File | Purpose |
+|---|---|
+| `Rdbms2Liquibase.java` | Executes full-schema Epsilon ETL `RdbmsModel` → `LiquibaseModel`. Exports `executeRdbms2LiquibaseTransformation(Rdbms2LiquibaseParameter)`, `calculateRdbms2LiquibaseTransformationScriptURI()`. Package `.etl` (moved from core). See change: split-etl-artifacts. |
+| `Rdbms2LiquibaseEtlEngineImpl.java` | Implements core `Rdbms2LiquibaseEtlEngine`; `execute(rdbmsModel, liquibaseModel, dialect, log, createTrace, useCache, parallel)` builds `Rdbms2LiquibaseParameter` and calls `Rdbms2Liquibase.executeRdbms2LiquibaseTransformation`; returns `void` (result lands in `liquibaseModel`); `log` may be `null`. Loaded by `ServiceLoader` or `Rdbms2LiquibaseEtlEngineComponent`. See change: split-etl-artifacts. |
+| `Rdbms2LiquibaseIncremental.java` | Incremental migration pipeline: `incrementalRdbmsModel` → phased Liquibase changelog models + backup SQL via EGL. Exports `executeRdbms2LiquibaseIncrementalTransformation(Rdbms2LiquibaseIncrementalParameter)`. ETL/EGL-only; package `.etl` (moved from core). See change: split-etl-artifacts. |
+| `Rdbms2LiquibaseIncrementalWork.java` | Workflow task extending `AbstractTransformationWork`; runs incremental migration per dialect, reads `rdbms-incremental:<dialect>` from context, records output models and script dirs. ETL-only; package `.etl` (moved from core). See change: split-etl-artifacts. |

@@ -1,0 +1,4 @@
+# `TypeRules.java`
+
+Port of `type.etl`. Emits one `EDataType`/`EEnum` per PSM type: `createEnumeration`, `createStringType`, `createIntegerType`, `createDecimalType`, `createBooleanType`, `createBinaryType`, `createDateType`, `createTimestampType`, `createTimeType`, `createCustomType`, plus annotations `createMeasuredAnnotationOfIntegerType`, `createBinaryConstraintsAnnotation`. Guards `isIntegerGuard`, `isDecimalGuard`, `isCustomTypeGuard`.
+`isCustomTypeGuard` is catch-all counterpart of EOL `type.eol` else-branch — must stay mutually exclusive with integer/decimal guards or numeric type gets both numeric and custom classifier. Registered at phase 2 so classifiers exist before `DataRules` references them.

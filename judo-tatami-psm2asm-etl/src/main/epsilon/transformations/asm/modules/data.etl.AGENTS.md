@@ -1,0 +1,5 @@
+# `data.etl`
+
+Maps the PSM entity layer to ASM classes, attributes and references. Emits `EClass` per `EntityType` (`CreateEntityClass`, carries `abstract`, `eSuperTypes` from `superEntityTypes`, attaches to the containing namespace package), `EAttribute` per `Attribute` (`CreateAttribute`), `EReference` per `Relation` via `@abstract CreateRelation` specialised by `CreateAssociationEndRelation` and `CreateContainmentRelation`.
+Annotation rules add `entity`, `defaultRepresentation`, identifier, unmapped-default-only and documentation markers; constraint rules form an `@abstract AddAttributeConstraints` hierarchy (`AddStringAttributeConstraints`, `AddCustomAttributeConstraints`, `@abstract AddAbstractNumericAttributeConstraints` → `AddNumericAttributeConstraints` / `AddMeasuredAttributeConstraints`). `@abstract CreateSequence` is specialised by `CreateNamespaceSequence` and `CreateEntitySequence`.
+Annotation rules resolve their owner via the named equivalent `s.equivalent("CreateEntityClass")` — renaming `CreateEntityClass` silently breaks every one of them.
