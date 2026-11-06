@@ -105,6 +105,7 @@
         <judo-meta-keycloak-version>1.0.1.20261103_233212_f93e1fba_feature_JNG_6349_AddZetaValidatiob</judo-meta-keycloak-version>
         <judo-meta-measure-version>1.0.2.20261103_233614_dd7c37db_feature_JNG_6349_AddZetaValidatiob</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20261103_233219_79331be6_feature_JNG_6349_AddZetaValidatiob</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.3.20261103_233303_0a513a0c_feature_JNG_6349_AddZetaValidatiob</judo-meta-query-version>
         <judo-dispatcher-api-version>1.0.3.20260311_104219_ef26bd53_develop</judo-dispatcher-api-version>
 
         <xtext-version>2.39.0</xtext-version>
@@ -389,6 +390,11 @@
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
+                <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
+                <version>${judo-meta-query-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.measure.osgi</artifactId>
                 <version>${judo-meta-measure-version}</version>
             </dependency>
@@ -451,6 +457,12 @@
             <dependency>
                 <groupId>hu.blackbelt.judo.tatami</groupId>
                 <artifactId>judo-tatami-asm2expression</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-asm2query</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -1097,6 +1109,7 @@
                 <module>judo-tatami-rdbms2liquibase</module>
                 <module>judo-tatami-rdbms2liquibase-etl</module>
                 <module>judo-tatami-asm2expression</module>
+                <module>judo-tatami-asm2query</module>
                 <module>judo-tatami-psm-validation</module>
                 <module>judo-tatami-asm-validation</module>
                 <module>judo-tatami-expression-asm-validation</module>

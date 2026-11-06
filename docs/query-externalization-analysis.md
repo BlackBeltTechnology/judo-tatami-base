@@ -1,5 +1,10 @@
 # Query Model Externalization: From Runtime-Core to Tatami-Base
 
+> **Superseded** by the OpenSpec change `persisted-query-model` (`openspec/changes/persisted-query-model/`, capability
+> `asm2query`): the builder moves into `judo-tatami-asm2query` (package `hu.blackbelt.judo.tatami.asm2query`, no `internal`
+> package), the query model is saved as `<name>-query.model` with a persisted `QueryModelInfo` index and loaded by the
+> runtime at boot instead of being built lazily. This analysis is kept as background only.
+
 ## Executive Summary
 
 The **query model** is currently built at runtime inside `judo-runtime-core` by the `QueryFactory` class. It transforms ASM + Expression models into a logical query model (`judo-meta-query`) that represents SQL SELECT structures for mapped transfer object types. This document analyzes how to externalize this build-time transformation into `judo-tatami-base` as a new `judo-tatami-asm2query` module, following the same pattern as existing transformations (psm2asm, asm2rdbms, etc.).

@@ -320,6 +320,11 @@ Load SHALL decode `EJavaObject` values through an `XMLHelper` override with a pe
 - **WHEN** `Asm2QueryWork` runs
 - **THEN** `getByClass(ExpressionModel.class)` is the same instance, `EqualityHelper`-equal to the copy, and one `QueryModel` is present
 
+#### Scenario: Iterator variables are not left in the expression model
+- **GIVEN** collection expressions without an iterator variable (the converters create one with `createIterator`, which attaches it to the expression model)
+- **WHEN** `Asm2QueryWork` builds with `preserveExpressionModel` set
+- **THEN** every iterator variable created by the build is removed again, so the expression model saved next to the query model does not depend on the query stage; a build without the setting keeps the historic behaviour
+
 #### Scenario: Expression model absent
 - **WHEN** the context has no `ExpressionModel`
 - **THEN** the work is skipped with a WARN and no `QueryModel` is put into the context

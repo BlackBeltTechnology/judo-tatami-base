@@ -47,8 +47,9 @@ public class Asm2ExpressionWork extends AbstractTransformationWork {
 
         Optional<MeasureModel> measureModel = getTransformationContext().getByClass(MeasureModel.class);
 
+        final Optional<ExpressionModel> preloadedExpressionModel = getTransformationContext().getByClass(ExpressionModel.class);
         ExpressionModel
-                expressionModel = getTransformationContext().getByClass(ExpressionModel.class)
+                expressionModel = preloadedExpressionModel
                 .orElseGet(() -> {
                         EmfPackages.addEmfPackagesToResourceSet(asmModel.get().getResourceSet());
                         return buildExpressionModel()
@@ -57,6 +58,10 @@ public class Asm2ExpressionWork extends AbstractTransformationWork {
                         .build();
                 });
         getTransformationContext().put(expressionModel);
+        // downstream stages (query model) only build over a model created in this run
+        getTransformationContext().put(preloadedExpressionModel.isPresent()
+                ? ExpressionModelOrigin.PRELOADED
+                : ExpressionModelOrigin.CREATED_IN_THIS_RUN);
 
         Asm2ExpressionConfiguration config = getTransformationContext().getByClass(Asm2ExpressionConfiguration.class)
                 .orElse(new Asm2ExpressionConfiguration());
