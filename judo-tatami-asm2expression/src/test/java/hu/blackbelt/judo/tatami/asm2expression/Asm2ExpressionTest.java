@@ -20,19 +20,19 @@ package hu.blackbelt.judo.tatami.asm2expression;
  * #L%
  */
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static hu.blackbelt.judo.meta.expression.runtime.ExpressionModel.buildExpressionModel;
 import static hu.blackbelt.judo.meta.expression.runtime.ExpressionModel.SaveArguments.expressionSaveArgumentsBuilder;
 import static hu.blackbelt.judo.tatami.asm2expression.Asm2Expression.Asm2ExpressionParameter.asm2ExpressionParameter;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
+import static hu.blackbelt.judo.tatami.psm2asm.etl.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
+import static hu.blackbelt.judo.tatami.psm2asm.etl.Psm2Asm.executePsm2AsmTransformation;
+import static hu.blackbelt.judo.tatami.psm2measure.etl.Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter;
+import static hu.blackbelt.judo.tatami.psm2measure.etl.Psm2Measure.executePsm2MeasureTransformation;
 
 import java.io.File;
 import java.io.FileOutputStream;
 
-import hu.blackbelt.judo.tatami.psm2asm.Psm2Asm;
-import hu.blackbelt.judo.tatami.psm2measure.Psm2Measure;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -99,5 +99,22 @@ public class Asm2ExpressionTest {
         expressionModel.saveExpressionModel(expressionSaveArgumentsBuilder()
                 .outputStream(new FileOutputStream(new File(TARGET_TEST_CLASSES, NORTHWIND_EXPRESSION_MODEL))));
 
+    }
+
+    @Test
+    public void testDefaultConfigurationDoesNotRestrictLambdaScope() throws Exception {
+        assertThat("default lambda scope resolution is not restricted to the current scope",
+                new Asm2ExpressionConfiguration().isResolveOnlyCurrentLambdaScope(), equalTo(false));
+
+        // default configuration (lambda=false) and the explicit legacy value both extract
+        Asm2Expression.executeAsm2Expression(asm2ExpressionParameter()
+                .asmModel(asmModel)
+                .measureModel(measureModel)
+                .expressionModel(expressionModel));
+        assertThat(expressionModel.getResourceSet().getResources().isEmpty(), equalTo(false));
+
+        final Asm2ExpressionConfiguration legacy = new Asm2ExpressionConfiguration();
+        legacy.setResolveOnlyCurrentLambdaScope(true);
+        assertThat(legacy.isResolveOnlyCurrentLambdaScope(), equalTo(true));
     }
 }

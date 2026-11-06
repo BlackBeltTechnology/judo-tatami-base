@@ -20,18 +20,34 @@ package hu.blackbelt.judo.tatami.expression.psm.validation;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
-import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
-import hu.blackbelt.judo.meta.expression.adapters.psm.ExpressionValidatorOnPsm;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
+import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
+/**
+ * expression-on-PSM validation work. ZETA/DUAL mode runs {@link ExpressionValidationOnPsmZetaWork} (Epsilon-free, in this artifact);
+ * ETL mode delegates the EVL validation to the optional {@link ExpressionValidationOnPsmEtlEngine} add-on ({@code judo-tatami-expression-psm-validation-etl}).
+ * The mode comes from a {@link ExpressionValidationOnPsmWorkParameter} in the context, else {@code judo.transformation.mode}.
+ * See change: split-etl-artifacts.
+ */
 @Slf4j
 public class ExpressionValidationOnPsmWork extends AbstractTransformationWork {
+
+    @Builder(builderMethodName = "expressionValidationOnPsmWorkParameter")
+    @Getter
+    public static final class ExpressionValidationOnPsmWorkParameter {
+        /** Validation engine; defaults to {@code judo.transformation.mode} (ZETA when unset). */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
+    }
 
     public ExpressionValidationOnPsmWork(TransformationContext transformationContext) {
         super(transformationContext);
@@ -39,17 +55,21 @@ public class ExpressionValidationOnPsmWork extends AbstractTransformationWork {
 
     @Override
     public void execute() throws Exception {
-
         Optional<ExpressionModel> expressionModel = getTransformationContext().getByClass(ExpressionModel.class);
         expressionModel.orElseThrow(() -> new IllegalArgumentException("Expression Model does not found in transformation context"));
-
         Optional<PsmModel> psmModel = getTransformationContext().getByClass(PsmModel.class);
         psmModel.orElseThrow(() -> new IllegalArgumentException("PSM Model does not found in transformation context"));
 
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            ExpressionValidatorOnPsm.validateExpressionOnPsm(logger,
-                    psmModel.get(),
-                    expressionModel.get());
+        ExpressionValidationOnPsmWorkParameter workParam = getTransformationContext().getByClass(ExpressionValidationOnPsmWorkParameter.class)
+                .orElseGet(() -> ExpressionValidationOnPsmWorkParameter.expressionValidationOnPsmWorkParameter().build());
+
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing expression-on-PSM validation using Zeta engine");
+            new ExpressionValidationOnPsmZetaWork(getTransformationContext()).execute();
+        } else {
+            log.info("Executing expression-on-PSM validation using EVL engine");
+            EtlEngineRegistry.require(ExpressionValidationOnPsmEtlEngine.class, ExpressionValidationOnPsmEtlEngine.ARTIFACT_COORDINATES)
+                    .validate(expressionModel.get(), psmModel.get(), log);
         }
     }
 }

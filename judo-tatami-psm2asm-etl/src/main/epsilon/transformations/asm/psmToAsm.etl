@@ -1,0 +1,51 @@
+import "modules/actor.etl";
+import "modules/derived.etl";
+import "modules/data.etl";
+import "modules/operation.etl";
+import "modules/namespace.etl";
+import "modules/transferObject.etl";
+import "modules/type.etl";
+import "modules/static.etl";
+
+post {
+    // Debug: Log model state before enrichWithAnnotations
+    var entityAnnotations = ASM!EClass.all.collect(c | c.eAnnotations.size()).sum();
+    var operationAnnotations = ASM!EOperation.all.collect(o | o.eAnnotations.size()).sum();
+    var parameterAnnotations = ASM!EParameter.all.collect(p | p.eAnnotations.size()).sum();
+    var attributeAnnotations = ASM!EAttribute.all.collect(a | a.eAnnotations.size()).sum();
+    var referenceAnnotations = ASM!EReference.all.collect(r | r.eAnnotations.size()).sum();
+    log.debug("=== ETL MODEL STATE BEFORE enrichWithAnnotations ===");
+    log.debug("  EClass annotations: " + entityAnnotations);
+    log.debug("  EOperation annotations: " + operationAnnotations);
+    log.debug("  EParameter annotations: " + parameterAnnotations);
+    log.debug("  EAttribute annotations: " + attributeAnnotations);
+    log.debug("  EReference annotations: " + referenceAnnotations);
+    log.debug("  Total: " + (entityAnnotations + operationAnnotations + parameterAnnotations + attributeAnnotations + referenceAnnotations));
+
+    asmUtils.enrichWithAnnotations();
+
+    // Debug: Log model state after enrichWithAnnotations
+    var entityAnnotationsAfter = ASM!EClass.all.collect(c | c.eAnnotations.size()).sum();
+    var operationAnnotationsAfter = ASM!EOperation.all.collect(o | o.eAnnotations.size()).sum();
+    var parameterAnnotationsAfter = ASM!EParameter.all.collect(p | p.eAnnotations.size()).sum();
+    var attributeAnnotationsAfter = ASM!EAttribute.all.collect(a | a.eAnnotations.size()).sum();
+    var referenceAnnotationsAfter = ASM!EReference.all.collect(r | r.eAnnotations.size()).sum();
+    log.debug("=== ETL MODEL STATE AFTER enrichWithAnnotations ===");
+    log.debug("  EClass annotations: " + entityAnnotationsAfter);
+    log.debug("  EOperation annotations: " + operationAnnotationsAfter);
+    log.debug("  EParameter annotations: " + parameterAnnotationsAfter);
+    log.debug("  EAttribute annotations: " + attributeAnnotationsAfter);
+    log.debug("  EReference annotations: " + referenceAnnotationsAfter);
+
+    for (a in ASM!EAnnotation.all) {
+        for (d in a.details) {
+            if (d.getId().startsWith("_")) {
+                var oldId = d.getId();
+                d.setId(a.getId() + "/Value");
+                log.debug("Annotation detail id updated: " + oldId + " -> " + d.getId());
+            }
+        }
+    }
+
+    // asmUtils.validateUniqueXmiids();
+}

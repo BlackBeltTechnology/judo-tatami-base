@@ -25,7 +25,6 @@ import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.SaveArguments.psmSaveA
 
 import static hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngineBuilder.aNewWorkFlowEngine;
 import static hu.blackbelt.judo.tatami.core.workflow.flow.SequentialFlow.Builder.aNewSequentialFlow;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.calculatePsm2AsmTransformationScriptURI;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -67,7 +66,7 @@ class Psm2AsmWorkTest {
         transformationContext = new TransformationContext(NORTHWIND);
         transformationContext.put(psmModel);
 
-        psm2AsmWork = new Psm2AsmWork(transformationContext, calculatePsm2AsmTransformationScriptURI());
+        psm2AsmWork = new Psm2AsmWork(transformationContext);
     }
 
     @Test

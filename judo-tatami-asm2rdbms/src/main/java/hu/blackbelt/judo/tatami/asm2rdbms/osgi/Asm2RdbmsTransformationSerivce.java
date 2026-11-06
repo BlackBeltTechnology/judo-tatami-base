@@ -21,13 +21,12 @@ package hu.blackbelt.judo.tatami.asm2rdbms.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
+import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsWork;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
+import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.osgi.framework.BundleContext;
@@ -38,13 +37,10 @@ import org.osgi.service.component.annotations.Component;
 import java.util.Hashtable;
 import java.util.Map;
 
-import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel;
-import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
-import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
-import static hu.blackbelt.judo.tatami.asm2rdbms.Asm2Rdbms.executeAsm2RdbmsTransformation;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
-
+/**
+ * Runs the ASM to RDBMS transformation through {@link Asm2RdbmsWork}, honouring the transformation mode
+ * (ZETA by default); ETL requires the judo-tatami-asm2rdbms-etl bundle. See change: split-etl-artifacts.
+ */
 
 @Component(immediate = true, service = Asm2RdbmsTransformationSerivce.class)
 @Slf4j
@@ -65,41 +61,22 @@ public class Asm2RdbmsTransformationSerivce {
                 .uri(URI.createURI("rdbms:" + asmModel.getName() + ".model"))
                 .build();
 
-        // The RDBMS model resourceset have to know the mapping models
-        registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
-        registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
-        registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
-
-        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
+        // Asm2RdbmsWork registers the mapping metamodels on the RDBMS resource set
+        TransformationContext transformationContext = new TransformationContext(asmModel.getName());
+        transformationContext.put(asmModel);
+        transformationContext.put(rdbmsModel);
         try {
-            java.net.URI scriptUri =
-                    bundleContext.getBundle()
-                            .getEntry("/tatami/asm2rdbms/transformations/asmToRdbms.etl")
-                            .toURI()
-                            .resolve(".");
-
-            java.net.URI excelModelUri =
-                    bundleContext.getBundle()
-                            .getEntry("/tatami/asm2rdbms/model/typemapping.xml")
-                            .toURI()
-                            .resolve(".");
-
-            Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = executeAsm2RdbmsTransformation(Asm2Rdbms.Asm2RdbmsParameter.asm2RdbmsParameter()
-                            .asmModel(asmModel)
-                            .rdbmsModel(rdbmsModel)
-                            .log(logger)
-                            .scriptUri(scriptUri)
-                            .excelModelUri(excelModelUri)
-                            .dialect(dialect));
-
-            asm2rdbmsTransformationTraceRegistration.put(asmModel,
-                    bundleContext.registerService(TransformationTrace.class, asm2RdbmsTransformationTrace, new Hashtable<>()));
-
-            log.info(yellow("{}"), logger.getBuffer());
+            new Asm2RdbmsWork(transformationContext, dialect).execute();
         } catch (Exception e) {
-            log.info(red("{}"), logger.getBuffer());
+            log.error("ASM to RDBMS transformation failed for model: " + asmModel.getName(), e);
             throw e;
         }
+        Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace = Asm2RdbmsWork
+                .getAsm2RdbmsTrace(transformationContext, dialect)
+                .orElseThrow(() -> new IllegalStateException("ASM to RDBMS transformation produced no trace"));
+
+        asm2rdbmsTransformationTraceRegistration.put(asmModel,
+                bundleContext.registerService(TransformationTrace.class, asm2RdbmsTransformationTrace, new Hashtable<>()));
         return rdbmsModel;
     }
 

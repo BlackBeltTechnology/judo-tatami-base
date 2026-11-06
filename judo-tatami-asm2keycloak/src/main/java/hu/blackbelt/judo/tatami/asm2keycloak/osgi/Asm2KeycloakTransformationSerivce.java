@@ -21,14 +21,12 @@ package hu.blackbelt.judo.tatami.asm2keycloak.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
-import hu.blackbelt.judo.tatami.asm2keycloak.Asm2Keycloak;
 import hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakTransformationTrace;
+import hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakWork;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
+import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.osgi.framework.BundleContext;
@@ -39,10 +37,10 @@ import org.osgi.service.component.annotations.Component;
 import java.util.Hashtable;
 import java.util.Map;
 
-import static hu.blackbelt.judo.tatami.asm2keycloak.Asm2Keycloak.executeAsm2KeycloakTransformation;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
-
+/**
+ * Runs the ASM to Keycloak transformation through {@link Asm2KeycloakWork}, honouring the transformation mode
+ * (ZETA by default); ETL requires the judo-tatami-asm2keycloak-etl bundle. See change: split-etl-artifacts.
+ */
 @Component(immediate = true, service = Asm2KeycloakTransformationSerivce.class)
 @Slf4j
 public class Asm2KeycloakTransformationSerivce {
@@ -63,28 +61,21 @@ public class Asm2KeycloakTransformationSerivce {
                 .version(asmModel.getVersion())
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
+        TransformationContext transformationContext = new TransformationContext(asmModel.getName());
+        transformationContext.put(asmModel);
+        transformationContext.put(keycloakModel);
         try {
-            java.net.URI scriptUri =
-                    bundleContext.getBundle()
-                            .getEntry("/tatami/asm2keycloak/transformations/asmToKeycloak.etl")
-                            .toURI()
-                            .resolve(".");
-
-            Asm2KeycloakTransformationTrace asm2KeycloakTransformationTrace = executeAsm2KeycloakTransformation(Asm2Keycloak.Asm2KeycloakParameter.asm2KeycloakParameter()
-                            .asmModel(asmModel)
-                            .keycloakModel(keycloakModel)
-                            .log(logger)
-                            .scriptUri(scriptUri));
-
-            asm2keycloakTransformationTraceRegistration.put(asmModel,
-                    bundleContext.registerService(TransformationTrace.class, asm2KeycloakTransformationTrace, new Hashtable<>()));
-
-            log.info(yellow("{}"), logger.getBuffer());
+            new Asm2KeycloakWork(transformationContext).execute();
         } catch (Exception e) {
-            log.info(red("{}"), logger.getBuffer());
+            log.error("ASM to Keycloak transformation failed for model: " + asmModel.getName(), e);
             throw e;
         }
+        Asm2KeycloakTransformationTrace asm2KeycloakTransformationTrace = transformationContext
+                .getByClass(Asm2KeycloakTransformationTrace.class)
+                .orElseThrow(() -> new IllegalStateException("ASM to Keycloak transformation produced no trace"));
+
+        asm2keycloakTransformationTraceRegistration.put(asmModel,
+                bundleContext.registerService(TransformationTrace.class, asm2KeycloakTransformationTrace, new Hashtable<>()));
         return keycloakModel;
     }
 

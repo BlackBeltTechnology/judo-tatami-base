@@ -1,0 +1,5 @@
+# `PsmValidationWork.java`
+
+Mode-aware validation work for PSM. Extends `AbstractTransformationWork`. Nested `@Builder(builderMethodName = "psmValidationWorkParameter") @Getter PsmValidationWorkParameter` holds `transformationMode`, default `TransformationMode.fromSystemProperty()`; read from `TransformationContext`, else defaults.
+`execute()` order: required `PsmModel` pulled from context first — each missing one throws `IllegalArgumentException` with the original message. Then branch: `transformationMode.isZeta()` (ZETA/DUAL) → `new PsmValidationZetaWork(ctx).execute()`; ETL → `EtlEngineRegistry.require(PsmValidationEtlEngine.class, PsmValidationEtlEngine.ARTIFACT_COORDINATES).validate(models..., log)`, missing add-on throws `EtlEngineMissingException` naming `hu.blackbelt.judo.tatami:judo-tatami-psm-validation-etl`.
+No Epsilon import; module pom has no Epsilon dependency. EVL body (`StringBuilderLogger` + `PsmEpsilonValidator.validatePsm`) now lives in `judo-tatami-psm-validation-etl` `PsmValidationEtlEngineImpl`. Tests: `PsmValidationWorkEtlMissingTest` (core), `PsmValidationWorkTest` (in `judo-tatami-psm-validation-etl`). See change: split-etl-artifacts.

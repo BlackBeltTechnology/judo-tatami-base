@@ -50,9 +50,5 @@
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-execution</artifactId>
-        </dependency>
     </dependencies>
 </project>
