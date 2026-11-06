@@ -47,8 +47,6 @@ import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 @Slf4j
 public abstract class ExpressionToFeatureConverter<E extends Expression> {
 
-    private static final String ITERATOR_NAME = "_iterator";
-
     protected final FeatureFactory factory;
     protected final AsmModelAdapter modelAdapter;
 
@@ -160,7 +158,7 @@ public abstract class ExpressionToFeatureConverter<E extends Expression> {
             iterator = collectionExpression.getIteratorVariable();
             if (iterator == null) {
                 // attaches the iterator to the expression model; the factory can take it off again (see FeatureFactory)
-                iterator = collectionExpression.createIterator(ITERATOR_NAME, modelAdapter, collectionExpression.eResource());
+                iterator = collectionExpression.createIterator(ExpressionIterators.ITERATOR_NAME, modelAdapter, collectionExpression.eResource());
                 factory.iteratorCreated(collectionExpression);
             }
             return iterator;

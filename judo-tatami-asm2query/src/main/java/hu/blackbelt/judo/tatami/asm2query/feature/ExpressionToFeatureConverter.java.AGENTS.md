@@ -12,3 +12,4 @@ resource (the build runs from parallel streams; concurrent creators iterated a r
 created expression is reported to `FeatureFactory.iteratorCreated(...)` so a build with `preserveExpressionModel` removes
 the iterators again (`Asm2QueryWork` must not modify the `ExpressionModel`). See change: persisted-query-model.
 
+The iterator name constant is `ExpressionIterators.ITERATOR_NAME` (shared, not duplicated); `ExpressionIterators.createMissing` creates the iterators ahead of conversion (restore). See change: persisted-query-model

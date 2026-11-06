@@ -349,6 +349,24 @@ The module tests SHALL log the wall time of a restore and of a build on the Nort
 - **WHEN** the timing test runs
 - **THEN** both complete, five iterations are measured and the median is logged
 
+### Requirement: Missing iterator variables can be created ahead of conversion
+`ExpressionIterators.createMissing(AsmModelAdapter, Collection<? extends Expression>)` SHALL walk each given expression and everything it contains and, for every `CollectionExpression` that has no iterator variable and is contained in a resource, create the iterator with `createIterator(ExpressionIterators.ITERATOR_NAME, modelAdapter, eResource())`. `ITERATOR_NAME` (`_iterator`) SHALL be the one constant `ExpressionToFeatureConverter` uses. The method SHALL be idempotent and SHALL skip expressions that are not contained in a resource. It is for single-threaded use (boot), as it modifies the expression resources.
+
+#### Scenario: Iterators created
+- **GIVEN** expressions whose collection expressions have no iterator variable
+- **WHEN** `createMissing` runs
+- **THEN** every collection expression has an iterator variable and the created count is returned
+
+#### Scenario: Second call is a no-op
+- **GIVEN** `createMissing` already ran over the expressions
+- **WHEN** it runs again
+- **THEN** it creates nothing and the iterator variables are the same instances
+
+#### Scenario: Expression outside a resource is skipped
+- **GIVEN** a detached copy of an expression with a collection expression
+- **WHEN** `createMissing` runs over it
+- **THEN** nothing is created and no exception is thrown
+
 ### Requirement: Output predicate in the workflow helpers
 `asm2QueryOutputPredicate()` SHALL be defined in each `WorkflowHelper` copy next to `asm2ExpressionOutputPredicate()`, as the workflow modules own the output predicates. The `judo-tatami-asm2query` module SHALL NOT define it.
 
