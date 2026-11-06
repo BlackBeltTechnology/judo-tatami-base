@@ -105,7 +105,7 @@
         <judo-meta-keycloak-version>1.0.1.20261103_233212_f93e1fba_feature_JNG_6349_AddZetaValidatiob</judo-meta-keycloak-version>
         <judo-meta-measure-version>1.0.2.20261103_233614_dd7c37db_feature_JNG_6349_AddZetaValidatiob</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20261103_233219_79331be6_feature_JNG_6349_AddZetaValidatiob</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.3.20261103_233303_0a513a0c_feature_JNG_6349_AddZetaValidatiob</judo-meta-query-version>
+        <judo-meta-query-version>1.0.3.20261106_090222_aac14ef6_feature_JNG_6349_AddZetaValidatiob</judo-meta-query-version>
         <judo-dispatcher-api-version>1.0.3.20260311_104219_ef26bd53_develop</judo-dispatcher-api-version>
 
         <xtext-version>2.39.0</xtext-version>
