@@ -1,0 +1,3 @@
+# `ExpressionValidationOnPsmZetaWork.java`
+
+Same validation as `ExpressionValidationOnPsmWork` but on the Zeta engine, no Epsilon. `execute()` requires `ExpressionModel` + `PsmModel` in `TransformationContext`, builds a `PsmModelAdapter` passing the PSM `ResourceSet` as both model and measure resource set (PSM embeds measures), then calls `ExpressionZetaValidator.validateExpression`. Failure surfaces as `ExpressionValidationException`, not as accumulated EVL log text — callers switching engines must change their failure handling.

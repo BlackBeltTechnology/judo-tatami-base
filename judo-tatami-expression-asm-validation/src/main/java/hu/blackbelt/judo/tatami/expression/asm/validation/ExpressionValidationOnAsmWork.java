@@ -20,19 +20,35 @@ package hu.blackbelt.judo.tatami.expression.asm.validation;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.expression.adapters.asm.ExpressionValidatorOnAsm;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
+/**
+ * expression-on-ASM validation work. ZETA/DUAL mode runs {@link ExpressionValidationOnAsmZetaWork} (Epsilon-free, in this artifact);
+ * ETL mode delegates the EVL validation to the optional {@link ExpressionValidationOnAsmEtlEngine} add-on ({@code judo-tatami-expression-asm-validation-etl}).
+ * The mode comes from a {@link ExpressionValidationOnAsmWorkParameter} in the context, else {@code judo.transformation.mode}.
+ * See change: split-etl-artifacts.
+ */
 @Slf4j
 public class ExpressionValidationOnAsmWork extends AbstractTransformationWork {
+
+    @Builder(builderMethodName = "expressionValidationOnAsmWorkParameter")
+    @Getter
+    public static final class ExpressionValidationOnAsmWorkParameter {
+        /** Validation engine; defaults to {@code judo.transformation.mode} (ZETA when unset). */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
+    }
 
     public ExpressionValidationOnAsmWork(TransformationContext transformationContext) {
         super(transformationContext);
@@ -40,21 +56,23 @@ public class ExpressionValidationOnAsmWork extends AbstractTransformationWork {
 
     @Override
     public void execute() throws Exception {
-
         Optional<ExpressionModel> expressionModel = getTransformationContext().getByClass(ExpressionModel.class);
         expressionModel.orElseThrow(() -> new IllegalArgumentException("Expression Model does not found in transformation context"));
-
         Optional<MeasureModel> measureModel = getTransformationContext().getByClass(MeasureModel.class);
         measureModel.orElseThrow(() -> new IllegalArgumentException("Measure Model does not found in transformation context"));
-
         Optional<AsmModel> asmModel = getTransformationContext().getByClass(AsmModel.class);
         asmModel.orElseThrow(() -> new IllegalArgumentException("ASM Model does not found in transformation context"));
 
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            ExpressionValidatorOnAsm.validateExpressionOnAsm(logger,
-                    asmModel.get(),
-                    measureModel.get(),
-                    expressionModel.get());
+        ExpressionValidationOnAsmWorkParameter workParam = getTransformationContext().getByClass(ExpressionValidationOnAsmWorkParameter.class)
+                .orElseGet(() -> ExpressionValidationOnAsmWorkParameter.expressionValidationOnAsmWorkParameter().build());
+
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing expression-on-ASM validation using Zeta engine");
+            new ExpressionValidationOnAsmZetaWork(getTransformationContext()).execute();
+        } else {
+            log.info("Executing expression-on-ASM validation using EVL engine");
+            EtlEngineRegistry.require(ExpressionValidationOnAsmEtlEngine.class, ExpressionValidationOnAsmEtlEngine.ARTIFACT_COORDINATES)
+                    .validate(expressionModel.get(), measureModel.get(), asmModel.get(), log);
         }
     }
 }

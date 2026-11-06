@@ -21,14 +21,12 @@ package hu.blackbelt.judo.tatami.psm2measure.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
-import hu.blackbelt.judo.tatami.psm2measure.Psm2Measure;
+import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2measure.Psm2MeasureTransformationTrace;
+import hu.blackbelt.judo.tatami.psm2measure.Psm2MeasureWork;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.osgi.framework.BundleContext;
@@ -39,10 +37,10 @@ import org.osgi.service.component.annotations.Component;
 import java.util.Hashtable;
 import java.util.Map;
 
-import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
-
+/**
+ * Runs the PSM to Measure transformation through {@link Psm2MeasureWork}, honouring the transformation mode
+ * (ZETA by default); ETL requires the judo-tatami-psm2measure-etl bundle. See change: split-etl-artifacts.
+ */
 
 @Component(immediate = true, service = Psm2MeasureTransformationService.class)
 @Slf4j
@@ -65,29 +63,21 @@ public class Psm2MeasureTransformationService {
                 .uri(URI.createURI("measure:" + psmModel.getName() + ".measure"))
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
+        TransformationContext transformationContext = new TransformationContext(psmModel.getName());
+        transformationContext.put(psmModel);
+        transformationContext.put(measureModel);
         try {
-            java.net.URI scriptUri =
-                    bundleContext.getBundle()
-                            .getEntry("/tatami/psm2measure/transformations/measure/psmToMeasure.etl")
-                            .toURI()
-                            .resolve(".");
-
-            Psm2MeasureTransformationTrace psm2MeasureTransformationTrace =
-                    executePsm2MeasureTransformation(Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter()
-                            .psmModel(psmModel)
-                            .measureModel(measureModel)
-                            .log(logger)
-                            .scriptUri(scriptUri));
-
-            psm2MeasureTransformationTraceRegistration.put(psmModel,
-                    bundleContext.registerService(TransformationTrace.class, psm2MeasureTransformationTrace, new Hashtable<>()));
-
-            log.info(yellow("{}"), logger.getBuffer());
+            new Psm2MeasureWork(transformationContext).execute();
         } catch (Exception e) {
-            log.info(red("{}"), logger.getBuffer());
+            log.error("PSM to Measure transformation failed for model: " + psmModel.getName(), e);
             throw e;
         }
+        Psm2MeasureTransformationTrace psm2MeasureTransformationTrace = transformationContext
+                .getByClass(Psm2MeasureTransformationTrace.class)
+                .orElseThrow(() -> new IllegalStateException("PSM to Measure transformation produced no trace"));
+
+        psm2MeasureTransformationTraceRegistration.put(psmModel,
+                bundleContext.registerService(TransformationTrace.class, psm2MeasureTransformationTrace, new Hashtable<>()));
 
         return measureModel;
     }

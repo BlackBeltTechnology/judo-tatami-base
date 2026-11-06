@@ -1,0 +1,5 @@
+# `derived.etl`
+
+Maps PSM derived members (`PrimitiveAccessor`, `ReferenceAccessor`) to ASM `EAttribute`/`EReference` plus their JQL expression annotations. Exports `@abstract CreatePrimitiveAccessor` → `CreateDataProperty` (`DataProperty` → `EAttribute`), `@abstract CreateReferenceAccessor` → `CreateNavigationProperty` (`NavigationProperty` → `EReference`), plus `CreatePrimitiveAccessorExpressionAnnotation` and `CreateReferenceAccessorExpressionAnnotation` carrying the getter expression.
+Constraint hierarchy mirrors `data.etl`: `@abstract AddPrimitiveAccessorConstraints` → string / custom / `@abstract AddAbstractNumericPrimitiveAccessorConstraints` → numeric / measured.
+Every accessor rule guards `not s.isKindOf(JUDOPSM!StaticData)` — static accessors belong to `static.etl` and double-transform if the guard is dropped.

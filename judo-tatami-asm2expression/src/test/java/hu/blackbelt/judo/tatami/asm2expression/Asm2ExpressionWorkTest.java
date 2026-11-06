@@ -22,19 +22,23 @@ package hu.blackbelt.judo.tatami.asm2expression;
 
 import static hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngineBuilder.aNewWorkFlowEngine;
 import static hu.blackbelt.judo.tatami.core.workflow.flow.SequentialFlow.Builder.aNewSequentialFlow;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter;
-import static hu.blackbelt.judo.tatami.psm2measure.Psm2Measure.executePsm2MeasureTransformation;
+import static hu.blackbelt.judo.tatami.psm2asm.etl.Psm2Asm.Psm2AsmParameter.psm2AsmParameter;
+import static hu.blackbelt.judo.tatami.psm2asm.etl.Psm2Asm.executePsm2AsmTransformation;
+import static hu.blackbelt.judo.tatami.psm2measure.etl.Psm2Measure.Psm2MeasureParameter.psm2MeasureParameter;
+import static hu.blackbelt.judo.tatami.psm2measure.etl.Psm2Measure.executePsm2MeasureTransformation;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.workflow.engine.WorkFlowEngine;
@@ -100,5 +104,59 @@ public class Asm2ExpressionWorkTest {
 
         log.info("Workflow completed with status {}", workReport.getStatus(), workReport.getError());
         assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+    }
+    @Test
+    void testExpressionModelCreatedInThisRun() {
+        WorkReport workReport = aNewWorkFlowEngine().build().run(aNewSequentialFlow().execute(asm2ExpressionWork).build());
+        assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+
+        assertThat(transformationContext.getByClass(ExpressionModel.class).isPresent(), equalTo(true));
+        assertThat(transformationContext.getByClass(ExpressionModelOrigin.class).orElse(null),
+                equalTo(ExpressionModelOrigin.CREATED_IN_THIS_RUN));
+    }
+
+    @Test
+    void testPreloadedExpressionModelIsReusedAndMarkedPreloaded() {
+        final ExpressionModel preloaded = ExpressionModel.buildExpressionModel()
+                .name(NORTHWIND)
+                .build();
+        transformationContext.put(preloaded);
+
+        WorkReport workReport = aNewWorkFlowEngine().build().run(aNewSequentialFlow().execute(asm2ExpressionWork).build());
+        assertThat(workReport.getStatus(), equalTo(WorkStatus.COMPLETED));
+
+        assertThat(transformationContext.getByClass(ExpressionModel.class).orElse(null), sameInstance(preloaded));
+        assertThat(transformationContext.getByClass(ExpressionModelOrigin.class).orElse(null),
+                equalTo(ExpressionModelOrigin.PRELOADED));
+    }
+
+    /**
+     * TP-62 (asm2expression part): a saved -expression.model put into the context before the work is reused, and the
+     * origin tells the query stage that it was not created in this run.
+     */
+    @Test
+    void testSavedExpressionModelPreloadedBeforeWork() throws Exception {
+        // 1. a run that creates the expression model, then saves it
+        WorkReport first = aNewWorkFlowEngine().build().run(aNewSequentialFlow().execute(asm2ExpressionWork).build());
+        assertThat(first.getStatus(), equalTo(WorkStatus.COMPLETED));
+        assertThat(transformationContext.getByClass(ExpressionModelOrigin.class).orElse(null), equalTo(ExpressionModelOrigin.CREATED_IN_THIS_RUN));
+        final ExpressionModel created = transformationContext.getByClass(ExpressionModel.class).orElseThrow();
+        final ByteArrayOutputStream saved = new ByteArrayOutputStream();
+        created.saveExpressionModel(ExpressionModel.SaveArguments.expressionSaveArgumentsBuilder().outputStream(saved));
+
+        // 2. a new run with the saved model preloaded
+        final ExpressionModel loaded = ExpressionModel.loadExpressionModel(ExpressionModel.LoadArguments.expressionLoadArgumentsBuilder()
+                .inputStream(new ByteArrayInputStream(saved.toByteArray()))
+                .name(NORTHWIND));
+        final TransformationContext second = new TransformationContext(NORTHWIND);
+        second.put(transformationContext.getByClass(AsmModel.class).orElseThrow());
+        second.put(transformationContext.getByClass(MeasureModel.class).orElseThrow());
+        second.put(loaded);
+
+        WorkReport report = aNewWorkFlowEngine().build().run(aNewSequentialFlow().execute(new Asm2ExpressionWork(second)).build());
+        assertThat(report.getStatus(), equalTo(WorkStatus.COMPLETED));
+
+        assertThat(second.getByClass(ExpressionModel.class).orElse(null), sameInstance(loaded));
+        assertThat(second.getByClass(ExpressionModelOrigin.class).orElse(null), equalTo(ExpressionModelOrigin.PRELOADED));
     }
 }

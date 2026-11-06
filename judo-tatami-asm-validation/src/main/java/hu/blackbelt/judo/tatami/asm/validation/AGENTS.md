@@ -1,0 +1,7 @@
+# AGENTS.md — hu.blackbelt.judo.tatami.asm.validation (main)
+
+| File | Purpose |
+|---|---|
+| `AsmValidationEtlEngine.java` | Core contract of the EVL add-on; `ARTIFACT_COORDINATES` = `hu.blackbelt.judo.tatami:judo-tatami-asm-validation-etl`; `void validate(AsmModel asmModel, Logger log) throws Exception`; null `log` = impl logger. Impl in `judo-tatami-asm-validation-etl`. See change: split-etl-artifacts. |
+| `AsmValidationWork.java` | Mode-aware work validating `AsmModel`; `extends AbstractTransformationWork`. Nested `@Builder @Getter AsmValidationWorkParameter` (`asmValidationWorkParameter()`, `transformationMode`, default `TransformationMode.fromSystemProperty()`) read from `TransformationContext`. `isZeta()` (ZETA/DUAL) → `new AsmValidationZetaWork(ctx).execute()`; ETL → `EtlEngineRegistry.require(AsmValidationEtlEngine.class, AsmValidationEtlEngine.ARTIFACT_COORDINATES).validate(...)`. Missing model throws `IllegalArgumentException` first. No Epsilon import. See change: split-etl-artifacts. |
+| `AsmValidationZetaWork.java` | Workflow work validating `AsmModel` via native Java (Zeta) rules instead of EVL. Exports `AsmValidationZetaWork(TransformationContext)`, `execute()`. Delegates to `AsmValidator.validateAsm(log, asmModel)`, which throws `AsmValidationException` on rule failure. Zeta replacement for `AsmValidationWork`; ASM rule set currently empty (`asm.evl` has no rules). Requires `AsmModel` in context; missing model throws `IllegalArgumentException`. |

@@ -20,11 +20,11 @@ package hu.blackbelt.judo.tatami.asm2expression;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.EmfUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.tatami.core.EmfPackages;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Optional;
 
@@ -47,16 +47,21 @@ public class Asm2ExpressionWork extends AbstractTransformationWork {
 
         Optional<MeasureModel> measureModel = getTransformationContext().getByClass(MeasureModel.class);
 
+        final Optional<ExpressionModel> preloadedExpressionModel = getTransformationContext().getByClass(ExpressionModel.class);
         ExpressionModel
-                expressionModel = getTransformationContext().getByClass(ExpressionModel.class)
+                expressionModel = preloadedExpressionModel
                 .orElseGet(() -> {
-                        EmfUtils.addEmfPackagesToResourceSet(asmModel.get().getResourceSet());
+                        EmfPackages.addEmfPackagesToResourceSet(asmModel.get().getResourceSet());
                         return buildExpressionModel()
                         .name(asmModel.get().getName())
                         .version(asmModel.get().getVersion())
                         .build();
                 });
         getTransformationContext().put(expressionModel);
+        // downstream stages (query model) only build over a model created in this run
+        getTransformationContext().put(preloadedExpressionModel.isPresent()
+                ? ExpressionModelOrigin.PRELOADED
+                : ExpressionModelOrigin.CREATED_IN_THIS_RUN);
 
         Asm2ExpressionConfiguration config = getTransformationContext().getByClass(Asm2ExpressionConfiguration.class)
                 .orElse(new Asm2ExpressionConfiguration());

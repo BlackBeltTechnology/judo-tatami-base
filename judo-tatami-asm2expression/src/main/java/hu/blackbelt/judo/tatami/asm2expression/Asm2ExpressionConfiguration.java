@@ -22,7 +22,7 @@ package hu.blackbelt.judo.tatami.asm2expression;
 
 public class Asm2ExpressionConfiguration {
 
-    private boolean resolveOnlyCurrentLambdaScope = true;
+    private boolean resolveOnlyCurrentLambdaScope = false;
 
     public boolean isResolveOnlyCurrentLambdaScope() {
         return resolveOnlyCurrentLambdaScope;

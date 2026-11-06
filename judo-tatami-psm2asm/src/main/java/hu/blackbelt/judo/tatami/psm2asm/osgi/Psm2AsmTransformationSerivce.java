@@ -21,14 +21,12 @@ package hu.blackbelt.judo.tatami.psm2asm.osgi;
  */
 
 import com.google.common.collect.Maps;
-import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
-import hu.blackbelt.judo.tatami.psm2asm.Psm2Asm;
+import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
 import hu.blackbelt.judo.tatami.psm2asm.Psm2AsmTransformationTrace;
+import hu.blackbelt.judo.tatami.psm2asm.Psm2AsmWork;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.osgi.framework.BundleContext;
@@ -39,14 +37,13 @@ import org.osgi.service.component.annotations.Component;
 import java.util.Hashtable;
 import java.util.Map;
 
-import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
-import static hu.blackbelt.judo.tatami.psm2asm.Psm2Asm.executePsm2AsmTransformation;
-
 /**
  * This service make the Psm2Asm transformation. The following functions are happens:
  *  - When a PsmModdel is installed, it calls the Psm2Asm transformation and the result AsmModel is registered
  *  as an OSGi service.
+ *
+ * The transformation runs through {@link Psm2AsmWork}, so it honours the transformation mode (ZETA by default);
+ * ETL requires the judo-tatami-psm2asm-etl bundle. See change: split-etl-artifacts.
  */
 @Component(immediate = true, service = Psm2AsmTransformationSerivce.class)
 @Slf4j
@@ -66,27 +63,21 @@ public class Psm2AsmTransformationSerivce {
                 .uri(URI.createURI("asm:" + psmModel.getName() + ".asm"))
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
+        TransformationContext transformationContext = new TransformationContext(psmModel.getName());
+        transformationContext.put(psmModel);
+        transformationContext.put(asmModel);
         try {
-            java.net.URI scriptUri =
-                    bundleContext.getBundle()
-                            .getEntry("/tatami/psm2asm/transformations/asm/psmToAsm.etl")
-                            .toURI()
-                            .resolve(".");
-
-            Psm2AsmTransformationTrace transformationTrace = executePsm2AsmTransformation(Psm2Asm.Psm2AsmParameter.psm2AsmParameter()
-                    .psmModel(psmModel)
-                    .asmModel(asmModel)
-                    .log(logger)
-                    .scriptUri(scriptUri));
-
-            psm2AsmTransformationTraceRegistration.put(psmModel,
-                    bundleContext.registerService(TransformationTrace.class, transformationTrace, new Hashtable<>()));
-            log.info(yellow("{}"), logger.getBuffer());
+            new Psm2AsmWork(transformationContext).execute();
         } catch (Exception e) {
-            log.info(red("{}"), logger.getBuffer());
+            log.error("PSM to ASM transformation failed for model: " + psmModel.getName(), e);
             throw e;
         }
+        Psm2AsmTransformationTrace transformationTrace = transformationContext
+                .getByClass(Psm2AsmTransformationTrace.class)
+                .orElseThrow(() -> new IllegalStateException("PSM to ASM transformation produced no trace"));
+
+        psm2AsmTransformationTraceRegistration.put(psmModel,
+                bundleContext.registerService(TransformationTrace.class, transformationTrace, new Hashtable<>()));
         return asmModel;
     }
 

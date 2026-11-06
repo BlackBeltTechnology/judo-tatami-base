@@ -20,8 +20,6 @@ package hu.blackbelt.judo.tatami.asm2expression.osgi;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.LogLevel;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
@@ -31,7 +29,6 @@ import org.eclipse.emf.common.util.URI;
 import org.osgi.service.component.annotations.Component;
 
 import static hu.blackbelt.judo.tatami.core.AnsiColor.red;
-import static hu.blackbelt.judo.tatami.core.AnsiColor.yellow;
 
 @Component(immediate = true, service = Asm2ExpressionTranformationSerivce.class)
 @Slf4j
@@ -45,17 +42,17 @@ public class Asm2ExpressionTranformationSerivce {
                 .uri(URI.createURI("expression:" + asmModel.getName() + ".model"))
                 .build();
 
-        StringBuilderLogger logger = new StringBuilderLogger(LogLevel.determinateLogLevel(log));
-
+        // The former Epsilon StringBuilderLogger was never passed to the transformation, so its buffer
+        // was always empty; plain SLF4J logging keeps the same observable behaviour without Epsilon.
         try {
             Asm2Expression.executeAsm2Expression(Asm2Expression.Asm2ExpressionParameter.asm2ExpressionParameter()
                     .asmModel(asmModel)
                     .measureModel(measureModel)
                     .expressionModel(expressionModel));
 
-            log.info(yellow("{}"), logger.getBuffer());
+            log.debug("ASM to expression transformation completed for model {}", asmModel.getName());
         } catch (Exception e) {
-            log.info(red("{}"), logger.getBuffer());
+            log.error(red("ASM to expression transformation failed for model {}"), asmModel.getName(), e);
             throw e;
         }
         return expressionModel;

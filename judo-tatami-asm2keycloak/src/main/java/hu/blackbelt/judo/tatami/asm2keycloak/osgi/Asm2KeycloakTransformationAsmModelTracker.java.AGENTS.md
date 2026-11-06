@@ -1,0 +1,4 @@
+# `Asm2KeycloakTransformationAsmModelTracker.java`
+
+Extends `AbstractModelTracker<AsmModel>`; `@Component(immediate = true, configurationPolicy = REQUIRE)`. On each tracked `AsmModel` calls injected `Asm2KeycloakTransformationSerivce.install`, registers the produced `KeycloakModel` as an OSGi service and keeps the `ServiceRegistration` keyed by `asmModel.getName()`.
+Exports `activate(ComponentContext)`, `deactivate()`, `install(AsmModel)`, `uninstall(AsmModel)`, `getModelClass()`. Duplicate model name is logged and ignored, not replaced. `deactivate()` unregisters every registration, so callers must not hold a `KeycloakModel` service reference across bundle stop. Requires component configuration present, else DS never activates it.

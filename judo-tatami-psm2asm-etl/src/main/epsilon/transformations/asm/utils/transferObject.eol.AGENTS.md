@@ -1,0 +1,4 @@
+# `transferObject.eol`
+
+Resolves ASM equivalents for transfer-object elements and classifies metadata/range types. Exports `@cached asmEquivalent()` on `MappedTransferObjectType` → `EClass` (`CreateMappedTransferObject`), `UnmappedTransferObjectType` → `EClass` (`CreateUnmappedTransferObject`), `TransferObjectRelation` → `EReference` (`CreateTransferObjectRelation`), `TransferAttribute` → `EAttribute` (`CreateTransferObjectAttribute`); plus `TransferObjectType isMetadataType()` (true when some `TransferOperation` with `behaviourType == GET_METADATA` outputs this type or a relation target of it) and `isGetRangeInputType()` (true when some `TransferOperation` with `behaviourType == GET_RANGE` takes this type as input).
+Both predicates scan `JUDOPSM!TransferOperation.all()` on every call: their annotations read `@cahced`, a misspelling of `@cached`, so Epsilon ignores them and the scan is not memoised — O(operations) per invocation.
