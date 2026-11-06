@@ -58,10 +58,6 @@ public class Asm2ExpressionWork extends AbstractTransformationWork {
                         .build();
                 });
         getTransformationContext().put(expressionModel);
-        // downstream stages (query model) only build over a model created in this run
-        getTransformationContext().put(preloadedExpressionModel.isPresent()
-                ? ExpressionModelOrigin.PRELOADED
-                : ExpressionModelOrigin.CREATED_IN_THIS_RUN);
 
         Asm2ExpressionConfiguration config = getTransformationContext().getByClass(Asm2ExpressionConfiguration.class)
                 .orElse(new Asm2ExpressionConfiguration());
@@ -71,5 +67,13 @@ public class Asm2ExpressionWork extends AbstractTransformationWork {
                 .measureModel(measureModel.orElse(null))
                 .expressionModel(expressionModel)
                 .config(config));
+
+        // Recorded only after a successful extraction: downstream stages (query model) build only over a model created
+        // in this run. A failed extraction leaves no origin, so the query stage skips instead of building (and
+        // persisting) a query model over a partially filled expression model. A parallel flow may report the
+        // workflow COMPLETED although this work threw.
+        getTransformationContext().put(preloadedExpressionModel.isPresent()
+                ? ExpressionModelOrigin.PRELOADED
+                : ExpressionModelOrigin.CREATED_IN_THIS_RUN);
     }
 }

@@ -159,4 +159,41 @@ public class Asm2ExpressionWorkTest {
         assertThat(second.getByClass(ExpressionModel.class).orElse(null), sameInstance(loaded));
         assertThat(second.getByClass(ExpressionModelOrigin.class).orElse(null), equalTo(ExpressionModelOrigin.PRELOADED));
     }
+
+    /**
+     * A failed extraction must not mark the expression model as created in this run: the query stage would otherwise
+     * build and persist a query model over a partially filled expression model.
+     */
+    @Test
+    void failedExtractionRecordsNoOrigin() {
+        final AsmModel asmModel = transformationContext.getByClass(AsmModel.class).orElseThrow();
+        final FailingResourceSet failing = new FailingResourceSet();
+        final MeasureModel measureModel = MeasureModel.buildMeasureModel()
+                .name(NORTHWIND)
+                .resourceSet(failing)
+                .build();
+        failing.armed = true;
+        final TransformationContext context = new TransformationContext(NORTHWIND);
+        context.put(asmModel);
+        context.put(measureModel);
+
+        final WorkReport report = aNewWorkFlowEngine().build()
+                .run(aNewSequentialFlow().execute(new Asm2ExpressionWork(context)).build());
+
+        assertThat(report.getStatus(), equalTo(WorkStatus.FAILED));
+        assertThat(context.getByClass(ExpressionModelOrigin.class).isPresent(), equalTo(false));
+    }
+
+    /** Throws on adapter registration once armed, which makes the measure provider (and so the extraction) fail. */
+    private static final class FailingResourceSet extends org.eclipse.emf.ecore.resource.impl.ResourceSetImpl {
+        private boolean armed;
+
+        @Override
+        public org.eclipse.emf.common.util.EList<org.eclipse.emf.common.notify.Adapter> eAdapters() {
+            if (armed) {
+                throw new IllegalStateException("simulated extraction failure");
+            }
+            return super.eAdapters();
+        }
+    }
 }
