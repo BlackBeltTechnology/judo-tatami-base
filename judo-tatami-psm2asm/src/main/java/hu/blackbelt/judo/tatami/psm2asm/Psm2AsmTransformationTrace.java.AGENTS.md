@@ -1,0 +1,8 @@
+# `Psm2AsmTransformationTrace.java`
+
+Carries the PSM→ASM trace and (de)serialises it; implements `TransformationTrace`. Exports `psm2AsmTransformationTraceBuilder()`, `getSourceModelTypes`/`getSourceModels`/`getSourceModel`/`getSourceResourceSet`/`getSourceURI`, `getTargetModelType`/`getTargetModel`/`getTargetResourceSet`/`getTargetURI`, `getTransformationTrace`, `getZetaTrace`, `isZetaTrace`, `createPsm2AsmTraceResource`, `resolvePsm2AsmTrace`, `getPsm2AsmTrace`, `getPsm2AsmTraceResource`, `fromModelsAndTrace`, `save`, plus constants `PSM_2_ASM_URI_POSTFIX = "psm2asm"` and `PSM_2_ASM_TRACE_URI_PREFIX = "psm2asmTrace:"`.
+Holds exactly one of two mutually exclusive trace fields: `trace` (`Map<EObject,List<EObject>>`, ETL) or `zetaTrace` (Zeta `TransformationTrace`); `isZetaTrace()` selects which. Setting both, or neither, yields an inconsistent trace — builders must pick one.
+`getTransformationTrace()` Zeta branch flattens entries into the legacy map and dedupes targets per source (identity; Zeta emits one entry per (source, rule[, discriminator])).
+`psmModel` and `asmModel` are `@NonNull`.
+
+See change: split-etl-artifacts (esm-itest Zeta fixes).

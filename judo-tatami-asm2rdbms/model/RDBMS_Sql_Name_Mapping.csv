@@ -1,0 +1,4 @@
+FullyQualifiedName,SqlName
+northwind.entities.City,CITY
+northwind.entities.Territory#shipper,ID_SHIPPER
+northwind.entities.Person#firstName,FIRST_NAME

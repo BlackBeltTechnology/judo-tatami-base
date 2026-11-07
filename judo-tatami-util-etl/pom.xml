@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>hu.blackbelt.judo.tatami</groupId>
+        <artifactId>judo-tatami-base-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <!--
+        ETL add-on for judo-tatami-util: trace extraction from an Epsilon ETL execution.
+        Kept out of judo-tatami-util so Zeta-only consumers resolve no Epsilon.
+        See change: split-etl-artifacts.
+    -->
+    <artifactId>judo-tatami-util-etl</artifactId>
+    <packaging>bundle</packaging>
+    <name>Judo :: Tatami :: Util :: ETL</name>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <obrRepository>NONE</obrRepository>
+                    <instructions>
+                        <Export-Package>
+                            hu.blackbelt.judo.tatami.util.etl.*;version=${project.version}
+                        </Export-Package>
+                        <Import-Package>
+                            ${osgi-default-import},
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.epsilon</groupId>
+            <artifactId>epsilon-runtime-execution</artifactId>
+        </dependency>
+    </dependencies>
+</project>

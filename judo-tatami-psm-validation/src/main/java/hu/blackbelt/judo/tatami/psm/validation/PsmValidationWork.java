@@ -20,19 +20,33 @@ package hu.blackbelt.judo.tatami.psm.validation;
  * #L%
  */
 
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.epsilon.runtime.execution.impl.StringBuilderLogger;
-import hu.blackbelt.judo.meta.psm.PsmEpsilonValidator;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
+import hu.blackbelt.judo.tatami.core.TransformationMode;
+import hu.blackbelt.judo.tatami.core.etl.EtlEngineRegistry;
 import hu.blackbelt.judo.tatami.core.workflow.work.AbstractTransformationWork;
 import hu.blackbelt.judo.tatami.core.workflow.work.TransformationContext;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
+/**
+ * PSM validation work. ZETA/DUAL mode runs {@link PsmValidationZetaWork} (Epsilon-free, in this artifact);
+ * ETL mode delegates the EVL validation to the optional {@link PsmValidationEtlEngine} add-on ({@code judo-tatami-psm-validation-etl}).
+ * The mode comes from a {@link PsmValidationWorkParameter} in the context, else {@code judo.transformation.mode}.
+ * See change: split-etl-artifacts.
+ */
 @Slf4j
 public class PsmValidationWork extends AbstractTransformationWork {
+
+    @Builder(builderMethodName = "psmValidationWorkParameter")
+    @Getter
+    public static final class PsmValidationWorkParameter {
+        /** Validation engine; defaults to {@code judo.transformation.mode} (ZETA when unset). */
+        @Builder.Default
+        TransformationMode transformationMode = TransformationMode.fromSystemProperty();
+    }
 
     public PsmValidationWork(TransformationContext transformationContext) {
         super(transformationContext);
@@ -40,11 +54,19 @@ public class PsmValidationWork extends AbstractTransformationWork {
 
     @Override
     public void execute() throws Exception {
-        Optional<PsmModel> esmModel = getTransformationContext().getByClass(PsmModel.class);
-        esmModel.orElseThrow(() -> new IllegalArgumentException("PSM Model does not found in transformation context"));
+        Optional<PsmModel> psmModel = getTransformationContext().getByClass(PsmModel.class);
+        psmModel.orElseThrow(() -> new IllegalArgumentException("PSM Model does not found in transformation context"));
 
-        try (final StringBuilderLogger logger = new StringBuilderLogger(log)) {
-            PsmEpsilonValidator.validatePsm(logger, esmModel.get(), PsmEpsilonValidator.calculatePsmValidationScriptURI());
+        PsmValidationWorkParameter workParam = getTransformationContext().getByClass(PsmValidationWorkParameter.class)
+                .orElseGet(() -> PsmValidationWorkParameter.psmValidationWorkParameter().build());
+
+        if (workParam.transformationMode.isZeta()) {
+            log.info("Executing PSM validation using Zeta engine");
+            new PsmValidationZetaWork(getTransformationContext()).execute();
+        } else {
+            log.info("Executing PSM validation using EVL engine");
+            EtlEngineRegistry.require(PsmValidationEtlEngine.class, PsmValidationEtlEngine.ARTIFACT_COORDINATES)
+                    .validate(psmModel.get(), log);
         }
     }
 }

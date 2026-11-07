@@ -16,30 +16,6 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-models</id>
-                        <!-- here the phase you need -->
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${basedir}/target/classes/tatami/psm2measure</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/epsilon</directory>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
 
@@ -53,15 +29,10 @@
                         <Export-Package>
                             hu.blackbelt.judo.tatami.psm2measure.*;version=${project.version}
                         </Export-Package>
-                        <Include-Resource>
-                            {maven-resources},
-                            tatami=target/classes/tatami
-                        </Include-Resource>
                         <Import-Package>
                             ${osgi-default-import},
                             *
                         </Import-Package>
-                        <Psm2Measure-Transformation-ScriptRoot>tatami/psm2measure/transformations/measure</Psm2Measure-Transformation-ScriptRoot>
                     </instructions>
                 </configuration>
             </plugin>
@@ -104,16 +75,8 @@
         </pluginManagement>
     </build>
 
+    <!-- Zeta-only: no Epsilon. ETL lives in judo-tatami-psm2measure-etl (split-etl-artifacts). -->
     <dependencies>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-execution</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-osgi</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
@@ -139,5 +102,27 @@
 			<groupId>hu.blackbelt.judo.meta</groupId>
 			<artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
 		</dependency>
+
+        <!-- Zeta Framework -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.zeta</groupId>
+            <artifactId>hu.blackbelt.judo.zeta.annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.zeta</groupId>
+            <artifactId>hu.blackbelt.judo.zeta.transformation-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.zeta</groupId>
+            <artifactId>hu.blackbelt.judo.zeta.common</artifactId>
+        </dependency>
+
+        <!-- Test utilities -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-test-utils</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
