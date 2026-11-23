@@ -23,6 +23,8 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.zeta;
 import hu.blackbelt.judo.meta.liquibase.databaseChangeLog;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.FileSystemReviewResolver;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.ReviewResolver;
 import hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.incremental.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,6 +32,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -73,8 +76,20 @@ public class Rdbms2LiquibaseIncrementalZetaTransformationV2 {
 
     // Configuration parameters
     private final String dialect;
+    @Getter
     private final String backupTableNamePrefix;
+    /** Effective maximal table name size: the given one, or 30 for {@code oracle} and 62 otherwise. */
+    @Getter
     private final Integer tableNameMaxSize;
+    private final ReviewResolver reviewResolver;
+
+    /** Review scripts the resolver does not know (script name to message). Filled by the data update phases. */
+    @Getter
+    private final Map<String, String> missingReviewScripts = new HashMap<>();
+
+    /** Backup-data SQL scripts (file name to content). Filled by {@link #execute()}. */
+    @Getter
+    private final Map<String, String> backupDataSqlFiles = new HashMap<>();
 
     // Sub-transformation instances
     @Getter
@@ -107,7 +122,12 @@ public class Rdbms2LiquibaseIncrementalZetaTransformationV2 {
             @NonNull LiquibaseModel dbDropBackupLiquibaseModel,
             @NonNull String dialect,
             String backupTableNamePrefix,
-            Integer tableNameMaxSize) {
+            Integer tableNameMaxSize,
+            ReviewResolver reviewResolver,
+            String sqlScriptPath) {
+        this.reviewResolver = reviewResolver != null ? reviewResolver
+                : new FileSystemReviewResolver(new File(java.util.Optional.ofNullable(sqlScriptPath)
+                .orElseThrow(() -> new IllegalArgumentException("One of ReviewResolver or scriptPath have to be set"))));
         this.rdbmsModel = rdbmsModel;
         this.dbCheckupLiquibaseModel = dbCheckupLiquibaseModel;
         this.dbBackupLiquibaseModel = dbBackupLiquibaseModel;
@@ -118,8 +138,9 @@ public class Rdbms2LiquibaseIncrementalZetaTransformationV2 {
         this.afterIncrementalLiquibaseModel = afterIncrementalLiquibaseModel;
         this.dbDropBackupLiquibaseModel = dbDropBackupLiquibaseModel;
         this.dialect = dialect;
-        this.backupTableNamePrefix = backupTableNamePrefix;
-        this.tableNameMaxSize = tableNameMaxSize;
+        this.backupTableNamePrefix = backupTableNamePrefix != null ? backupTableNamePrefix : "BACKUP";
+        this.tableNameMaxSize = tableNameMaxSize != null && tableNameMaxSize > 0 ? tableNameMaxSize
+                : ("oracle".equals(dialect) ? 30 : 62);
 
         // Initialize sub-transformations
         initializeSubTransformations();
@@ -156,6 +177,8 @@ public class Rdbms2LiquibaseIncrementalZetaTransformationV2 {
                 .dialect(dialect)
                 .backupTableNamePrefix(backupTableNamePrefix)
                 .tableNameMaxSize(tableNameMaxSize)
+                .reviewResolver(reviewResolver)
+                .missingReviewScripts(missingReviewScripts)
                 .build();
 
         incrementalTransformation = IncrementalZetaTransformation.builder()
@@ -172,6 +195,8 @@ public class Rdbms2LiquibaseIncrementalZetaTransformationV2 {
                 .dialect(dialect)
                 .backupTableNamePrefix(backupTableNamePrefix)
                 .tableNameMaxSize(tableNameMaxSize)
+                .reviewResolver(reviewResolver)
+                .missingReviewScripts(missingReviewScripts)
                 .build();
 
         afterIncrementalTransformation = AfterIncrementalZetaTransformation.builder()
@@ -233,6 +258,9 @@ public class Rdbms2LiquibaseIncrementalZetaTransformationV2 {
         // Phase 8: DB Drop Backup transformations
         log.debug("Phase 8: DB Drop Backup");
         mergeTrace(combinedTrace, dbDropBackupTransformation.execute());
+
+        // Backup-data SQL (port of generations/sql/main.egl)
+        BackupDataSqlGenerator.generate(rdbmsModel, dialect, backupTableNamePrefix, tableNameMaxSize, backupDataSqlFiles);
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("Incremental RDBMS to Liquibase Zeta transformation (V2) completed in {}ms", duration);

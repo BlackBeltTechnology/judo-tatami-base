@@ -60,29 +60,32 @@ public class BeforeIncrementalZetaTransformation extends AbstractIncrementalSubT
 
         initializeChangeLog();
 
+        // Rule sources are the elements of exactly the rule's type whose table is part of the previous model
+        // (guard: previousModel.contains(s.eContainer)).
+
         // Drop indexes
-        all(RdbmsIndex.class)
-                .filter(this::isPreviousModelContainsContainer)
+        allExact(RdbmsIndex.class)
+                .filter(i -> modelContains(previousModel(), (RdbmsTable) i.eContainer()))
                 .forEach(this::transformDropIndex);
 
         // Drop unique constraints
-        all(RdbmsUniqueConstraint.class)
-                .filter(this::isPreviousModelContainsContainer)
+        allExact(RdbmsUniqueConstraint.class)
+                .filter(u -> modelContains(previousModel(), (RdbmsTable) u.eContainer()))
                 .forEach(this::transformDropUniqueConstraint);
 
         // Drop not null constraints from value fields
-        all(RdbmsValueField.class)
-                .filter(f -> isPreviousModelContainsContainer(f) && f.isMandatory())
+        allExact(RdbmsValueField.class)
+                .filter(f -> modelContains(previousModel(), (RdbmsTable) f.eContainer()) && f.isMandatory())
                 .forEach(this::transformDropNotNullConstraintFromValueField);
 
         // Drop not null constraints from foreign keys
-        all(RdbmsForeignKey.class)
-                .filter(f -> isPreviousModelContainsContainer(f) && f.isMandatory())
+        allExact(RdbmsForeignKey.class)
+                .filter(f -> modelContains(previousModel(), (RdbmsTable) f.eContainer()) && f.isMandatory())
                 .forEach(this::transformDropNotNullConstraintFromForeignKey);
 
         // Drop foreign key constraints
-        all(RdbmsForeignKey.class)
-                .filter(this::isPreviousModelContainsContainer)
+        allExact(RdbmsForeignKey.class)
+                .filter(f -> modelContains(previousModel(), (RdbmsTable) f.eContainer()))
                 .forEach(this::transformDropForeignKeyConstraint);
 
         log.debug("Before Incremental transformation completed");

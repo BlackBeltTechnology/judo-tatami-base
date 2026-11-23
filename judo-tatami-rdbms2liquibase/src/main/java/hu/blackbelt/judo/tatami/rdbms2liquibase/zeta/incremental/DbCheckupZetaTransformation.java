@@ -66,60 +66,54 @@ public class DbCheckupZetaTransformation extends AbstractIncrementalSubTransform
         preConditions = liquibaseFactory.createPreConditions();
         changeLog.setPreConditions(preConditions);
 
+        // Rule sources are the elements of exactly the rule's type that are part of the previous model
+        // (guards of dbCheckup.etl).
+
         // Check tables
-        all(RdbmsTable.class)
-                .filter(this::isPreviousModelContainsElement)
+        allExact(RdbmsTable.class)
+                .filter(t -> modelContains(previousModel(), t))
                 .forEach(this::transformCheckTable);
 
         // Check junction tables
-        all(RdbmsJunctionTable.class)
-                .filter(this::isPreviousModelContainsElement)
+        allExact(RdbmsJunctionTable.class)
+                .filter(t -> modelContains(previousModel(), t))
                 .forEach(this::transformCheckJunctionTable);
 
         // Pre-check backup deleted tables
-        all(RdbmsDeleteTableOperation.class).forEach(this::transformPreCheckBackupDeletedTable);
+        allExact(RdbmsDeleteTableOperation.class).forEach(this::transformPreCheckBackupDeletedTable);
 
         // Pre-check backup modified tables
-        all(RdbmsModifyTableOperation.class).forEach(this::transformPreCheckBackupModifiedTable);
+        allExact(RdbmsModifyTableOperation.class).forEach(this::transformPreCheckBackupModifiedTable);
 
         // Check fields
-        all(RdbmsValueField.class)
+        allExact(RdbmsValueField.class)
                 .filter(this::isFieldInPreviousModel)
                 .forEach(this::transformCheckValueField);
 
-        all(RdbmsIdentifierField.class)
-                .filter(f -> !(f instanceof RdbmsForeignKey))
+        allExact(RdbmsIdentifierField.class)
                 .filter(this::isFieldInPreviousModel)
                 .forEach(this::transformCheckIdentifierField);
 
-        all(RdbmsForeignKey.class)
+        allExact(RdbmsForeignKey.class)
                 .filter(this::isFieldInPreviousModel)
                 .forEach(this::transformCheckForeignKey);
 
         // Check foreign key constraints
-        all(RdbmsForeignKey.class)
+        allExact(RdbmsForeignKey.class)
                 .filter(this::isFieldInPreviousModel)
                 .forEach(this::transformCheckForeignKeyConstraint);
 
         // Check indexes
-        all(RdbmsIndex.class)
-                .filter(this::isIndexInPreviousModel)
+        allExact(RdbmsIndex.class)
+                .filter(i -> modelContainsIndex(previousModel(), (RdbmsTable) i.eContainer(), i))
                 .forEach(this::transformCheckIndex);
 
         log.debug("DB Checkup transformation completed");
         return buildTraceResult();
     }
 
-    private boolean isPreviousModelContainsElement(EObject element) {
-        return true;
-    }
-
     private boolean isFieldInPreviousModel(RdbmsField field) {
-        return field.eContainer() != null;
-    }
-
-    private boolean isIndexInPreviousModel(RdbmsIndex index) {
-        return index.eContainer() != null;
+        return modelContainsField(previousModel(), (RdbmsTable) field.eContainer(), field);
     }
 
     private void transformCheckTable(RdbmsTable table) {
