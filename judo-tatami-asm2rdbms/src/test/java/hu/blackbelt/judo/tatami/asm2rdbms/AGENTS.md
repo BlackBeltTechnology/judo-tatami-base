@@ -4,6 +4,6 @@ Core (Epsilon-free, Zeta) tests: abbreviation rules, workflow execution, ETL-mis
 
 | File | Purpose |
 | --- | --- |
-| `AbbreviateUtilsTest.java` | Tests SQL identifier shortening rules via `AbbreviateUtils.abbreviate()`. Asserts target character length boundaries, word separator handling, and consonant compression for issue JNG-1303. |
+| `AbbreviateUtilsTest.java` | Tests SQL identifier shortening rules via `AbbreviateUtils.abbreviate()`. Asserts target character length boundaries, word separator handling, and consonant compression for issue JNG-1303. `testUnreachableLimitFailsInsteadOfLooping`: unreachable limit throws within 5 s. See change: rdbms-incremental-without-epsilon. |
 | `Asm2RdbmsWorkEtlMissingTest.java` | ETL mode without add-on throws `EtlEngineMissingException` naming `hu.blackbelt.judo.tatami:judo-tatami-asm2rdbms-etl`; asserts `getEngineType()` = `Asm2RdbmsEtlEngine`. See change: split-etl-artifacts. |
 | `Asm2RdbmsWorkTest.java` | Tests `Asm2RdbmsWork` step in `WorkFlowEngine` across dialects (hsqldb, oracle) via `new Asm2RdbmsWork(ctx, dialect)`; asserts completion. `testZetaTraceHasNoDuplicateTargets`: Northwind, hsqldb+oracle; no duplicate targets per source, exactly one `RdbmsField` per `EAttribute` (failed before dedupe fix). See change: split-etl-artifacts (esm-itest Zeta fixes). |

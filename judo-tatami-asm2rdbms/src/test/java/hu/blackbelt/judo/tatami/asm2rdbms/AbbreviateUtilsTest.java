@@ -22,9 +22,14 @@ package hu.blackbelt.judo.tatami.asm2rdbms;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static hu.blackbelt.judo.tatami.asm2rdbms.AbbreviateUtils.abbreviate;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AbbreviateUtilsTest {
 
@@ -44,5 +49,14 @@ public class AbbreviateUtilsTest {
         assertThat(abbreviate("MAN_OF_BREEDING_AND_DEILCACY_COULD_NOT_BUT_FEEL_SOME", 32, "_"), equalTo("ma_of_bdg_ad_dlccy_cld_n_b_fl_sm"));
         assertThat(abbreviate("man_of_breeding_and_deilcacy_could_not_but_feel_some", 20, "_"), equalTo("ma_o_b_a_dc_c_n_b_fs"));
         assertThat(abbreviate("man_of_breeding_and_deilcacy_could_not_but_feel_some", 16, "_"), equalTo("ma_o_b_a_dccnbfs"));
+    }
+
+    @Test
+    public void testUnreachableLimitFailsInsteadOfLooping() {
+        // Only digits are left after every letter is removed: 24 digits cannot fit into 23 characters (JNG-6446).
+        IllegalArgumentException e = assertTimeoutPreemptively(Duration.ofSeconds(5),
+                () -> assertThrows(IllegalArgumentException.class, () -> abbreviate("T123456789012345678901234", 23, "_")));
+        assertTrue(e.getMessage().contains("Cannot abbreviate 'T123456789012345678901234' to 23"));
+        assertThat(abbreviate("T123456789012345678901234", 24, "_"), equalTo("123456789012345678901234"));
     }
 }

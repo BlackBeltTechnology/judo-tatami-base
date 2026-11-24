@@ -298,7 +298,10 @@ final class IncrementalEquivalenceFixture {
         }
     }
 
-    /** Bag of the canonical strings of the changes below a changelog; preconditions are flattened. */
+    /**
+     * Bag of the canonical strings of the changes below a changelog. {@code PreConditions} is flattened; each
+     * {@code Not} stays one canonical entry with its predicates, so a negation cannot move to another predicate.
+     */
     private static Map<String, Integer> bag(EObject changeLog) {
         Map<String, Integer> result = new java.util.TreeMap<>();
         collect(changeLog, result);
@@ -308,7 +311,7 @@ final class IncrementalEquivalenceFixture {
     private static void collect(EObject container, Map<String, Integer> result) {
         for (EObject child : container.eContents()) {
             String name = child.eClass().getName();
-            if ("PreConditions".equals(name) || "Not".equals(name)) {
+            if ("PreConditions".equals(name)) {
                 result.merge("(" + name + " " + attributes(child) + ")", 1, Integer::sum);
                 collect(child, result);
             } else {

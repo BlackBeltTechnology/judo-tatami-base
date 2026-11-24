@@ -53,8 +53,18 @@ public class AbbreviateUtils {
         int checkedLastPosIndex = 1;
         int partIndex = arr.length - 1;
         boolean containActRemovableChar = false;
+        // A full sweep over every removable character and every part without a removal means the limit cannot be
+        // reached (e.g. only digits are left); without this bound the loop never terminates. JNG-6446.
+        // Factor 2: two full alphabet x parts cycles, one before and one after the separator phase drops the first-character
+        // guard (checkedLastPosIndex 1 -> -1); +2 covers the separator and the transition step.
+        final int maxIterationsWithoutRemoval = 2 * (vowelsByFrequency.length + consonantByFrequency.length + 2) * (arr.length + 1);
+        int iterationsWithoutRemoval = 0;
 
         while (shrinkCharsLeft > 0) {
+            if (iterationsWithoutRemoval++ > maxIterationsWithoutRemoval) {
+                throw new IllegalArgumentException("Cannot abbreviate '" + text + "' to " + maxLength
+                        + " characters: no removable character left");
+            }
 
             /*
             StringBuilder ss = new StringBuilder();
@@ -99,6 +109,7 @@ public class AbbreviateUtils {
             containActRemovableChar = false;
             if (shrinkCharsLeft > 0 && arr[partIndex].length() > checkedLastPosIndex + 1 && arr[partIndex].lastIndexOf(actRemovableChar) > checkedLastPosIndex) {
                 shrinkCharsLeft--;
+                iterationsWithoutRemoval = 0;
                 String cns = arr[partIndex].substring(checkedLastPosIndex + 1);
                 int pos =  cns.lastIndexOf(actRemovableChar);
                 cns = cns.substring(0, pos) + cns.substring(pos + 1);
