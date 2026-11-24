@@ -23,15 +23,19 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.incremental;
 import hu.blackbelt.judo.meta.liquibase.ChangeSet;
 import hu.blackbelt.judo.meta.liquibase.SqlFile;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
-import hu.blackbelt.judo.meta.rdbms.*;
+import hu.blackbelt.judo.meta.rdbms.RdbmsModifyFieldOperation;
+import hu.blackbelt.judo.meta.rdbms.RdbmsTableOperation;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.ReviewResolver;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseRuleNames.*;
 
@@ -45,10 +49,17 @@ import static hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseRuleN
  *   <li>Field size changes</li>
  *   <li>Type changes</li>
  * </ul>
+ * Mirrors {@code dataUpdateBeforeIncremental.etl}: the rules run one after the other over all modify-field operations
+ * (rule declaration order), every rule creates its change set first, and a {@link SqlFile} is added only for an
+ * existing non-empty review script; unknown scripts are recorded in {@code missingReviewScripts}.
+ * See change: rdbms-incremental-without-epsilon.
  * </p>
  */
 @Slf4j
 public class DataUpdateBeforeZetaTransformation extends AbstractIncrementalSubTransformation {
+
+    private final ReviewResolver reviewResolver;
+    private final Map<String, String> missingReviewScripts;
 
     @Builder
     public DataUpdateBeforeZetaTransformation(
@@ -56,8 +67,12 @@ public class DataUpdateBeforeZetaTransformation extends AbstractIncrementalSubTr
             @NonNull LiquibaseModel liquibaseModel,
             @NonNull String dialect,
             String backupTableNamePrefix,
-            Integer tableNameMaxSize) {
+            Integer tableNameMaxSize,
+            @NonNull ReviewResolver reviewResolver,
+            Map<String, String> missingReviewScripts) {
         super(rdbmsModel, liquibaseModel, dialect, backupTableNamePrefix, tableNameMaxSize);
+        this.reviewResolver = reviewResolver;
+        this.missingReviewScripts = missingReviewScripts != null ? missingReviewScripts : new HashMap<>();
     }
 
     @Override
@@ -66,94 +81,40 @@ public class DataUpdateBeforeZetaTransformation extends AbstractIncrementalSubTr
 
         initializeChangeLog();
 
-        all(RdbmsModifyFieldOperation.class).forEach(op -> {
-            if (op.isChangedValueFieldToForeignKey()) {
-                transformSqlFileForChangingToForeignKeyBefore(op);
-            }
-            if (op.isChangedForeignKeyToValueField()) {
-                transformSqlFileForChangingToValueFieldBefore(op);
-            }
-            if (op.isReviewRequired() && op.isSizeChanged()) {
-                transformSqlFileForSizeChange(op);
-            }
-            if (op.isTypeChanged()) {
-                transformSqlFileForTypeChangeBefore(op);
-            }
-        });
+        reviewRule(RdbmsModifyFieldOperation::isChangedValueFieldToForeignKey,
+                "change-to-foreign-key-", "change-to-foreign-key", "_to_foreign_key_before_",
+                "Sql script not found for value field changed to foreign key [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_CHANGING_TO_FK_BEFORE);
+        reviewRule(RdbmsModifyFieldOperation::isChangedForeignKeyToValueField,
+                "change-to-value-field-", "change-to-value-field", "_to_value_field_before_",
+                "Sql script not found for foreign key changed to value field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_CHANGING_TO_VALUE_FIELD_BEFORE);
+        reviewRule(op -> op.isReviewRequired() && op.isSizeChanged(),
+                "modify-size-in-", "modify-size", "_size_",
+                "Sql script not found for changed size of field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_SIZE_CHANGE);
+        reviewRule(RdbmsModifyFieldOperation::isTypeChanged,
+                "modify-type-in-before-", "modify-type", "_type_before_",
+                "Sql script not found for changed type of field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_TYPE_CHANGE_BEFORE);
 
         log.debug("Data Update Before Incremental transformation completed");
         return buildTraceResult();
     }
 
-    private void transformSqlFileForChangingToForeignKeyBefore(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for changing to FK before: {}.{}", tableName, columnName);
+    private void reviewRule(Predicate<RdbmsModifyFieldOperation> guard, String changeSetIdPrefix,
+                            String logicalFilePath, String sqlNameInfix, String messageFormat, String ruleName) {
+        all(RdbmsModifyFieldOperation.class).filter(guard).forEach(op -> {
+            RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
+            String tableName = tableOp.getTable().getSqlName();
+            String columnName = op.getField().getSqlName();
+            log.debug("  Transform SQL file {}: {}.{}", ruleName, tableName, columnName);
 
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_foreign_key_before_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "change-to-foreign-key-" + tableName + "-" + context, "change-to-foreign-key");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_CHANGING_TO_FK_BEFORE, sqlFile);
-    }
-
-    private void transformSqlFileForChangingToValueFieldBefore(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for changing to value field before: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_value_field_before_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "change-to-value-field-" + tableName + "-" + context, "change-to-value-field");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_CHANGING_TO_VALUE_FIELD_BEFORE, sqlFile);
-    }
-
-    private void transformSqlFileForSizeChange(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for size change: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_size_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "modify-size-in-" + tableName + "-" + context, "modify-size");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_SIZE_CHANGE, sqlFile);
-    }
-
-    private void transformSqlFileForTypeChangeBefore(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for type change before: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_type_before_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "modify-type-in-before-" + tableName + "-" + context, "modify-type");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_TYPE_CHANGE_BEFORE, sqlFile);
+            ChangeSet changeSet = getOrCreateChangeSet(changeSetIdPrefix + tableName + "-" + context, logicalFilePath);
+            String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + sqlNameInfix + dialect + ".sql";
+            SqlFile sqlFile = addReviewSqlFile(reviewResolver, missingReviewScripts, changeSet, sqlName,
+                    String.format(messageFormat, columnName, tableName));
+            addTrace(op, ruleName, sqlFile);
+        });
     }
 }

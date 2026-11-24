@@ -65,29 +65,32 @@ public class AfterIncrementalZetaTransformation extends AbstractIncrementalSubTr
 
         initializeChangeLog();
 
+        // Rule sources are the elements of exactly the rule's type whose table is part of the new model
+        // (guard: newModel.contains(s.eContainer)).
+
         // Add foreign key constraints
-        all(RdbmsForeignKey.class)
-                .filter(this::isNewModelContainsContainer)
+        allExact(RdbmsForeignKey.class)
+                .filter(f -> modelContains(newModel(), (RdbmsTable) f.eContainer()))
                 .forEach(this::transformAddForeignKeyConstraint);
 
         // Add not null constraints to value fields
-        all(RdbmsValueField.class)
-                .filter(f -> isNewModelContainsContainer(f) && f.isMandatory())
+        allExact(RdbmsValueField.class)
+                .filter(f -> modelContains(newModel(), (RdbmsTable) f.eContainer()) && f.isMandatory())
                 .forEach(this::transformAddNotNullConstraintToValueField);
 
         // Add not null constraints to foreign keys
-        all(RdbmsForeignKey.class)
-                .filter(f -> isNewModelContainsContainer(f) && f.isMandatory())
+        allExact(RdbmsForeignKey.class)
+                .filter(f -> modelContains(newModel(), (RdbmsTable) f.eContainer()) && f.isMandatory())
                 .forEach(this::transformAddNotNullConstraintToForeignKey);
 
         // Add unique constraints
-        all(RdbmsUniqueConstraint.class)
-                .filter(this::isNewModelContainsContainer)
+        allExact(RdbmsUniqueConstraint.class)
+                .filter(u -> modelContains(newModel(), (RdbmsTable) u.eContainer()))
                 .forEach(this::transformAddUniqueConstraint);
 
         // Add indexes
-        all(RdbmsIndex.class)
-                .filter(this::isNewModelContainsContainer)
+        allExact(RdbmsIndex.class)
+                .filter(i -> modelContains(newModel(), (RdbmsTable) i.eContainer()))
                 .forEach(this::transformAddIndex);
 
         log.debug("After Incremental transformation completed");

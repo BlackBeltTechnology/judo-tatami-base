@@ -23,15 +23,21 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.incremental;
 import hu.blackbelt.judo.meta.liquibase.ChangeSet;
 import hu.blackbelt.judo.meta.liquibase.SqlFile;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
-import hu.blackbelt.judo.meta.rdbms.*;
+import hu.blackbelt.judo.meta.rdbms.RdbmsCreateFieldOperation;
+import hu.blackbelt.judo.meta.rdbms.RdbmsFieldOperation;
+import hu.blackbelt.judo.meta.rdbms.RdbmsModifyFieldOperation;
+import hu.blackbelt.judo.meta.rdbms.RdbmsTableOperation;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.ReviewResolver;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseRuleNames.*;
 
@@ -41,15 +47,22 @@ import static hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.Rdbms2LiquibaseRuleN
  * This phase creates SQL file references for data updates that need to occur after schema changes:
  * <ul>
  *   <li>Mandatory field reviews</li>
+ *   <li>Create field reviews</li>
  *   <li>Value field to foreign key conversions (after)</li>
  *   <li>Foreign key to value field conversions (after)</li>
  *   <li>Type changes (after)</li>
- *   <li>Create field reviews</li>
  * </ul>
+ * Mirrors {@code dataUpdateAfterIncremental.etl}: the rules run one after the other (rule declaration order), every
+ * rule creates its change set first, and a {@link SqlFile} is added only for an existing non-empty review script;
+ * unknown scripts are recorded in {@code missingReviewScripts}.
+ * See change: rdbms-incremental-without-epsilon.
  * </p>
  */
 @Slf4j
 public class DataUpdateAfterZetaTransformation extends AbstractIncrementalSubTransformation {
+
+    private final ReviewResolver reviewResolver;
+    private final Map<String, String> missingReviewScripts;
 
     @Builder
     public DataUpdateAfterZetaTransformation(
@@ -57,8 +70,12 @@ public class DataUpdateAfterZetaTransformation extends AbstractIncrementalSubTra
             @NonNull LiquibaseModel liquibaseModel,
             @NonNull String dialect,
             String backupTableNamePrefix,
-            Integer tableNameMaxSize) {
+            Integer tableNameMaxSize,
+            @NonNull ReviewResolver reviewResolver,
+            Map<String, String> missingReviewScripts) {
         super(rdbmsModel, liquibaseModel, dialect, backupTableNamePrefix, tableNameMaxSize);
+        this.reviewResolver = reviewResolver;
+        this.missingReviewScripts = missingReviewScripts != null ? missingReviewScripts : new HashMap<>();
     }
 
     @Override
@@ -67,116 +84,45 @@ public class DataUpdateAfterZetaTransformation extends AbstractIncrementalSubTra
 
         initializeChangeLog();
 
-        all(RdbmsModifyFieldOperation.class).forEach(op -> {
-            if (op.isReviewRequired() && op.isMandatoryChanged()) {
-                transformSqlFileForMandatoryReview(op);
-            }
-            if (op.isChangedValueFieldToForeignKey()) {
-                transformSqlFileForChangingToForeignKeyAfter(op);
-            }
-            if (op.isChangedForeignKeyToValueField()) {
-                transformSqlFileForChangingToValueFieldAfter(op);
-            }
-            if (op.isTypeChanged()) {
-                transformSqlFileForTypeChangeAfter(op);
-            }
-        });
-
-        all(RdbmsCreateFieldOperation.class)
-                .filter(RdbmsCreateFieldOperation::isReviewRequired)
-                .forEach(this::transformSqlFileForCreateFieldReview);
+        reviewRule(RdbmsModifyFieldOperation.class, op -> op.isReviewRequired() && op.isMandatoryChanged(),
+                "modify-mandatory-", "modify-mandatory", "_mandatory_",
+                "Sql script not found for mandatory field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_MANDATORY_REVIEW);
+        reviewRule(RdbmsCreateFieldOperation.class, RdbmsCreateFieldOperation::isReviewRequired,
+                "create-field-", "create-field", "_create_",
+                "Sql script not found for newly created mandatory field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_CREATE_FIELD_REVIEW);
+        reviewRule(RdbmsModifyFieldOperation.class, RdbmsModifyFieldOperation::isChangedValueFieldToForeignKey,
+                "change-to-foreign-key-", "change-to-foreign-key", "_to_foreign_key_after_",
+                "Sql script not found for value field changed to foreign key [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_CHANGING_TO_FK_AFTER);
+        reviewRule(RdbmsModifyFieldOperation.class, RdbmsModifyFieldOperation::isChangedForeignKeyToValueField,
+                "change-to-value-field-", "change-to-value-field", "_to_value_field_after_",
+                "Sql script not found for foreign key changed to value field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_CHANGING_TO_VALUE_FIELD_AFTER);
+        reviewRule(RdbmsModifyFieldOperation.class, RdbmsModifyFieldOperation::isTypeChanged,
+                "modify-type-in-after-", "modify-type", "_type_after_",
+                "Sql script not found for changed type of field [%s] of [%s]",
+                CREATE_SQL_FILE_FOR_TYPE_CHANGE_AFTER);
 
         log.debug("Data Update After Incremental transformation completed");
         return buildTraceResult();
     }
 
-    private void transformSqlFileForMandatoryReview(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for mandatory review: {}.{}", tableName, columnName);
+    private <T extends RdbmsFieldOperation> void reviewRule(
+            Class<T> operationType, Predicate<T> guard, String changeSetIdPrefix, String logicalFilePath,
+            String sqlNameInfix, String messageFormat, String ruleName) {
+        all(operationType).filter(guard).forEach(op -> {
+            RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
+            String tableName = tableOp.getTable().getSqlName();
+            String columnName = op.getField().getSqlName();
+            log.debug("  Transform SQL file {}: {}.{}", ruleName, tableName, columnName);
 
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_mandatory_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "modify-mandatory-" + tableName + "-" + context, "modify-mandatory");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_MANDATORY_REVIEW, sqlFile);
-    }
-
-    private void transformSqlFileForCreateFieldReview(RdbmsCreateFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for create field review: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_create_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "create-field-" + tableName + "-" + context, "create-field");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_CREATE_FIELD_REVIEW, sqlFile);
-    }
-
-    private void transformSqlFileForChangingToForeignKeyAfter(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for changing to FK after: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_foreign_key_after_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "change-to-foreign-key-" + tableName + "-" + context, "change-to-foreign-key");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_CHANGING_TO_FK_AFTER, sqlFile);
-    }
-
-    private void transformSqlFileForChangingToValueFieldAfter(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for changing to value field after: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_to_value_field_after_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "change-to-value-field-" + tableName + "-" + context, "change-to-value-field");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_CHANGING_TO_VALUE_FIELD_AFTER, sqlFile);
-    }
-
-    private void transformSqlFileForTypeChangeAfter(RdbmsModifyFieldOperation op) {
-        RdbmsTableOperation tableOp = (RdbmsTableOperation) op.eContainer();
-        String tableName = tableOp.getTable().getSqlName();
-        String columnName = op.getField().getSqlName();
-        log.debug("  Transform SQL file for type change after: {}.{}", tableName, columnName);
-
-        SqlFile sqlFile = liquibaseFactory.createSqlFile();
-        String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + "_type_after_" + dialect + ".sql";
-        sqlFile.setPath(sqlName);
-        sqlFile.setDbms(dialect);
-
-        ChangeSet changeSet = getOrCreateChangeSet(
-                "modify-type-in-after-" + tableName + "-" + context, "modify-type");
-        changeSet.getSqlFile().add(sqlFile);
-
-        addTrace(op, CREATE_SQL_FILE_FOR_TYPE_CHANGE_AFTER, sqlFile);
+            ChangeSet changeSet = getOrCreateChangeSet(changeSetIdPrefix + tableName + "-" + context, logicalFilePath);
+            String sqlName = tableName.toLowerCase() + "_" + columnName.toLowerCase() + sqlNameInfix + dialect + ".sql";
+            SqlFile sqlFile = addReviewSqlFile(reviewResolver, missingReviewScripts, changeSet, sqlName,
+                    String.format(messageFormat, columnName, tableName));
+            addTrace(op, ruleName, sqlFile);
+        });
     }
 }
