@@ -6,8 +6,9 @@ ETL add-on for the RDBMS→Liquibase stage. Epsilon reaches a classpath only thr
 
 - `src/main/java/.../rdbms2liquibase/etl/Rdbms2Liquibase.java` — ETL entry point, moved from core; package `hu.blackbelt.judo.tatami.rdbms2liquibase.etl`.
 - `src/main/java/.../rdbms2liquibase/etl/Rdbms2LiquibaseEtlEngineImpl.java` — implements core `Rdbms2LiquibaseEtlEngine` by delegating to `Rdbms2Liquibase`.
-- `src/main/java/.../rdbms2liquibase/etl/osgi/Rdbms2LiquibaseEtlEngineComponent.java` — DS component; registers the engine in `EtlEngineRegistry` on activate, unregisters on deactivate.
-- `src/main/resources/META-INF/services/hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2LiquibaseEtlEngine` — `ServiceLoader` registration.
+- `src/main/java/.../rdbms2liquibase/etl/Rdbms2LiquibaseIncrementalEtlEngineImpl.java` — implements core `Rdbms2LiquibaseIncrementalEtlEngine` by delegating to `Rdbms2LiquibaseIncremental` (signatures unchanged). See change: rdbms-incremental-without-epsilon.
+- `src/main/java/.../rdbms2liquibase/etl/osgi/Rdbms2LiquibaseEtlEngineComponent.java`, `.../osgi/Rdbms2LiquibaseIncrementalEtlEngineComponent.java` — DS components; register the engines in `EtlEngineRegistry` on activate, unregister on deactivate.
+- `src/main/resources/META-INF/services/hu.blackbelt.judo.tatami.rdbms2liquibase.Rdbms2LiquibaseEtlEngine`, `...Rdbms2LiquibaseIncrementalEtlEngine` — `ServiceLoader` registration.
 - `src/main/epsilon/**` — ETL/EOL scripts, moved from core.
 - `src/test/java/**` — ETL, dual-engine (ETL vs Zeta) and perf tests, moved from core.
 - `etl/Rdbms2LiquibaseIncremental.java`, `etl/Rdbms2LiquibaseIncrementalWork.java` — ETL/EGL-only incremental changelog pipeline, moved from core; only main-code caller is `judo-rdbms-schema-incremental`.
@@ -21,4 +22,4 @@ Plain Java and Spring Boot: `ServiceLoader` via `META-INF/services`. Karaf: DS c
 - Core never imports `.etl` classes; the dependency points `-etl` → core only.
 - Package stays `.etl` (sub-package of core) to avoid an OSGi split package.
 
-Doc discipline: see repo root `../AGENTS.md`. See change: split-etl-artifacts.
+Doc discipline: see repo root `../AGENTS.md`. See change: split-etl-artifacts, rdbms-incremental-without-epsilon.

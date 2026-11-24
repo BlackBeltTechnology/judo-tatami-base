@@ -22,10 +22,17 @@ package hu.blackbelt.judo.tatami.rdbms2liquibase.zeta.incremental;
 
 import hu.blackbelt.judo.meta.liquibase.ChangeSet;
 import hu.blackbelt.judo.meta.liquibase.LiquibaseFactory;
+import hu.blackbelt.judo.meta.liquibase.SqlFile;
 import hu.blackbelt.judo.meta.liquibase.databaseChangeLog;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
+import hu.blackbelt.judo.meta.rdbms.RdbmsElement;
 import hu.blackbelt.judo.meta.rdbms.RdbmsField;
+import hu.blackbelt.judo.meta.rdbms.RdbmsIndex;
+import hu.blackbelt.judo.meta.rdbms.RdbmsOperationMeta;
+import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.AbbreviateUtils;
+import hu.blackbelt.judo.tatami.rdbms2liquibase.ReviewResolver;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.ecore.EObject;
@@ -34,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -67,6 +75,8 @@ public abstract class AbstractIncrementalSubTransformation {
     // Trace map for source to target element mapping
     protected final Map<EObject, Map<String, EObject>> traceMap = new ConcurrentHashMap<>();
 
+    private RdbmsOperationMeta operationMeta;
+
     // Cache for changeSets by logical file path
     protected final Map<String, ChangeSet> changeSetCache = new HashMap<>();
 
@@ -97,26 +107,86 @@ public abstract class AbstractIncrementalSubTransformation {
     }
 
     /**
-     * Helper method to get all elements of a given type from the RDBMS model.
+     * All elements of the incremental RDBMS resource that are of the given kind, in containment (pre-)order.
+     * The incremental resource holds the operation model, the {@link RdbmsOperationMeta} and the roots of the
+     * previous and of the new model, like the {@code RDBMS} model of the ETL.
      */
     protected <T> Stream<T> all(Class<T> clazz) {
-        return rdbmsModel.getResourceSet().getResources().stream()
-                .flatMap(r -> r.getContents().stream())
-                .flatMap(e -> {
-                    List<T> result = new ArrayList<>();
-                    collectAllOfType(e, clazz, result);
-                    return result.stream();
-                });
+        List<T> result = new ArrayList<>();
+        for (EObject root : rdbmsModel.getResource().getContents()) {
+            collectAllOfType(root, clazz, false, result);
+        }
+        return result.stream();
+    }
+
+    /**
+     * Like {@link #all(Class)} but only elements whose type is exactly {@code clazz} (no sub types). Epsilon ETL
+     * rules transform instances of their source type only (not greedy), so this mirrors a rule's source set.
+     */
+    protected <T> Stream<T> allExact(Class<T> clazz) {
+        List<T> result = new ArrayList<>();
+        for (EObject root : rdbmsModel.getResource().getContents()) {
+            collectAllOfType(root, clazz, true, result);
+        }
+        return result.stream();
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void collectAllOfType(EObject root, Class<T> clazz, List<T> result) {
-        if (clazz.isInstance(root)) {
+    private <T> void collectAllOfType(EObject root, Class<T> clazz, boolean exact, List<T> result) {
+        if (exact ? clazz == root.eClass().getInstanceClass() : clazz.isInstance(root)) {
             result.add((T) root);
         }
         for (EObject child : root.eContents()) {
-            collectAllOfType(child, clazz, result);
+            collectAllOfType(child, clazz, exact, result);
         }
+    }
+
+    // ------------------------------------------------------------------------------------------------------------
+    // Previous / new model membership (model.eol and table.eol of the ETL)
+
+    /** The model before the change ({@code operationMeta.previousModel} of the ETL). */
+    protected hu.blackbelt.judo.meta.rdbms.RdbmsModel previousModel() {
+        return operationMeta().getPreviousModel();
+    }
+
+    /** The model after the change ({@code operationMeta.currentModel} of the ETL). */
+    protected hu.blackbelt.judo.meta.rdbms.RdbmsModel newModel() {
+        return operationMeta().getCurrentModel();
+    }
+
+    private RdbmsOperationMeta operationMeta() {
+        if (operationMeta == null) {
+            operationMeta = all(RdbmsOperationMeta.class).findFirst().orElseThrow(() ->
+                    new IllegalStateException("The incremental RDBMS model has no RdbmsOperationMeta"));
+        }
+        return operationMeta;
+    }
+
+    /** {@code model.contains(table)}: the first table of the model with the table's uuid is the table itself. */
+    protected static boolean modelContains(hu.blackbelt.judo.meta.rdbms.RdbmsModel model, RdbmsTable table) {
+        return model != null && table != null && firstByUuid(model.getRdbmsTables(), table.getUuid()) == table;
+    }
+
+    /** {@code model.contains(table) and model.tableOf(table).contains(field)}. */
+    protected static boolean modelContainsField(hu.blackbelt.judo.meta.rdbms.RdbmsModel model, RdbmsTable table,
+                                                RdbmsField field) {
+        return modelContains(model, table) && firstByUuid(table.getFields(), field.getUuid()) == field;
+    }
+
+    /** {@code model.contains(table) and model.tableOf(table).contains(index)}. */
+    protected static boolean modelContainsIndex(hu.blackbelt.judo.meta.rdbms.RdbmsModel model, RdbmsTable table,
+                                                RdbmsIndex index) {
+        return modelContains(model, table) && firstByUuid(table.getIndexes(), index.getUuid()) == index;
+    }
+
+    /** First element with the uuid (EOL {@code selectOne(e | e.uuid == uuid)}, {@code null == null}). */
+    private static <T extends RdbmsElement> T firstByUuid(List<T> elements, String uuid) {
+        for (T element : elements) {
+            if (Objects.equals(element.getUuid(), uuid)) {
+                return element;
+            }
+        }
+        return null;
     }
 
     /**
@@ -155,12 +225,36 @@ public abstract class AbstractIncrementalSubTransformation {
     }
 
     /**
-     * Abbreviate string to max length.
+     * Abbreviate string to max length. Same algorithm as the ETL {@code abbreviate} operation
+     * ({@code AbbreviateUtils.abbreviate(text, maxLength, "_")}).
      */
     protected String abbreviate(String str, int maxLength) {
         if (str == null) return "";
-        if (str.length() <= maxLength) return str;
-        return str.substring(0, maxLength);
+        return AbbreviateUtils.abbreviate(str, maxLength, "_");
+    }
+
+    /**
+     * Review script resolution ({@code sqlFile.eol} {@code addSqlFileToChangeSet} semantics): a {@link SqlFile} is
+     * added only when the resolver knows the script and the script is not blank; an existing blank script adds
+     * nothing; an unknown script is recorded in {@code missingReviewScripts}.
+     *
+     * @return the added {@link SqlFile}, or {@code null}
+     */
+    protected SqlFile addReviewSqlFile(ReviewResolver reviewResolver, Map<String, String> missingReviewScripts,
+                                       ChangeSet changeSet, String sqlName, String message) {
+        if (!reviewResolver.exists(sqlName)) {
+            missingReviewScripts.put(sqlName, message);
+            return null;
+        }
+        String script = reviewResolver.resolve(sqlName);
+        if (script == null || script.trim().isEmpty()) {
+            return null;
+        }
+        SqlFile sqlFile = liquibaseFactory.createSqlFile();
+        sqlFile.setPath(sqlName);
+        sqlFile.setDbms(dialect);
+        changeSet.getSqlFile().add(sqlFile);
+        return sqlFile;
     }
 
     /**
@@ -199,21 +293,5 @@ public abstract class AbstractIncrementalSubTransformation {
             result.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
         }
         return result;
-    }
-
-    /**
-     * Simplified check if element was in previous model.
-     * In a real implementation, this would verify against the previous model.
-     */
-    protected boolean isPreviousModelContainsContainer(EObject element) {
-        return element.eContainer() != null;
-    }
-
-    /**
-     * Simplified check if element is in new model.
-     * In a real implementation, this would verify against the new model.
-     */
-    protected boolean isNewModelContainsContainer(EObject element) {
-        return element.eContainer() != null;
     }
 }
